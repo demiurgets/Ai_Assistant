@@ -15,7 +15,9 @@ settings = {
     'openAi_key': '53Mu7zXn59m0dgxQRU7kT3BlbkFJgvRmEEpP907IMakf8FSc',
     'urls': [
         'https://www.tarrantcountytx.gov/en/veteran-services/va-benefit-programs/veterans-benefits-from-the-state-of-texas.html',
-        'https://www.military.com/benefits/veteran-state-benefits/texas-state-veterans-benefits.html'
+        'https://www.military.com/benefits/veteran-state-benefits/texas-state-veterans-benefits.html',
+         "https://www.wati.io/blog/what-is-whatsapp-chatbot/"
+
     ],
     'course_id': 24,
     'chunk_size': 500,
@@ -54,7 +56,15 @@ def read_and_clean_html_files(file_paths):
     return contents
 
 def scrape_and_clean_url(url):
-    response = requests.get(url)
+    headers = {
+        'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/91.0.4472.124 Safari/537.36',
+        'Accept-Language': 'en-US,en;q=0.9',
+        'Accept-Encoding': 'gzip, deflate, br',
+        'Connection': 'keep-alive',
+        'Upgrade-Insecure-Requests': '1',
+        'Cache-Control': 'max-age=0'
+    }
+    response = requests.get(url, headers=headers)    
     if response.status_code != 200:
         raise Exception(f"Failed to retrieve the web page. Status code: {response.status_code}")
     

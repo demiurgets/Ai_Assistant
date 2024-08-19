@@ -41,3 +41,6 @@ np.save('../Injestor/Stored_context/document_embeddings.npy', embeddings)
 
 with open('document_metadata.json', 'w') as f:
     json.dump(metadata, f, indent=4)
+
+print("Embeddings Generated")
+
