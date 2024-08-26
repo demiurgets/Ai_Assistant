@@ -16,10 +16,9 @@ from dotenv import load_dotenv
 # Load the .env file
 load_dotenv()
 
-# Access the API keys
-api_key = os.getenv('API_KEY')
-reader_id = os.getenv('ASST_ID_READER')
-interviewer_id = os.getenv('ASST_INTERVIEWER')
+api_key = st.secrets["api_keys"]["API_KEY"]
+reader_id = st.secrets["api_keys"]["ASST_ID_READER"]
+interviewer_id = st.secrets["api_keys"]["ASST_INTERVIEWER"]
 
 config = load_config()
 os.environ["KMP_DUPLICATE_LIB_OK"] = "TRUE"
