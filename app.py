@@ -1,4 +1,5 @@
 import streamlit as st
+from streamlit_js_eval import streamlit_js_eval
 import numpy as np
 import json
 import faiss
@@ -12,8 +13,10 @@ from config_loader import load_config
 import os
 from dotenv import load_dotenv
 
+# Load the .env file
 load_dotenv()
 
+# Access the API keys
 api_key = os.getenv('API_KEY')
 reader_id = os.getenv('ASST_ID_READER')
 interviewer_id = os.getenv('ASST_INTERVIEWER')
