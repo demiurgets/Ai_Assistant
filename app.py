@@ -12,6 +12,8 @@ import re
 from config_loader import load_config
 import os
 from dotenv import load_dotenv
+import time
+
 
 # Load the .env file
 load_dotenv()
@@ -174,22 +176,87 @@ def save_extracted_json(json_data):
     with open(file_path, 'w') as f:
         json.dump(all_data, f, indent=4)
 
-def main():
-    st.title("AI Assistant")
+def message_send():
+    # Retrieve the query and response length from session state
+    query = st.session_state.query_input
+    response_length = st.session_state.response_length
 
+    # Clear the input box
+    st.session_state.query_input = ""
+
+    # Add user message to chat history
+    st.session_state.chat_history.append({'role': 'user', 'content': query})
+
+    if query.lower().startswith("tell me"):
+        assistant_response_text = embeddings_search(query, response_length)
+    else:
+        # Create a new thread if it does not exist
+        if st.session_state.thread_id is None:
+            key = api_key
+            client = OpenAI(api_key=key)
+            thread = client.beta.threads.create()
+            st.session_state.thread_id = thread.id
+        assistant_response_text = assistant_response(st.session_state.thread_id, query, response_length)
+
+    # Add assistant response to chat history
+    finalMessageFound = detect_trigger_string(assistant_response_text, st.session_state.thread_id)
+    st.session_state.chat_history.append({'role': 'assistant', 'content': assistant_response_text})
+
+    # Display the assistant's response
+    #st.text_area("Assistant:", value=assistant_response_text, disabled=True, height=150)
+
+    st.subheader("Response Sources")
+    if query.lower().startswith("tell me"):
+        results = search(query)
+        for result in results:
+            st.write(f"Document: {result['title']}")
+            st.write(f"Chunk {result['chunk_id']}")
+            st.write(f"Content: {result['content']}")
+            st.write(f"Link: {result['link']}")
+            st.write("__________________________")
+
+def main():
+    st.markdown("""
+        <style>
+        .chat-container {
+            display: flex;
+            flex-direction: column;
+            width: 100%;
+            max-width: 800px;
+            margin: auto;
+        }
+        .chat-bubble {
+            max-width: 70%;
+            padding: 10px 15px;
+            margin: 5px;
+            border-radius: 10px;
+            font-size: 14px;
+            line-height: 1.5;
+            color: #333; /* Dark color for text */
+        }
+        .user-bubble {
+            background-color: #DCF8C6;
+            align-self: flex-end;
+        }
+        .assistant-bubble {
+            background-color: #FFFFFF;
+            align-self: flex-start;
+            border: 1px solid #E1E1E1;
+        }
+        </style>
+        """, unsafe_allow_html=True)
+    
+    st.title("AI Assistant")
     if 'urls' not in st.session_state:
         st.session_state.urls = load_urls()
-
     if 'thread_id' not in st.session_state:
         st.session_state.thread_id = None
-
     if 'chat_history' not in st.session_state:
         st.session_state.chat_history = []
 
     with st.expander("Manage Context"):
         pdf_file = st.file_uploader("Upload a PDF", type="pdf")
         video_file = st.file_uploader("Upload a video", type=["mp4", "avi", "mov"])
-
         if pdf_file:
             pdf_filename = pdf_file.name
             pdf_path = os.path.join("Injestor", "Stored_context", pdf_filename)
@@ -211,7 +278,6 @@ def main():
                     subprocess.run(["python", "url_scraper.py"], check=True, cwd=cwdpath)
                 else:
                     st.warning("URL already exists in the list.")
-
         for i, url in enumerate(st.session_state.urls):
             cols = st.columns([3, 1])
             cols[0].write(url)
@@ -248,46 +314,16 @@ def main():
     st.subheader("Chat History")
     for message in st.session_state.chat_history:
         if message['role'] == 'user':
-            st.write(f"You: {message['content']}")
+            st.markdown(f'<div class="chat-bubble user-bubble">{message["content"]}</div>', unsafe_allow_html=True)
         elif message['role'] == 'assistant':
-            st.write(f"Assistant: {message['content']}")
-            
+            st.markdown(f'<div class="chat-bubble assistant-bubble">{message["content"]}</div>', unsafe_allow_html=True)
 
-    response_length = st.selectbox("Select response length:", ["One Sentence", "One Paragraph", "Multiple paragraphs"])
-    query = st.text_input("Enter your query:")
+    #st.session_state.response_length = st.selectbox("Select response length:", ["One Sentence", "One Paragraph", "Multiple paragraphs"])
+    st.session_state.response_length = "One paragraph"
 
-    if query:
-        # Add user message to chat history
-        st.session_state.chat_history.append({'role': 'user', 'content': query})
+    query = st.text_input("Enter your query:", key="query_input", on_change=message_send)
 
-        if query.lower().startswith("tell me"):
-            assistant_response_text = embeddings_search(query, response_length)
-        else:
-            # Create a new thread if it does not exist
-            if st.session_state.thread_id is None:
-                key = api_key
-                client = OpenAI(api_key=key)
-                thread = client.beta.threads.create()
-                st.session_state.thread_id = thread.id
-            assistant_response_text = assistant_response(st.session_state.thread_id, query, response_length)
-
-        # Add assistant response to chat history
-        finalMessageFound = detect_trigger_string(assistant_response_text,  st.session_state.thread_id)
-        st.session_state.chat_history.append({'role': 'assistant', 'content': assistant_response_text})
-
-        # Display the assistant's response
-        st.text_area("Assistant:", value=assistant_response_text, disabled=True, height=150)
-        
-        st.subheader("Response Sources")
- 
-        if query.lower().startswith("tell me"):
-            results = search(query)
-            for result in results:
-                st.write(f"Document: {result['title']}")
-                st.write(f"Chunk {result['chunk_id']}")
-                st.write(f"Content: {result['content']}")
-                st.write(f"Link: {result['link']}")
-                st.write("__________________________")
+    
 
 if __name__ == "__main__":
     main()

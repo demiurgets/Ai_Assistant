@@ -1,147 +1,5 @@
 [
     {
-        "full_name": "Ian Mendoza",
-        "age": 21,
-        "location": "El Paso, Texas",
-        "experience": "Software development and hot sauce taste testing",
-        "questions": "About the exact pay"
-    },
-    {
-        "full_name": "George Washington",
-        "age": 21,
-        "location": "New York City",
-        "experience": "Strong team management skills and ability to work well under pressure"
-    },
-    {
-        "full_name": "Yohans Mendoza",
-        "age": 51,
-        "location": "Washington DC",
-        "experience": "Worked for several large software companies and has own software company",
-        "questions": "Interested in knowing about the pay"
-    },
-    {
-        "name": "Ian Mendoza",
-        "age": 21,
-        "location": "Houston, Texas",
-        "experience": "Ian has 7 years of experience as a software developer and professional magician, specializing in full-stack development and custom web applications.",
-        "questions": "None"
-    },
-    {
-        "name": "Ian Mendoza",
-        "age": 24,
-        "location": "Denver",
-        "experience": "Night shifts doing security",
-        "questions": "Is there night or evening shifts available? what can you tell me about them?"
-    },
-    {
-        "name": "John Doe",
-        "age": 30,
-        "location": "Mexico City",
-        "position": "Baker",
-        "experience": "5 years in a bakery",
-        "contact": {
-            "preferred": "Email",
-            "email": "johndoe@example.com"
-        }
-    },
-    {
-        "name": "John Doe",
-        "age": 30,
-        "location": "New York City",
-        "position": "Boiler Operator",
-        "experience": "5 years in a similar role",
-        "contact": {
-            "method": "email",
-            "info": "johndoe@example.com"
-        }
-    },
-    {
-        "name": "Tony Soprano",
-        "age": 46,
-        "location": "Massachussets",
-        "position": "Electromechanical Technician",
-        "experience": "College and some electrician work",
-        "contact": "915 334-2919"
-    },
-    {
-        "name": "Ian Mendoza",
-        "age": 21,
-        "location": "El Paso, Texas",
-        "position": "Service Mechanic",
-        "experience": "N/A",
-        "contact": {
-            "email": "ian.mendoza9@gmail.com"
-        }
-    },
-    {
-        "name": "Ian Mendoza",
-        "age": null,
-        "location": null,
-        "position": null,
-        "experience": null,
-        "contact": "ian.mendoza9@gmail.com"
-    },
-    {
-        "name": "Ian Mendoza",
-        "age": "",
-        "location": "",
-        "position": "",
-        "experience": "",
-        "contact": "ian.mendoza9@gmail.com"
-    },
-    {
-        "name": "Ian Mendoza",
-        "age": "Not provided",
-        "location": "Not provided",
-        "position": "Not provided",
-        "experience": "Not provided",
-        "contact": "ian.mendoza9@gmail.com"
-    },
-    {
-        "name": "Ian Mendoza",
-        "age": "Not provided",
-        "location": "Not provided",
-        "position": "Not provided",
-        "experience": "Not provided",
-        "contact": "ian.mendoza9@gmail.com"
-    },
-    {
-        "name": "Ian Mendoza",
-        "age": "Not provided",
-        "location": "Not provided",
-        "position": "Not provided",
-        "experience": "Not provided",
-        "contact": "ian.mendoza9@gmail.com"
-    },
-    {
-        "name": "Ian Mendoza",
-        "age": null,
-        "location": null,
-        "position": null,
-        "experience": null,
-        "contact": "ian.mendoza9@gmail.com"
-    },
-    {
-        "name": "Ian Mendoza",
-        "age": 21,
-        "location": "El Paso",
-        "position": "Electromechanical Technician",
-        "experience": "Mechanical Engineering",
-        "contact": {
-            "email": "ian.mendoza@gmail.com"
-        }
-    },
-    {
-        "name": "Ian Mendoza",
-        "age": 21,
-        "location": "El Paso",
-        "position": "Electromechanical Technician",
-        "experience": "Mechanical Engineering",
-        "contact": {
-            "email": "ian.mendoza@gmail.com"
-        }
-    },
-    {
         "name": "Ian Mendoza",
         "age": "Not provided",
         "location": "Not provided",
@@ -164,5 +22,13 @@
         "position": "Line Packer (Evening Shift)",
         "experience": "Several years of line packing experience in hometown",
         "contact": "testEmail123@gmail.com"
+    },
+    {
+        "name": "Mario Lopez",
+        "age": 40,
+        "location": "Guadalajara",
+        "position": "Vehicle Mechanic",
+        "experience": "7 years at a local shop",
+        "contact": "700 N Mesa"
     }
 ]
