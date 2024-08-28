@@ -13,7 +13,6 @@ from config_loader import load_config
 import os
 from dotenv import load_dotenv
 import time
-from streamlit_modal import Modal
 
 
 
