@@ -1,10 +1,7 @@
 {
     "ai_assistant_settings": {
         "scraping": {
-            "urls": [
-                "https://www.tarrantcountytx.gov/en/veteran-services/va-benefit-programs/veterans-benefits-from-the-state-of-texas.html",
-                "https://www.va.gov/disability/how-to-file-claim/"
-            ],
+            "urls": [],
             "scraping_frequency": "daily",
             "split_by": "chunk_size",
             "user_agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/91.0.4472.124 Safari/537.36"

@@ -13,6 +13,8 @@ from config_loader import load_config
 import os
 from dotenv import load_dotenv
 import time
+from streamlit_modal import Modal
+
 
 
 # Load the .env file
@@ -176,8 +178,8 @@ def save_extracted_json(json_data):
     with open(file_path, 'w') as f:
         json.dump(all_data, f, indent=4)
 
+#Sends a message and updates chat history
 def message_send():
-    # Retrieve the query and response length from session state
     query = st.session_state.query_input
     response_length = st.session_state.response_length
 
@@ -205,8 +207,8 @@ def message_send():
     # Display the assistant's response
     #st.text_area("Assistant:", value=assistant_response_text, disabled=True, height=150)
 
-    st.subheader("Response Sources")
     if query.lower().startswith("tell me"):
+        st.subheader("Response Sources")
         results = search(query)
         for result in results:
             st.write(f"Document: {result['title']}")
@@ -214,6 +216,41 @@ def message_send():
             st.write(f"Content: {result['content']}")
             st.write(f"Link: {result['link']}")
             st.write("__________________________")
+
+# Load the applicants data from the JSON file
+def load_applicants():
+    with open(os.path.join('Injestor', 'Stored_context', 'applicants.json'), 'r') as f:
+        applicants = json.load(f)
+    return applicants
+def save_applicants(applicants):
+    with open(os.path.join('Injestor', 'Stored_context', 'applicants.json'), 'w') as f:
+        json.dump(applicants, f, indent=4)
+
+
+# Define the path to your text file in the Stored_context folder
+def get_file_path():
+    base_dir = os.path.dirname(__file__)  # Directory of the current script
+    stored_context_dir = os.path.join(base_dir, 'Injestor', 'Stored_context')
+    return os.path.join(stored_context_dir, 'interviewer_instructions.txt')
+
+# Load instructions from the text file
+def load_instructions(file_path):
+    with open(file_path, 'r') as file:
+        return file.read()
+
+# Save instructions to the text file
+def save_instructions(file_path, text):
+    with open(file_path, 'w') as file:
+        file.write(text)
+    client = OpenAI(api_key=api_key)
+
+    my_updated_assistant = client.beta.assistants.update(
+    interviewer_id,
+    instructions=text
+    )
+
+
+
 
 def main():
     st.markdown("""
@@ -246,7 +283,7 @@ def main():
         </style>
         """, unsafe_allow_html=True)
     
-    st.title("AI Assistant")
+    st.title("Welcome")
     if 'urls' not in st.session_state:
         st.session_state.urls = load_urls()
     if 'thread_id' not in st.session_state:
@@ -254,64 +291,106 @@ def main():
     if 'chat_history' not in st.session_state:
         st.session_state.chat_history = []
 
-    with st.expander("Manage Context"):
-        pdf_file = st.file_uploader("Upload a PDF", type="pdf")
-        video_file = st.file_uploader("Upload a video", type=["mp4", "avi", "mov"])
-        if pdf_file:
-            pdf_filename = pdf_file.name
-            pdf_path = os.path.join("Injestor", "Stored_context", pdf_filename)
-            with open(pdf_path, "wb") as f:
-                f.write(pdf_file.getbuffer())
-            injestor_path = os.path.join(os.getcwd(), 'Injestor')
-            subprocess.run(["python", "pdf_reader.py"], check=True, cwd=injestor_path)
-            st.success("PDF has been uploaded successfully.")
-            streamlit_js_eval(js_expressions="parent.window.location.reload()")
+    # Initialize the session state for the password
+    if 'password_correct' not in st.session_state:
+        st.session_state.password_correct = False
 
-        st.subheader("URLs")
-        new_url = st.text_input("Add new URL:")
-        if st.button("Add URL"):
-            if new_url:
-                if new_url not in st.session_state.urls:
-                    st.session_state.urls.append(new_url)
-                    save_urls(st.session_state.urls)
-                    cwdpath = os.path.join(os.getcwd())
-                    subprocess.run(["python", "url_scraper.py"], check=True, cwd=cwdpath)
+
+    correct_password = "admin"
+    with st.expander("Manage"):
+
+        password = st.text_input("Admin password required", type="password")
+        
+        # Add a button to verify the password
+        if st.button("Enter"):
+            if password == correct_password:
+                st.session_state.password_correct = True
+                st.success("Access granted")
+            else:
+                st.error("Access denied. Please enter the correct password.")
+
+        if st.session_state.password_correct:
+
+            if st.checkbox("See the Applicants"):
+                applicants = load_applicants()
+                st.table(applicants)
+
+            # Add a checkbox to show the assistant's instructions editor
+            if st.checkbox("See Interviewer's Script"):
+                file_path = get_file_path()
+                # Load and display instructions
+                if os.path.exists(file_path):
+                    instructions = load_instructions(file_path)
+                    st.text_area("Instructions", instructions, height=300, key='instructions')
+
+                    # Save instructions
+                    if st.button("Save Instructions"):
+                        updated_instructions = st.session_state['instructions']
+                        save_instructions(file_path, updated_instructions)
+                        st.success("Instructions saved successfully!")
                 else:
-                    st.warning("URL already exists in the list.")
-        for i, url in enumerate(st.session_state.urls):
-            cols = st.columns([3, 1])
-            cols[0].write(url)
-            if cols[1].button("Delete", key=f"delete_url_{i}"):
-                st.session_state.urls.pop(i)
-                save_urls(st.session_state.urls)
-                delete_url(url)
+                    st.error(f"File not found: {file_path}")
+
+            st.subheader("NOTE: For deep searches on uploaded content, begin message with 'tell me'.")
+
+            pdf_file = st.file_uploader("Upload a PDF", type="pdf")
+            video_file = st.file_uploader("Upload a video (under construction)", type=["mp4", "avi", "mov"])
+            if pdf_file:
+                pdf_filename = pdf_file.name
+                pdf_path = os.path.join("Injestor", "Stored_context", pdf_filename)
+                with open(pdf_path, "wb") as f:
+                    f.write(pdf_file.getbuffer())
+                injestor_path = os.path.join(os.getcwd(), 'Injestor')
+                subprocess.run(["python", "pdf_reader.py"], check=True, cwd=injestor_path)
+                st.success("PDF has been uploaded successfully.")
                 streamlit_js_eval(js_expressions="parent.window.location.reload()")
 
-        st.subheader("PDF Names")
-        pdf_names = load_pdfs()
-        for i, pdf in enumerate(pdf_names):
-            cols = st.columns([3, 1])
-            pdf_link = f'<a href="Injestor/Stored_context/{pdf}" target="_blank">{pdf}</a>'
-            cols[0].markdown(pdf_link, unsafe_allow_html=True)
-            if cols[1].button("Delete", key=f"delete_pdf_{i}"):
-                delete_pdf(pdf)
-                streamlit_js_eval(js_expressions="parent.window.location.reload()")
+            st.subheader("URLs")
+            new_url = st.text_input("Add new URL:")
+            if st.button("Add URL"):
+                if new_url:
+                    if new_url not in st.session_state.urls:
+                        st.session_state.urls.append(new_url)
+                        save_urls(st.session_state.urls)
+                        cwdpath = os.path.join(os.getcwd())
+                        subprocess.run(["python", "url_scraper.py"], check=True, cwd=cwdpath)
+                    else:
+                        st.warning("URL already exists in the list.")
+            for i, url in enumerate(st.session_state.urls):
+                cols = st.columns([3, 1])
+                cols[0].write(url)
+                if cols[1].button("Delete", key=f"delete_url_{i}"):
+                    st.session_state.urls.pop(i)
+                    save_urls(st.session_state.urls)
+                    delete_url(url)
+                    #streamlit_js_eval(js_expressions="parent.window.location.reload()")
 
-        st.subheader("Video Names")
-        video_names = [{"name": "example.mp4", "delete": False}, {"name": "another-example.mp4", "delete": False}]
-        for i, video in enumerate(video_names):
-            cols = st.columns([3, 1])
-            cols[0].write(video["name"])
-            if cols[1].button("Delete", key=f"delete_video_{i}"):
-                video_names.pop(i)
+            st.subheader("PDF Names")
+            pdf_names = load_pdfs()
+            for i, pdf in enumerate(pdf_names):
+                cols = st.columns([3, 1])
+                pdf_link = f'<a href="Injestor/Stored_context/{pdf}" target="_blank">{pdf}</a>'
+                cols[0].markdown(pdf_link, unsafe_allow_html=True)
+                if cols[1].button("Delete", key=f"delete_pdf_{i}"):
+                    delete_pdf(pdf)
+                    #streamlit_js_eval(js_expressions="parent.window.location.reload()")
 
-        if st.button("Generate Embeddings"):
-            embedder_path = os.path.join(os.getcwd(), 'Embedder')
-            subprocess.run(["python", "generate_embeddings.py"], check=True, cwd=embedder_path)
-            st.success("Embeddings have been generated successfully.")
+            st.subheader("Video Names")
+            video_names = [{"name": "example.mp4", "delete": False}, {"name": "another-example.mp4", "delete": False}]
+            for i, video in enumerate(video_names):
+                cols = st.columns([3, 1])
+                cols[0].write(video["name"])
+                if cols[1].button("Delete", key=f"delete_video_{i}"):
+                    video_names.pop(i)
 
+            if st.button("Generate Embeddings"):
+                embedder_path = os.path.join(os.getcwd(), 'Embedder')
+                subprocess.run(["python", "generate_embeddings.py"], check=True, cwd=embedder_path)
+                st.success("Embeddings have been generated successfully.")
+
+    
     # Display chat history
-    st.subheader("Chat History")
+    st.subheader("Chat")
     for message in st.session_state.chat_history:
         if message['role'] == 'user':
             st.markdown(f'<div class="chat-bubble user-bubble">{message["content"]}</div>', unsafe_allow_html=True)
@@ -321,7 +400,7 @@ def main():
     #st.session_state.response_length = st.selectbox("Select response length:", ["One Sentence", "One Paragraph", "Multiple paragraphs"])
     st.session_state.response_length = "One paragraph"
 
-    query = st.text_input("Enter your query:", key="query_input", on_change=message_send)
+    query = st.text_input("", key="query_input", on_change=message_send)
 
     
 

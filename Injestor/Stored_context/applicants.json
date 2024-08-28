@@ -1,34 +1,29 @@
 [
     {
-        "name": "Ian Mendoza",
-        "age": "Not provided",
-        "location": "Not provided",
-        "position": "Not provided",
-        "experience": "Not provided",
-        "contact": "ian.mendoza@gmail.com"
-    },
-    {
-        "name": "Ian Mendoza",
-        "age": "Not provided",
-        "location": "Not provided",
-        "position": "Not provided",
-        "experience": "Not provided",
-        "contact": "ian.mendoza@gmail.com"
-    },
-    {
-        "name": "Ian Mendoza",
-        "age": 32,
-        "location": "Guadalajara",
-        "position": "Line Packer (Evening Shift)",
-        "experience": "Several years of line packing experience in hometown",
-        "contact": "testEmail123@gmail.com"
-    },
-    {
         "name": "Mario Lopez",
         "age": 40,
         "location": "Guadalajara",
         "position": "Vehicle Mechanic",
         "experience": "7 years at a local shop",
         "contact": "700 N Mesa"
+    },
+    {
+        "name": "Michael Townsley",
+        "age": 45,
+        "location": "San Andreas",
+        "position": "Vehicle Mechanic",
+        "experience": "Extensive experience as a mechanic",
+        "contact": "900 919-9202"
+    },
+    {
+        "name": "Indiana Jones",
+        "age": 50,
+        "location": "Jersey",
+        "position": "Rework Operator",
+        "experience": "Some experience in a similar role",
+        "contact": {
+            "preferred": "Email",
+            "email": "dbreta03@gmail.com"
+        }
     }
 ]
