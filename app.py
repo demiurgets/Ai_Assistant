@@ -135,7 +135,7 @@ def assistant_generate_json(thread_id):
     key = api_key
     asstId = interviewer_id
     client = OpenAI(api_key=key)
-    query = "Using all the information you just received, generate a JSON with the following fields: name, age, location, position, experience, contact."
+    query = "Using all the information you just received, generate a JSON with the following fields: name, age, location, position, experience, lead source, contact."
     message = client.beta.threads.messages.create(
         thread_id=thread_id, role="user", content=query
     )
