@@ -234,9 +234,12 @@ def get_file_path():
 
 # Load instructions from the text file
 def load_instructions(file_path):
-    with open(file_path, 'r') as file:
-        return file.read()
-
+    try:
+        with open(file_path, 'r', encoding='utf-8', errors='replace') as file:
+            return file.read()
+    except UnicodeDecodeError as e:
+        st.error(f"Error decoding file {file_path}: {e}")
+        return ""
 # Save instructions to the text file
 def save_instructions(file_path, text):
     with open(file_path, 'w') as file:
