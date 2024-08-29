@@ -5,7 +5,8 @@
         "location": "Guadalajara",
         "position": "Vehicle Mechanic",
         "experience": "7 years at a local shop",
-        "contact": "700 N Mesa"
+        "lead_source": "Flier at mall",
+        "contact": "mario123@gmail.com"
     },
     {
         "name": "Michael Townsley",
@@ -13,17 +14,25 @@
         "location": "San Andreas",
         "position": "Vehicle Mechanic",
         "experience": "Extensive experience as a mechanic",
+        "lead_source": "Indeed.com",
         "contact": "900 919-9202"
     },
     {
-        "name": "Indiana Jones",
-        "age": 50,
-        "location": "Jersey",
-        "position": "Rework Operator",
-        "experience": "Some experience in a similar role",
-        "contact": {
-            "preferred": "Email",
-            "email": "dbreta03@gmail.com"
-        }
+        "name": "Jackie Chan",
+        "age": 68,
+        "location": "New Hampshire",
+        "position": "Baker",
+        "experience": "Baked for many years back in the 90s",
+        "lead_source": "Job Fair",
+        "contact": "898 992-8383"
+    },
+    {
+        "name": "Tony Soprano",
+        "age": 45,
+        "location": "ABQ",
+        "position": "Miller",
+        "experience": "Certified in milling",
+        "lead_source": "LinkedIn",
+        "contact": "915 334-2919"
     }
 ]

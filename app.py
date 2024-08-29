@@ -310,12 +310,22 @@ def main():
 
         if st.session_state.password_correct:
 
-            if st.checkbox("See the Applicants"):
+            if st.checkbox("Applicants"):
                 applicants = load_applicants()
+
+                applicants_str = json.dumps(applicants, indent=4)
+
+                # Add the download button
+                st.download_button(
+                    label="Download Applicants",
+                    data=applicants_str,
+                    file_name='applicants.json',
+                    mime='application/json'
+                )
                 st.table(applicants)
 
             # Add a checkbox to show the assistant's instructions editor
-            if st.checkbox("See Interviewer's Script"):
+            if st.checkbox("Interviewer's Script"):
                 file_path = get_file_path()
                 # Load and display instructions
                 if os.path.exists(file_path):
