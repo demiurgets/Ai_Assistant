@@ -315,9 +315,7 @@ def main():
 
             if st.checkbox("Applicants"):
                 applicants = load_applicants()
-
                 applicants_str = json.dumps(applicants, indent=4)
-
                 # Add the download button
                 st.download_button(
                     label="Download Applicants",
@@ -327,7 +325,22 @@ def main():
                 )
                 st.table(applicants)
 
-            # Add a checkbox to show the assistant's instructions editor
+                if st.checkbox("Edit Applicants"):
+                    editable_applicants = st.text_area("Applicants JSON", value=applicants_str, height=300)
+                    if st.button("Save Changes"):
+                        try:
+                            updated_applicants = json.loads(editable_applicants)
+                            save_applicants(updated_applicants)
+                            st.success("Applicants data saved successfully!")
+                        except json.JSONDecodeError:
+                            st.error("Invalid JSON format. Please correct it and try again.")
+
+                    for i, applicant in enumerate(applicants):
+                        if st.button(f"Delete Applicant {i}"):
+                            applicants.pop(i)
+                            save_applicants(applicants)
+                            st.success(f"Applicant {i} deleted successfully!")
+
             if st.checkbox("Interviewer's Script"):
                 file_path = get_file_path()
                 # Load and display instructions

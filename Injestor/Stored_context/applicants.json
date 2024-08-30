@@ -25,14 +25,5 @@
         "experience": "Baked for many years back in the 90s",
         "lead_source": "Job Fair",
         "contact": "898 992-8383"
-    },
-    {
-        "name": "Tony Soprano",
-        "age": 45,
-        "location": "ABQ",
-        "position": "Miller",
-        "experience": "Certified in milling",
-        "lead_source": "LinkedIn",
-        "contact": "915 334-2919"
     }
 ]
