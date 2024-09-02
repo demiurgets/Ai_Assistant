@@ -48,7 +48,17 @@ def search(query):
     result_length = config['ai_assistant_settings']['processing']['result_length']
     query_embedding = get_embedding(query).reshape(1, -1)
     D, I = index.search(query_embedding, k=result_length)
-    results = [document_metadata[i] for i in I[0]]
+    
+    # Debugging print statements
+    print(f"Indices from search: {I}")
+    print(f"Document metadata length: {len(document_metadata)}")
+    
+    # Ensure indices are within bounds
+    if all(i < len(document_metadata) for i in I[0]):
+        results = [document_metadata[i] for i in I[0]]
+    else:
+        results = []
+    
     return results
 
 def assistant_response(thread_id, query, response_length):

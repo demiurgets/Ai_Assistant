@@ -1,14 +1,16 @@
 {
     "ai_assistant_settings": {
         "scraping": {
-            "urls": [],
+            "urls": [
+                "https://bitso.com/jobs?gh_jid=6086440003"
+            ],
             "scraping_frequency": "daily",
             "split_by": "chunk_size",
             "user_agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/91.0.4472.124 Safari/537.36"
         },
         "processing": {
-            "chunk_size": 400,
-            "result_length": 5
+            "chunk_size": 500,
+            "result_length": 4
         },
         "output": {
             "json_output_file": "document_chunks.json",
