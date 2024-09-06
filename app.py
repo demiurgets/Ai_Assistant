@@ -22,6 +22,7 @@ load_dotenv()
 api_key = st.secrets["api_keys"]["API_KEY"]
 reader_id = st.secrets["api_keys"]["ASST_ID_READER"]
 interviewer_id = st.secrets["api_keys"]["ASST_INTERVIEWER"]
+admin_assistant_id = st.secrets["api_keys"]["ASST_ADMIN"]
 
 config = load_config()
 os.environ["KMP_DUPLICATE_LIB_OK"] = "TRUE"
@@ -82,6 +83,29 @@ def assistant_response(thread_id, query, response_length):
         response = "Error processing request with AI Assistant"
     return response
 
+#wrapper method for admin messages/threads
+def admin_query(query, thread_id):
+    key = api_key
+    asstId = admin_assistant_id
+    client = OpenAI(api_key=key)
+    message = client.beta.threads.messages.create(
+        thread_id=thread_id,
+        role="user",
+        content=query
+    )
+    run = client.beta.threads.runs.create_and_poll(
+        thread_id=thread_id,
+        assistant_id=asstId,
+    )
+    response = "Error with AI API"
+    if run.status == 'completed':
+        response_page = client.beta.threads.messages.list(thread_id=thread_id)
+        response = response_page.data[0].content[0].text.value
+    else:
+        response = "Error processing request with AI Assistant"
+    return response
+
+#wrapper method for an embeddings search pointed to reader asst
 def embeddings_search(query, response_length):
     key = api_key
     asstId = reader_id
@@ -168,11 +192,12 @@ def detect_trigger_string(text, thread_id):
         json_response = assistant_generate_json(thread_id)
         json_data = json.loads(json_response)
         print(json_data)
-        save_extracted_json(json_data)
+        save_applicant_json(json_data)
         return True
     return False
 
-def save_extracted_json(json_data):
+
+def save_applicant_json(json_data):
     """Save the extracted JSON data to 'applicants.json' inside 'Injestor/Stored_context'."""
     folder_path = os.path.join(os.getcwd(), 'Injestor', 'Stored_context')
     file_path = os.path.join(folder_path, 'applicants.json')
@@ -187,6 +212,19 @@ def save_extracted_json(json_data):
     with open(file_path, 'w') as f:
         json.dump(all_data, f, indent=4)
 
+    textInstructions = "You are an assistant to a job interviewer. You keep track of all the applicants and answer any questions about them. Be warm and kind"
+    all_data_str = json.dumps(all_data)  
+
+
+    client = OpenAI(api_key=api_key)
+
+    my_updated_assistant = client.beta.assistants.update(
+    admin_assistant_id,
+    instructions=textInstructions + all_data_str
+    )
+
+
+
 #Sends a message and updates chat history
 def message_send():
     query = st.session_state.query_input
@@ -200,6 +238,18 @@ def message_send():
 
     if query.lower().startswith("tell me"):
         assistant_response_text = embeddings_search(query, response_length)
+    elif st.session_state.admin_conversation:
+        if st.session_state.password_correct == False:
+            st.error(f"Enter admin password")
+            assistant_response_text = "Enter the admin password to access applicant data"
+        else:
+            if st.session_state.admin_thread_id is None:
+                key = api_key
+                client = OpenAI(api_key=key)
+                adminThread = client.beta.threads.create()
+                st.session_state.admin_thread_id = adminThread.id
+
+            assistant_response_text = admin_query(query, st.session_state.admin_thread_id)
     else:
         # Create a new thread if it does not exist
         if st.session_state.thread_id is None:
@@ -300,9 +350,12 @@ def main():
         st.session_state.urls = load_urls()
     if 'thread_id' not in st.session_state:
         st.session_state.thread_id = None
+    if 'admin_thread_id' not in st.session_state:
+        st.session_state.admin_thread_id = None
     if 'chat_history' not in st.session_state:
         st.session_state.chat_history = []
-
+    if 'admin_conversation' not in st.session_state:
+        st.session_state.admin_conversation = None
     # Initialize the session state for the password
     if 'password_correct' not in st.session_state:
         st.session_state.password_correct = False
@@ -423,7 +476,12 @@ def main():
                 subprocess.run(["python", "generate_embeddings.py"], check=True, cwd=embedder_path)
                 st.success("Embeddings have been generated successfully.")
 
-    
+    if st.session_state.password_correct:
+        admin_conversation = st.checkbox("Admin Chat")
+        if admin_conversation:
+            st.session_state.admin_conversation = True
+        else:
+            st.session_state.admin_conversation = False
     # Display chat history
     st.subheader("Chat")
     for message in st.session_state.chat_history:

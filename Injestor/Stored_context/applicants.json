@@ -23,7 +23,30 @@
         "location": "New Hampshire",
         "position": "Baker",
         "experience": "Baked for many years back in the 90s",
+        "cv_analysis": [
+            "experience (list of companies/time, position)",
+            "skills"
+        ],
+
         "lead_source": "Job Fair",
         "contact": "898 992-8383"
+    },
+    {
+        "name": "J.K. Simmons",
+        "age": 57,
+        "location": "Los Angeles",
+        "position": "Senior People Business Partner",
+        "experience": "Experienced working with people through marketing agencies",
+        "lead_source": "Newspaper ad",
+        "contact": "914 448-2812"
+    },
+    {
+        "name": "Bruce Wayne",
+        "age": 32,
+        "location": "New Hampshire",
+        "position": "Localization Specialist",
+        "experience": "Translating and editing for UI designs",
+        "lead_source": "Online ad",
+        "contact": "brucebat123@gmail.com"
     }
 ]
