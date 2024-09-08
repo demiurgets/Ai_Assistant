@@ -223,6 +223,19 @@ def save_applicant_json(json_data):
     instructions=textInstructions + all_data_str
     )
 
+def upload_cv():
+    uploaded_file = st.file_uploader("Upload your CV (PDF or Word document)", type=["pdf", "docx"])
+    
+    if 'cv_uploaded' not in st.session_state:
+        st.session_state.cv_uploaded = False
+    
+    if uploaded_file is not None:
+        if not st.session_state.cv_uploaded:
+            # Process the uploaded file
+            st.success("CV uploaded successfully!")
+            st.session_state.cv_uploaded = True
+        else:
+            st.warning("You can only upload one CV per session.")
 
 
 #Sends a message and updates chat history
@@ -359,7 +372,8 @@ def main():
     # Initialize the session state for the password
     if 'password_correct' not in st.session_state:
         st.session_state.password_correct = False
-
+    if 'cv_uploaded' not in st.session_state:
+        st.session_state.cv_uploaded = False
 
     correct_password = "admin"
     with st.expander("Manage"):
@@ -419,7 +433,7 @@ def main():
                 else:
                     st.error(f"File not found: {file_path}")
 
-            st.subheader("NOTE: For deep searches on uploaded content, begin message with 'tell me'.")
+            st.subheader("NOTE: For deep searches on uploaded content, start message with 'tell me'.")
 
             pdf_file = st.file_uploader("Upload a PDF", type="pdf")
             video_file = st.file_uploader("Upload a video (under construction)", type=["mp4", "avi", "mov"])
@@ -495,7 +509,11 @@ def main():
 
     query = st.text_input("", key="query_input", on_change=message_send)
 
-    
+    if not st.session_state.cv_uploaded:
+        upload_cv()
+    else:
+        st.write("You have already uploaded a CV in this session.")
+
 
 if __name__ == "__main__":
     main()
