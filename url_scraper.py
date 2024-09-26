@@ -4,6 +4,7 @@ import requests
 from bs4 import BeautifulSoup
 from config_loader import load_config
 
+#I've had to put this file outside the injestor, because of issues accessing specific configs from a subdirectory.
 #example sites to scrape: https://www.va.gov/disability/how-to-file-claim/
 #https://www.military.com/benefits/veteran-state-benefits/texas-state-veterans-benefits.html
 config = load_config()

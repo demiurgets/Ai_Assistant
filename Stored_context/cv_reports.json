@@ -1,0 +1,79 @@
+[
+    {
+        "name": "Fake Name",
+        "phone": "Phone",
+        "email": "emailADDRESS",
+        "summary": "A student studying Aerospace Engineering at the University of Manchester with work experience in retail, catering, and commercial transport. Seeking internship opportunities to gain insight into the engineering industry.",
+        "education": [
+            {
+                "institution": "University of Manchester",
+                "degree": "BEng/MEng Aerospace Engineering",
+                "year": "2015-Current"
+            }
+        ],
+        "work_experience": [
+            {
+                "company": "Penventon Park Hotel",
+                "position": "Assistant Kitchen Porter & Restaurant Assistant",
+                "duration": "May 2009",
+                "responsibilities": "Washing up, cleaning, basic food preparation, assisting various departments"
+            },
+            {
+                "company": "NAME Commercials",
+                "position": "Apprentice/Technician",
+                "duration": "June 2010 - June 2013",
+                "responsibilities": "Assisted senior technicians, routine servicing and maintenance of vehicles"
+            },
+            {
+                "company": "NAME Commercials",
+                "position": "Parts Manager",
+                "duration": "June 2013 - August 2014",
+                "responsibilities": "Managed warehouse stock, customer sales, part sourcing, record keeping"
+            },
+            {
+                "company": "NAME Restaurant",
+                "position": "Kitchen Porter",
+                "duration": "August 2014 - December 2014",
+                "responsibilities": "Dishwashing, kitchen maintenance, vegetable preparation"
+            },
+            {
+                "company": "NAME Spar Shop",
+                "position": "Shop Assistant",
+                "duration": "November 2014 - September 2015",
+                "responsibilities": "Working at the till, customer assistance, shop maintenance"
+            }
+        ],
+        "skills": [
+            "Time management",
+            "Positive attitude",
+            "Customer service",
+            "Parts management",
+            "Maintenance and repair",
+            "Shop operations"
+        ],
+        "interests": [
+            "Playing guitar",
+            "Martial arts",
+            "Kayaking",
+            "Badminton",
+            "UK Space industry development",
+            "Renewable energy",
+            "Bio-technology"
+        ],
+        "leadership_experience": {
+            "organization": "NAME Student Residences at the University of Manchester",
+            "position": "Deputy Chair",
+            "responsibilities": "Overseeing residents association, event organization, administration, charity fundraisers"
+        },
+        "references": [
+            {
+                "company": "NAME Spar Shop",
+                "contact": "Reference Contact Info"
+            },
+            {
+                "company": "NAME Commercials",
+                "contact": "Reference Contact Info"
+            }
+        ]
+    }
+]

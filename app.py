@@ -13,6 +13,8 @@ from config_loader import load_config
 import os
 from dotenv import load_dotenv
 import time
+import shutil
+import PyPDF2
 
 
 
@@ -23,12 +25,13 @@ api_key = st.secrets["api_keys"]["API_KEY"]
 reader_id = st.secrets["api_keys"]["ASST_ID_READER"]
 interviewer_id = st.secrets["api_keys"]["ASST_INTERVIEWER"]
 admin_assistant_id = st.secrets["api_keys"]["ASST_ADMIN"]
+cv_analyzer = st.secrets["api_keys"]["CV_ANALYZER"]
 
 config = load_config()
 os.environ["KMP_DUPLICATE_LIB_OK"] = "TRUE"
 
-document_embeddings = np.load('Injestor/Stored_context/document_embeddings.npy')
-with open('Injestor/Stored_context/document_chunks.json', 'r') as f:
+document_embeddings = np.load('Stored_context/document_embeddings.npy')
+with open('Stored_context/document_chunks.json', 'r') as f:
     document_metadata = json.load(f)
 
 dimension = document_embeddings.shape[1]
@@ -38,6 +41,52 @@ index.add(document_embeddings)
 model_name = "sentence-transformers/all-MiniLM-L6-v2"
 tokenizer = AutoTokenizer.from_pretrained(model_name)
 model = AutoModel.from_pretrained(model_name)
+
+def analyze_pdf(pdf_path):
+    with open(pdf_path, 'rb') as file:
+        reader = PyPDF2.PdfReader(file)
+        text = ''
+        for page in reader.pages:
+            text += page.extract_text()
+            key = api_key
+    asstId = cv_analyzer
+    client = OpenAI(api_key=key)
+    thread = client.beta.threads.create()
+
+    message = client.beta.threads.messages.create(
+        thread_id=thread.id,
+        role="user",
+        content=text
+    )
+    run = client.beta.threads.runs.create_and_poll(
+        thread_id=thread.id,
+        assistant_id=asstId,
+    )
+    response = "Error with AI API"
+    if run.status == 'completed':
+        response_page = client.beta.threads.messages.list(thread_id=thread.id)
+        response = response_page.data[0].content[0].text.value
+    else:
+       
+        response = "Error processing request with AI Assistant"
+    print(response)
+    folder_path = os.path.join(os.getcwd(), 'Stored_context')
+    file_path = os.path.join(folder_path, 'cv_reports.json')
+    
+    if not os.path.exists(folder_path):
+        os.makedirs(folder_path)
+        print("made file")
+    
+    if os.path.exists(file_path):
+        with open(file_path, 'r') as f:
+            all_data = json.load(f)
+    else:
+        all_data = []
+    
+    all_data.append(response)
+    
+    with open(file_path, 'w') as f:
+        json.dump(all_data, f, indent=4)
 
 def get_embedding(text):
     inputs = tokenizer(text, return_tensors='pt', padding=True, truncation=True)
@@ -144,32 +193,32 @@ def save_urls(urls):
         json.dump(config_data, f, indent=4)
 
 def load_pdfs():
-    pdf_folder = os.path.join(os.getcwd(), 'Injestor', 'Stored_context')
+    pdf_folder = os.path.join(os.getcwd(),  'Stored_context')
     pdf_files = [f for f in os.listdir(pdf_folder) if f.endswith('.pdf')]
     return pdf_files
 
 def delete_pdf(pdf_name):
-    pdf_path = os.path.join(os.getcwd(), 'Injestor', 'Stored_context', pdf_name)
+    pdf_path = os.path.join(os.getcwd(), 'Stored_context', pdf_name)
     if os.path.exists(pdf_path):
         os.remove(pdf_path)
-    with open('Injestor/Stored_context/document_chunks.json', 'r') as f:
+    with open('Stored_context/document_chunks.json', 'r') as f:
         document_metadata = json.load(f)
     document_metadata = [chunk for chunk in document_metadata if chunk['title'] != pdf_name]
-    with open('Injestor/Stored_context/document_chunks.json', 'w') as f:
+    with open('Stored_context/document_chunks.json', 'w') as f:
         json.dump(document_metadata, f, indent=4)
 
 def delete_url(url):
-    with open('Injestor/Stored_context/document_chunks.json', 'r') as f:
+    with open('Stored_context/document_chunks.json', 'r') as f:
         document_metadata = json.load(f)
     document_metadata = [chunk for chunk in document_metadata if chunk['title'] != url]
-    with open('Injestor/Stored_context/document_chunks.json', 'w') as f:
+    with open('Stored_context/document_chunks.json', 'w') as f:
         json.dump(document_metadata, f, indent=4)
 
 def assistant_generate_json(thread_id):
     key = api_key
     asstId = interviewer_id
     client = OpenAI(api_key=key)
-    query = "Using all the information you just received, generate a JSON with the following fields: name, age, location, position, experience, lead source, contact."
+    query = "Using all the information you just received, generate a JSON with the following fields: name, age, location, position, experience, lead source, availability, contact."
     message = client.beta.threads.messages.create(
         thread_id=thread_id, role="user", content=query
     )
@@ -197,32 +246,44 @@ def detect_trigger_string(text, thread_id):
     return False
 
 
+
 def save_applicant_json(json_data):
     """Save the extracted JSON data to 'applicants.json' inside 'Injestor/Stored_context'."""
-    folder_path = os.path.join(os.getcwd(), 'Injestor', 'Stored_context')
+    folder_path = os.path.join(os.getcwd(), 'Stored_context')
     file_path = os.path.join(folder_path, 'applicants.json')
+    
     if not os.path.exists(folder_path):
         os.makedirs(folder_path)
+    
     if os.path.exists(file_path):
         with open(file_path, 'r') as f:
             all_data = json.load(f)
     else:
         all_data = []
+    
     all_data.append(json_data)
+    
+    # Move the uploaded CV file to the final destination folder
+    temp_folder_path = os.path.join(os.getcwd(),  'Stored_context', 'temp_uploaded_Cvs')
+    final_folder_path = os.path.join(os.getcwd(), 'Stored_context', 'uploaded_Cvs')
+    
+    if os.path.exists(temp_folder_path):
+        for file_name in os.listdir(temp_folder_path):
+            shutil.move(os.path.join(temp_folder_path, file_name), final_folder_path)
+    
     with open(file_path, 'w') as f:
         json.dump(all_data, f, indent=4)
 
+#here we update the admin bot instructions with new applicant
     textInstructions = "You are an assistant to a job interviewer. You keep track of all the applicants and answer any questions about them. Be warm and kind"
     all_data_str = json.dumps(all_data)  
-
 
     client = OpenAI(api_key=api_key)
 
     my_updated_assistant = client.beta.assistants.update(
-    admin_assistant_id,
-    instructions=textInstructions + all_data_str
+        admin_assistant_id,
+        instructions=textInstructions + all_data_str
     )
-
 def upload_cv():
     uploaded_file = st.file_uploader("Upload your CV (PDF or Word document)", type=["pdf", "docx"])
     
@@ -231,12 +292,21 @@ def upload_cv():
     
     if uploaded_file is not None:
         if not st.session_state.cv_uploaded:
-            # Process the uploaded file
-            st.success("CV uploaded successfully!")
+            # Save the uploaded file to a temporary folder
+            temp_folder_path = os.path.join(os.getcwd(), 'Stored_context', 'temp_uploaded_Cvs')
+            if not os.path.exists(temp_folder_path):
+                os.makedirs(temp_folder_path)
+            
+            file_path = os.path.join(temp_folder_path, uploaded_file.name)
+            with open(file_path, "wb") as f:
+                f.write(uploaded_file.getbuffer())
+            
             st.session_state.cv_uploaded = True
+            analysis = analyze_pdf(file_path)
+            st.success("CV uploaded successfully to the temporary folder!")
+
         else:
             st.warning("You can only upload one CV per session.")
-
 
 #Sends a message and updates chat history
 def message_send():
@@ -291,18 +361,18 @@ def message_send():
 
 # Load the applicants data from the JSON file
 def load_applicants():
-    with open(os.path.join('Injestor', 'Stored_context', 'applicants.json'), 'r') as f:
+    with open(os.path.join('Stored_context', 'applicants.json'), 'r') as f:
         applicants = json.load(f)
     return applicants
 def save_applicants(applicants):
-    with open(os.path.join('Injestor', 'Stored_context', 'applicants.json'), 'w') as f:
+    with open(os.path.join('Stored_context', 'applicants.json'), 'w') as f:
         json.dump(applicants, f, indent=4)
 
 
 # Define the path to your text file in the Stored_context folder
 def get_file_path():
     base_dir = os.path.dirname(__file__)  # Directory of the current script
-    stored_context_dir = os.path.join(base_dir, 'Injestor', 'Stored_context')
+    stored_context_dir = os.path.join(base_dir, 'Stored_context')
     return os.path.join(stored_context_dir, 'interviewer_instructions.txt')
 
 # Load instructions from the text file
@@ -372,6 +442,8 @@ def main():
     # Initialize the session state for the password
     if 'password_correct' not in st.session_state:
         st.session_state.password_correct = False
+    if 'phone_number' not in st.session_state:
+        st.session_state.phone_number = None
     if 'cv_uploaded' not in st.session_state:
         st.session_state.cv_uploaded = False
 
@@ -439,7 +511,7 @@ def main():
             video_file = st.file_uploader("Upload a video (under construction)", type=["mp4", "avi", "mov"])
             if pdf_file:
                 pdf_filename = pdf_file.name
-                pdf_path = os.path.join("Injestor", "Stored_context", pdf_filename)
+                pdf_path = os.path.join("Stored_context", pdf_filename)
                 with open(pdf_path, "wb") as f:
                     f.write(pdf_file.getbuffer())
                 injestor_path = os.path.join(os.getcwd(), 'Injestor')
@@ -471,7 +543,7 @@ def main():
             pdf_names = load_pdfs()
             for i, pdf in enumerate(pdf_names):
                 cols = st.columns([3, 1])
-                pdf_link = f'<a href="Injestor/Stored_context/{pdf}" target="_blank">{pdf}</a>'
+                pdf_link = f'<a href="Stored_context/{pdf}" target="_blank">{pdf}</a>'
                 cols[0].markdown(pdf_link, unsafe_allow_html=True)
                 if cols[1].button("Delete", key=f"delete_pdf_{i}"):
                     delete_pdf(pdf)
@@ -517,3 +589,5 @@ def main():
 
 if __name__ == "__main__":
     main()
+
+

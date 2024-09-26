@@ -27,7 +27,7 @@
             "experience (list of companies/time, position)",
             "skills"
         ],
-
+        "CV_path": "stored/context/CVs/cv_22.pdf",
         "lead_source": "Job Fair",
         "contact": "898 992-8383"
     },
@@ -48,5 +48,24 @@
         "experience": "Translating and editing for UI designs",
         "lead_source": "Online ad",
         "contact": "brucebat123@gmail.com"
+    },
+    {
+        "name": "Homer Simpson",
+        "age": 43,
+        "location": "Springfield",
+        "position": "Senior Java Engineer",
+        "experience": "Worked in a power plant",
+        "lead_source": "Flier at a mall",
+        "contact": "homer123@gmail.com"
+    },
+    {
+        "name": "Tony Soprano",
+        "age": 23,
+        "location": "New York",
+        "position": "Legal Assistant",
+        "experience": "Passed the bar exam",
+        "lead_source": "LinkedIn ad",
+        "availability": "This weekend",
+        "contact": "123 449 2421"
     }
 ]
