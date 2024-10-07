@@ -568,23 +568,37 @@ def main():
             st.session_state.admin_conversation = True
         else:
             st.session_state.admin_conversation = False
+
+    # Step 1: Phone number input
+    if not st.session_state.phone_number:
+        phone_number = st.text_input("Please enter your phone number:")
+        
+        if st.button("Submit Phone Number"):
+            if phone_number:
+                st.session_state.phone_number = phone_number
+                #create_empty_record(phone_number)  # Create an empty record in DB
+                st.success("Phone number submitted successfully!")
+            else:
+                st.error("Please enter a valid phone number.")
+    
     # Display chat history
-    st.subheader("Chat")
-    for message in st.session_state.chat_history:
-        if message['role'] == 'user':
-            st.markdown(f'<div class="chat-bubble user-bubble">{message["content"]}</div>', unsafe_allow_html=True)
-        elif message['role'] == 'assistant':
-            st.markdown(f'<div class="chat-bubble assistant-bubble">{message["content"]}</div>', unsafe_allow_html=True)
+    if st.session_state.phone_number:
+        st.subheader("Chat")
+        for message in st.session_state.chat_history:
+            if message['role'] == 'user':
+                st.markdown(f'<div class="chat-bubble user-bubble">{message["content"]}</div>', unsafe_allow_html=True)
+            elif message['role'] == 'assistant':
+                st.markdown(f'<div class="chat-bubble assistant-bubble">{message["content"]}</div>', unsafe_allow_html=True)
 
-    #st.session_state.response_length = st.selectbox("Select response length:", ["One Sentence", "One Paragraph", "Multiple paragraphs"])
-    st.session_state.response_length = "One paragraph"
+        #st.session_state.response_length = st.selectbox("Select response length:", ["One Sentence", "One Paragraph", "Multiple paragraphs"])
+        st.session_state.response_length = "One paragraph"
 
-    query = st.text_input("", key="query_input", on_change=message_send)
+        query = st.text_input("", key="query_input", on_change=message_send)
 
-    if not st.session_state.cv_uploaded:
-        upload_cv()
-    else:
-        st.write("You have already uploaded a CV in this session.")
+        if not st.session_state.cv_uploaded:
+            upload_cv()
+        else:
+            st.write("You have already uploaded a CV in this session.")
 
 
 if __name__ == "__main__":

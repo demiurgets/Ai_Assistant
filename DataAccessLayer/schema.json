@@ -1,0 +1,379 @@
+{
+    "tables": [
+      {
+        "name": "companies",
+        "columns": [
+          {
+            "name": "id",
+            "type": "SERIAL",
+            "primary_key": true
+          },
+          {
+            "name": "name",
+            "type": "VARCHAR(255)",
+            "not_null": true
+          },
+          {
+            "name": "address",
+            "type": "VARCHAR(255)"
+          },
+          {
+            "name": "config",
+            "type": "JSONB"
+          }
+        ]
+      },
+      {
+        "name": "locations",
+        "columns": [
+          {
+            "name": "id",
+            "type": "SERIAL",
+            "primary_key": true
+          },
+          {
+            "name": "company_id",
+            "type": "INT",
+            "foreign_key": {
+              "references": "companies(id)"
+            }
+          },
+          {
+            "name": "phone_number",
+            "type": "VARCHAR(225)"
+          },
+          {
+            "name": "name",
+            "type": "VARCHAR(255)",
+            "not_null": true
+          },
+          {
+            "name": "location",
+            "type": "VARCHAR(255)"
+          }
+        ]
+      },
+      {
+        "name": "users",
+        "columns": [
+          {
+            "name": "id",
+            "type": "SERIAL",
+            "primary_key": true
+          },
+          {"name": "favorite_color",
+            "type": "VARCHAR(225)",
+            "not_null": true
+          },
+          {"name": "favorite_dinosaur",
+            "type": "VARCHAR(225)",
+            "not_null": true
+          },
+          {
+            "name": "first_name",
+            "type": "VARCHAR(255)",
+            "not_null": true
+          },
+          {
+            "name": "last_name",
+            "type": "VARCHAR(255)",
+            "not_null": true
+          },
+          {
+            "name": "email",
+            "type": "VARCHAR(255)",
+            "unique": true,
+            "not_null": true
+          },
+          {
+            "name": "phone",
+            "type": "VARCHAR(20)"
+          },
+          {
+            "name": "company_id",
+            "type": "INT",
+            "foreign_key": {
+              "references": "companies(id)"
+            }
+          },
+          {
+            "name": "user_type",
+            "type": "VARCHAR(255)"
+          },
+          {
+            "name": "location_id",
+            "type": "INT",
+            "foreign_key": {
+              "references": "locations(id)"
+            }
+          },
+          {
+            "name": "is_active",
+            "type": "BOOLEAN",
+            "default": "TRUE"
+          },
+          {
+            "name": "focus_percentage",
+            "type": "DECIMAL(5,2)"
+          },
+          {
+            "name": "start_date",
+            "type": "DATE"
+          },
+          {
+            "name": "created_at",
+            "type": "TIMESTAMP",
+            "default": "CURRENT_TIMESTAMP"
+          }
+        ]
+      },
+      {
+        "name": "candidates",
+        "columns": [
+          {
+            "name": "id",
+            "type": "SERIAL",
+            "primary_key": true
+          },
+          {
+            "name": "first_name",
+            "type": "VARCHAR(255)",
+            "not_null": true
+          },
+          {
+            "name": "last_name",
+            "type": "VARCHAR(255)",
+            "not_null": true
+          },
+          {
+            "name": "email",
+            "type": "VARCHAR(255)",
+            "unique": true,
+            "not_null": true
+          },
+          {
+            "name": "phone",
+            "type": "VARCHAR(20)"
+          },
+          {
+            "name": "assistant_thread_id",
+            "type": "VARCHAR(225)"
+          },
+          {
+            "name": "age",
+            "type": "INT"
+          },
+          {
+            "name": "location",
+            "type": "VARCHAR(100)"
+          },
+          {
+            "name": "experience",
+            "type": "VARCHAR(225)"
+          },
+          {
+            "name": "lead_source",
+            "type": "VARCHAR(225)"
+          },
+          {
+            "name": "availability",
+            "type": "VARCHAR(225)"
+          },
+          {
+            "name": "status",
+            "type": "VARCHAR(50)",
+            "default": "'pending'"
+          },
+          {
+            "name": "location_id",
+            "type": "INT",
+            "foreign_key": {
+              "references": "locations(id)"
+            }
+          },
+          {
+            "name": "enrollment_date",
+            "type": "DATE",
+            "default": "CURRENT_DATE"
+          },
+          {
+            "name": "created_at",
+            "type": "TIMESTAMP",
+            "default": "CURRENT_TIMESTAMP"
+          }
+        ]
+      },
+      {
+        "name": "employees",
+        "columns": [
+          {
+            "name": "id",
+            "type": "SERIAL",
+            "primary_key": true
+          },
+          {
+            "name": "first_name",
+            "type": "VARCHAR(255)",
+            "not_null": true
+          },
+          {
+            "name": "last_name",
+            "type": "VARCHAR(255)",
+            "not_null": true
+          },
+          {
+            "name": "email",
+            "type": "VARCHAR(255)",
+            "unique": true,
+            "not_null": true
+          },
+          {
+            "name": "phone",
+            "type": "VARCHAR(20)"
+          },
+          {
+            "name": "assistant_thread_id",
+            "type": "VARCHAR(225)"
+          },
+          {
+            "name": "age",
+            "type": "INT"
+          },
+          {
+            "name": "location",
+            "type": "VARCHAR(100)"
+          },
+          {
+            "name": "status",
+            "type": "VARCHAR(50)",
+            "default": "'hired'"
+          },
+          {
+            "name": "location_id",
+            "type": "INT",
+            "foreign_key": {
+              "references": "locations(id)"
+            }
+          },
+          {
+            "name": "hiring_date",
+            "type": "DATE",
+            "default": "CURRENT_DATE"
+          },
+          {
+            "name": "created_at",
+            "type": "TIMESTAMP",
+            "default": "CURRENT_TIMESTAMP"
+          }
+        ]
+      },
+      {
+        "name": "documents",
+        "columns": [
+          {
+            "name": "id",
+            "type": "SERIAL",
+            "primary_key": true
+          },
+          {
+            "name": "candidate_id",
+            "type": "INT",
+            "foreign_key": {
+              "references": "candidates(id)"
+            }
+          },
+          {
+            "name": "path",
+            "type": "VARCHAR(225)"
+          },
+          {
+            "name": "type",
+            "type": "VARCHAR(225)"
+          }
+        ]
+      },
+      {
+        "name": "interviews",
+        "columns": [
+          {
+            "name": "id",
+            "type": "SERIAL",
+            "primary_key": true
+          },
+          {
+            "name": "candidate_id",
+            "type": "INT",
+            "foreign_key": {
+              "references": "candidates(id)"
+            }
+          },
+          {
+            "name": "location_id",
+            "type": "INT",
+            "foreign_key": {
+              "references": "locations(id)"
+            }
+          },
+          {
+            "name": "date",
+            "type": "DATE"
+          }
+        ]
+      },
+      {
+        "name": "assistants",
+        "columns": [
+          {
+            "name": "id",
+            "type": "SERIAL",
+            "primary_key": true
+          },
+          {
+            "name": "location_id",
+            "type": "INT",
+            "foreign_key": {
+              "references": "locations(id)"
+            }
+          },
+          {
+            "name": "assistant_id",
+            "type": "VARCHAR(225)"
+          },
+          {
+            "name": "name",
+            "type": "VARCHAR(225)"
+          }
+        ]
+      },
+      {
+        "name": "positions",
+        "columns": [
+          {
+            "name": "id",
+            "type": "SERIAL",
+            "primary_key": true
+          },
+          {
+            "name": "name",
+            "type": "VARCHAR(225)"
+          },
+          {
+            "name": "description",
+            "type": "VARCHAR(225)"
+          },
+          {
+            "name": "location_id",
+            "type": "INT",
+            "foreign_key": {
+              "references": "locations(id)"
+            }
+          },
+          {
+            "name": "openings",
+            "type": "INT"
+          }
+        ]
+      }
+    ]
+  }
+  
