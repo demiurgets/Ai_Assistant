@@ -20,11 +20,21 @@
           {
             "name": "config",
             "type": "JSONB"
+          },
+          {
+            "name": "date_created",
+            "type": "TIMESTAMP",
+            "default": "CURRENT_TIMESTAMP"
+          },
+          {
+            "name": "date_updated",
+            "type": "TIMESTAMP",
+            "default": "CURRENT_TIMESTAMP"
           }
         ]
       },
       {
-        "name": "locations",
+        "name": "addresses",
         "columns": [
           {
             "name": "id",
@@ -48,8 +58,18 @@
             "not_null": true
           },
           {
-            "name": "location",
+            "name": "addresse",
             "type": "VARCHAR(255)"
+          },
+          {
+            "name": "date_created",
+            "type": "TIMESTAMP",
+            "default": "CURRENT_TIMESTAMP"
+          },
+          {
+            "name": "date_updated",
+            "type": "TIMESTAMP",
+            "default": "CURRENT_TIMESTAMP"
           }
         ]
       },
@@ -60,14 +80,6 @@
             "name": "id",
             "type": "SERIAL",
             "primary_key": true
-          },
-          {"name": "favorite_color",
-            "type": "VARCHAR(225)",
-            "not_null": true
-          },
-          {"name": "favorite_dinosaur",
-            "type": "VARCHAR(225)",
-            "not_null": true
           },
           {
             "name": "first_name",
@@ -101,10 +113,10 @@
             "type": "VARCHAR(255)"
           },
           {
-            "name": "location_id",
+            "name": "addresse_id",
             "type": "INT",
             "foreign_key": {
-              "references": "locations(id)"
+              "references": "addresses(id)"
             }
           },
           {
@@ -122,6 +134,16 @@
           },
           {
             "name": "created_at",
+            "type": "TIMESTAMP",
+            "default": "CURRENT_TIMESTAMP"
+          },
+          {
+            "name": "date_created",
+            "type": "TIMESTAMP",
+            "default": "CURRENT_TIMESTAMP"
+          },
+          {
+            "name": "date_updated",
             "type": "TIMESTAMP",
             "default": "CURRENT_TIMESTAMP"
           }
@@ -164,7 +186,7 @@
             "type": "INT"
           },
           {
-            "name": "location",
+            "name": "addresse",
             "type": "VARCHAR(100)"
           },
           {
@@ -185,19 +207,33 @@
             "default": "'pending'"
           },
           {
-            "name": "location_id",
+            "name": "conversation",
+            "type": "TEXT"
+          },
+          {
+            "name": "addresse_id",
             "type": "INT",
             "foreign_key": {
-              "references": "locations(id)"
+              "references": "addresses(id)"
             }
           },
           {
-            "name": "enrollment_date",
+            "name": "enrollment_start_timestamp",
             "type": "DATE",
-            "default": "CURRENT_DATE"
+            "default": "CURRENT_TIMESTAMP"
           },
           {
-            "name": "created_at",
+            "name": "enrollment_end_timestamp",
+            "type": "DATE",
+            "default": "CURRENT_TIMESTAMP"
+          },
+          {
+            "name": "date_created",
+            "type": "TIMESTAMP",
+            "default": "CURRENT_TIMESTAMP"
+          },
+          {
+            "name": "date_updated",
             "type": "TIMESTAMP",
             "default": "CURRENT_TIMESTAMP"
           }
@@ -240,7 +276,7 @@
             "type": "INT"
           },
           {
-            "name": "location",
+            "name": "addresse",
             "type": "VARCHAR(100)"
           },
           {
@@ -249,10 +285,10 @@
             "default": "'hired'"
           },
           {
-            "name": "location_id",
+            "name": "addresse_id",
             "type": "INT",
             "foreign_key": {
-              "references": "locations(id)"
+              "references": "addresses(id)"
             }
           },
           {
@@ -262,6 +298,16 @@
           },
           {
             "name": "created_at",
+            "type": "TIMESTAMP",
+            "default": "CURRENT_TIMESTAMP"
+          },
+          {
+            "name": "date_created",
+            "type": "TIMESTAMP",
+            "default": "CURRENT_TIMESTAMP"
+          },
+          {
+            "name": "date_updated",
             "type": "TIMESTAMP",
             "default": "CURRENT_TIMESTAMP"
           }
@@ -289,6 +335,16 @@
           {
             "name": "type",
             "type": "VARCHAR(225)"
+          },
+          {
+            "name": "date_created",
+            "type": "TIMESTAMP",
+            "default": "CURRENT_TIMESTAMP"
+          },
+          {
+            "name": "date_updated",
+            "type": "TIMESTAMP",
+            "default": "CURRENT_TIMESTAMP"
           }
         ]
       },
@@ -308,15 +364,25 @@
             }
           },
           {
-            "name": "location_id",
+            "name": "addresse_id",
             "type": "INT",
             "foreign_key": {
-              "references": "locations(id)"
+              "references": "addresses(id)"
             }
           },
           {
             "name": "date",
             "type": "DATE"
+          },
+          {
+            "name": "date_created",
+            "type": "TIMESTAMP",
+            "default": "CURRENT_TIMESTAMP"
+          },
+          {
+            "name": "date_updated",
+            "type": "TIMESTAMP",
+            "default": "CURRENT_TIMESTAMP"
           }
         ]
       },
@@ -329,10 +395,10 @@
             "primary_key": true
           },
           {
-            "name": "location_id",
+            "name": "addresse_id",
             "type": "INT",
             "foreign_key": {
-              "references": "locations(id)"
+              "references": "addresses(id)"
             }
           },
           {
@@ -342,11 +408,21 @@
           {
             "name": "name",
             "type": "VARCHAR(225)"
+          },
+          {
+            "name": "date_created",
+            "type": "TIMESTAMP",
+            "default": "CURRENT_TIMESTAMP"
+          },
+          {
+            "name": "date_updated",
+            "type": "TIMESTAMP",
+            "default": "CURRENT_TIMESTAMP"
           }
         ]
       },
       {
-        "name": "positions",
+        "name": "job_positions",
         "columns": [
           {
             "name": "id",
@@ -362,18 +438,134 @@
             "type": "VARCHAR(225)"
           },
           {
-            "name": "location_id",
+            "name": "addresse_id",
             "type": "INT",
             "foreign_key": {
-              "references": "locations(id)"
+              "references": "addresses(id)"
             }
           },
           {
             "name": "openings",
             "type": "INT"
+          },
+          {
+            "name": "max_openings",
+            "type": "INT"
+          },
+          {
+            "name": "date_created",
+            "type": "TIMESTAMP",
+            "default": "CURRENT_TIMESTAMP"
+          },
+          {
+            "name": "date_updated",
+            "type": "TIMESTAMP",
+            "default": "CURRENT_TIMESTAMP"
+          }
+        ]
+      },
+      {
+        "name": "job_posting",
+        "columns": [
+          {
+            "name": "job_position_id",
+            "type": "INT",
+            "foreign_key": {
+              "references": "job_positions(id)"
+            }
+          },
+          {
+            "name": "position_name",
+            "type": "VARCHAR(225)"
+          },
+          {
+            "name": "job_info",
+            "type": "TEXT"
+          },
+          {
+            "name": "area",
+            "type": "VARCHAR(225)"
+          },
+          {
+            "name": "min_level_edu",
+            "type": "VARCHAR(225)"
+          },
+          {
+            "name": "age_range",
+            "type": "VARCHAR(50)"
+          },
+          {
+            "name": "previous_experience",
+            "type": "VARCHAR(225)"
+          },
+          {
+            "name": "working_hours",
+            "type": "VARCHAR(50)"
+          },
+          {
+            "name": "working_days",
+            "type": "VARCHAR(50)"
+          },
+          {
+            "name": "salary_range",
+            "type": "VARCHAR(50)"
+          },
+          {
+            "name": "tips",
+            "type": "BOOLEAN"
+          },
+          {
+            "name": "legal_benefits",
+            "type": "TEXT"
+          },
+          {
+            "name": "superior_benefits",
+            "type": "TEXT"
+          },
+          {
+            "name": "comments",
+            "type": "TEXT"
+          },
+          {
+            "name": "date_created",
+            "type": "TIMESTAMP",
+            "default": "CURRENT_TIMESTAMP"
+          },
+          {
+            "name": "date_updated",
+            "type": "TIMESTAMP",
+            "default": "CURRENT_TIMESTAMP"
+          }
+        ]
+      },
+      {
+        "name": "recruiter_locations",
+        "columns": [
+          {
+            "name": "recruiter_id",
+            "type": "INT",
+            "foreign_key": {
+              "references": "users(id)"
+            }
+          },
+          {
+            "name": "addresse_id",
+            "type": "INT",
+            "foreign_key": {
+              "references": "addresses(id)"
+            }
+          },
+          {
+            "name": "date_created",
+            "type": "TIMESTAMP",
+            "default": "CURRENT_TIMESTAMP"
+          },
+          {
+            "name": "date_updated",
+            "type": "TIMESTAMP",
+            "default": "CURRENT_TIMESTAMP"
           }
         ]
       }
     ]
   }
-  
