@@ -11,7 +11,7 @@ def process_data():
     
     # Process the data (here, we're just echoing it)
     processed_data = f"Processed: {data['message']}"
-    response = recieve_query_from_whatsapp(data['message'], data['number'])
+    response = recieve_message(data['message'], data['number'])
 
     # Return a response
     return jsonify({"processed_message": response}), 200

@@ -1,0 +1,97 @@
+[
+    {
+        "phone_number": "915 336-3235",
+        "thread_id": "thread_nG8XHd6tpCjmEI6mrSbwSoHC",
+        "first_contact_timestamp": "2024-10-11T10:14:39.798451",
+        "conversation": [
+            {
+                "timestamp": "2024-10-11T10:14:43.219225",
+                "user_message": "Hello",
+                "assistant_response": "Hello! Welcome to Bitso, the leading cryptocurrency platform in Latin America. I'm thrilled to have you here for the job interview. Before we dive in, could you please tell me your full name?"
+            },
+            {
+                "timestamp": "2024-10-11T10:15:17.184837",
+                "user_message": "My name is Tony Hawk",
+                "assistant_response": "Great to meet you, Tony Hawk! Now, may I ask how old you are?"
+            },
+            {
+                "timestamp": "2024-10-11T10:15:58.425977",
+                "user_message": "i'm 25 years old :) i live in nyc and want to be a financial analyst",
+                "assistant_response": "That's fantastic, Tony! Being a financial analyst sounds like an exciting career path. Before we proceed, I'd like to confirm your preferred position. Unfortunately, we don't have a specific department for financial analysts at Bitso. Would you be interested in exploring other departments and positions within the company?"
+            },
+            {
+                "timestamp": "2024-10-11T10:16:30.504769",
+                "user_message": "What related positions do you have?",
+                "assistant_response": "We have several departments with diverse positions available at Bitso. Here are some departments you might be interested in:\n\n1. Bitso Business\n2. Finance\n3. Operations\n4. Retail\n5. Technology\n\nPlease let me know which department catches your eye, and I can provide you with a list of positions within that department."
+            },
+            {
+                "timestamp": "2024-10-11T10:16:52.936359",
+                "user_message": "finance dept",
+                "assistant_response": "Great choice, Tony! Here are the positions available in the Finance department at Bitso:\n\n1. Financial Accounting Specialist - Trading Desk\n2. Financial Risk Manager\n3. Head of Tax\n4. Risk Analyst - Data\n5. Treasury Ops Analyst\n\nDo any of these positions spark your interest?"
+            },
+            {
+                "timestamp": "2024-10-11T10:17:33.249452",
+                "user_message": "perhaps a risk analyst. i got a degree in financial analysis",
+                "assistant_response": "That's fantastic, Tony! With your background in financial analysis, the position of Risk Analyst - Data could be an excellent fit for you. \n\nBefore we proceed further, could you please share a bit about your relevant experience in the field?"
+            },
+            {
+                "timestamp": "2024-10-11T10:18:18.396080",
+                "user_message": "Just my degree so far.",
+                "assistant_response": "Thank you for sharing that, Tony. Your degree in financial analysis is a solid foundation, and we appreciate your honesty about your experience.\n\nHow did you hear about the job opening at Bitso?"
+            },
+            {
+                "timestamp": "2024-10-11T10:19:01.555715",
+                "user_message": "Through an ad on the paper, just email me at tonyhawk123@gmail.com",
+                "assistant_response": "Thank you for sharing your email, Tony. Before we conclude, could you please let me know your availability for an interview at Bitso?"
+            },
+            {
+                "timestamp": "2024-10-11T10:19:55.193992",
+                "user_message": "Next thursday is fine",
+                "assistant_response": "Great, thank you so much for your time, Tony Hawk. We will take a look and reach out; If you have any other questions about a position or the company, please let me know. Otherwise have a great day!"
+            }
+        ]
+    },
+    {
+        "phone_number": "915 332-3235",
+        "thread_id": "thread_oOz3DgD3hC0tsRssL9am1u5O",
+        "first_contact_timestamp": "2024-10-11T11:33:45.117220",
+        "conversation": []
+    },
+    {
+        "phone_number": "935 338-3235",
+        "thread_id": "thread_FMU8pBMVHByx42XlP0DHyYSb",
+        "first_contact_timestamp": "2024-10-16T12:33:46.295433",
+        "conversation": [
+            {
+                "message_id": 1,
+                "timestamp": "2024-10-16T12:33:50.096816",
+                "user_message": "Hello",
+                "assistant_response": "Hello! Welcome to Bitso, the leading cryptocurrency platform in Latin America. I'm thrilled to have you here for the job interview. Before we start, may I please have your full name?"
+            },
+            {
+                "message_id": 2,
+                "timestamp": "2024-10-16T12:34:31.922206",
+                "user_message": "Johhny Storm",
+                "assistant_response": "Great to meet you, Johnny! Could you also share your age with me?"
+            },
+            {
+                "message_id": 3,
+                "timestamp": "2024-10-16T12:35:26.652174",
+                "user_message": "I'm 24 years old, i live in little rock",
+                "assistant_response": "Nice to know, Johnny! Now, which department and position at Bitso are you most interested in? Here are the departments we have available:\n\n1. Bitso Business\n2. Design\n3. Finance\n4. Legal\n5. Operations\n6. Other\n7. People\n8. Product\n9. Retail\n10. Technology\n\nOnce you pick a department, I can provide you with a list of positions available in that department."
+            },
+            {
+                "message_id": 4,
+                "timestamp": "2024-10-16T12:37:13.312258",
+                "user_message": "design for sure",
+                "assistant_response": "Great choice, Johnny! Here are the positions available in the Design department at Bitso:\n\n1. Localization Specialist\n2. Sr UX Designer, R&D (Europe)\n3. Sr UX Designer, R&D (Latin America)\n\nWhich position are you most interested in applying for?"
+            },
+            {
+                "message_id": 5,
+                "timestamp": "2024-10-16T12:38:23.973075",
+                "user_message": "localization please",
+                "assistant_response": "Fantastic choice, Johnny! Now, could you please tell me about your experience in the design field?"
+            }
+        ]
+    }
+]

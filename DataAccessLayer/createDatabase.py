@@ -1,6 +1,15 @@
 import json
 import psycopg2
 from psycopg2 import sql
+import streamlit as st
+
+dbname = st.secrets["database"]["dbname"]
+user = st.secrets["database"]["user"]
+password = st.secrets["database"]["password"]
+host = st.secrets["database"]["host"]
+port = st.secrets["database"]["port"]
+
+
 
 def load_schema(filename):
     with open(filename, 'r') as file:
@@ -35,6 +44,7 @@ def generate_create_table_query(table):
     create_table_sql = f"CREATE TABLE IF NOT EXISTS {table_name} ({', '.join(columns_sql)});"
     return create_table_sql
 
+    
 def execute_query(connection, query):
     cursor = connection.cursor()
     try:
@@ -48,22 +58,46 @@ def execute_query(connection, query):
     finally:
         cursor.close()
 
+def findDifferences(newSchema, currentSchema):
+
+
+    return {
+        {
+            "tables": {
+                "added": ["table1", "table2"],
+                "removed": ["table3"],
+                "modified": {
+                    "table1": {
+                        "added_columns": ["new_column"],
+                        "removed_columns": ["old_column"],
+                        "modified_columns": {
+                            "column_name": {"type": "new_type", "not_null": True}
+                        }
+                    }
+                }
+            }
+        }
+
+    }
 def main():
-    schema_file = 'schema.json'
-    json_schema = load_schema(schema_file)
+    newSchema_file = 'newSchema.json'
+    currentSchema_file = 'currentSchema.json'
+    
+    newSchema = load_schema(newSchema_file)
+    currentSchema = load_schema(currentSchema_file)
     
     db_config = {
-        'dbname': 'qonda',
-        'user': 'postgres',
-        'password': 'Not24get!',
-        'host': 'localhost', 
-        'port': 5432  
+        'dbname': dbname,
+        'user': postgres,
+        'password': password,
+        'host': host, 
+        'port': port  
     }
 
     conn = psycopg2.connect(**db_config)
-    
+    queriesToExecute = ["ADD TABLE XYZ COLS ", "UPDATE TABLE POSITIONS WHERE ID = 2", "DELETE COLUMN IN users favoritecolor"]
     try:
-        for table in json_schema['tables']:
+        for table in newSchema['tables']:
             create_query = generate_create_table_query(table)
             execute_query(conn, create_query)
     finally:
