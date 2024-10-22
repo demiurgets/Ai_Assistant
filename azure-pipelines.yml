@@ -9,6 +9,7 @@ trigger:
 variables:
   # Azure Resource Manager connection created during pipeline creation
   azureServiceConnectionId: '199f175d-1809-4249-89f1-da14832d09bc'
+  System.Debug: true
 
   # Web app name
   webAppName: 'qonda'
