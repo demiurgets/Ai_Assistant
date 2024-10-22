@@ -18,10 +18,16 @@ app = Flask(__name__)
 # Load the .env file
 load_dotenv()
 
-api_key = st.secrets["api_keys"]["API_KEY"]
-reader_id = st.secrets["api_keys"]["ASST_ID_READER"]
-interviewer_id = st.secrets["api_keys"]["ASST_INTERVIEWER"]
-admin_assistant_id = st.secrets["api_keys"]["ASST_ADMIN"]
+dbname = os.getenv('dbname')
+user = os.getenv('user')
+password = os.getenv('password')
+host = os.getenv('host')
+port = os.getenv('port')
+
+api_key = os.getenv('API_KEY')
+reader_id = os.getenv('ASST_ID_READER')
+interviewer_id = os.getenv('ASST_INTERVIEWER')
+admin_assistant_id = os.getenv('ASST_ADMIN')
 
 # Load config and data
 #document_embeddings = np.load('Stored_context/applicant_embeddings.npy')
@@ -180,22 +186,20 @@ def save_to_database(json_data, phoneNumber, thread):
 
     try:
         cursor.execute('''
-            INSERT INTO candidates (first_name, last_name, email, phone, assistant_thread_id, age, location, experience, lead_source, availability, status, assistant_thread_id)
-            VALUES (%s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s)
+            INSERT INTO candidates (first_name, last_name, email, phone, thread_id, age, experience, lead_source, availability, status_id)
+            VALUES (%s, %s, %s, %s, %s, %s, %s, %s, %s, %s)
             
         ''', (
             json_data['first_name'],
             json_data['last_name'],
             json_data['email'],
             phoneNumber,
-            thread_id,
+            thread,
             json_data['age'],
-            json_data['location'],
             json_data['experience'],
             json_data['lead_source'],
             json_data['availability'],
-            json_data.get('status', 'pending'),  # Default to 'pending' if status is not provided
-            json_data.get('assistant_thread_id', None)
+            json_data.get('status', 0),  # Default to 'pending' if status is not provided
         ))
 
         conn.commit()
@@ -328,8 +332,8 @@ def webhook():
 
     triggered, trigger_response = detect_trigger_string(assistant_response)
 
-#detect_trigger_string("have a great day please", "thread_oOz3DgD3hC0tsRssL9am1u5O", "915 332-3235")
-recieve_message("localization please", "935 338-3235")
+detect_trigger_string("have a great day please", "thread_TSIR5X4CCrwKKIZBF612tlqc", "915 338-3235")
+#recieve_message("this friday. just email me at johnny123@gmail.com", "915 338-3235")
 
 #save_to_database(json_data, "915 352-323")
 

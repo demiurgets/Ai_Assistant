@@ -2,13 +2,29 @@ import json
 import psycopg2
 from psycopg2 import sql
 import streamlit as st
+from dotenv import load_dotenv
+import os
 
-dbname = st.secrets["database"]["dbname"]
-user = st.secrets["database"]["user"]
-password = st.secrets["database"]["password"]
-host = st.secrets["database"]["host"]
-port = st.secrets["database"]["port"]
+# Load environment variables from .env file
+load_dotenv()
 
+
+
+dbname = "qondadfa"
+user = "postadfagres"
+password = "Notadfa24get!"
+host = "localhasdfost"
+port = 5412332
+
+dbname = os.getenv('dbname')
+user = os.getenv('user')
+password = os.getenv('password')
+host = os.getenv('host')
+port = os.getenv('port')
+
+print(dbname)
+print(user)
+print(password)
 
 
 def load_schema(filename):
@@ -80,7 +96,7 @@ def findDifferences(newSchema, currentSchema):
 
     }
 def main():
-    newSchema_file = 'newSchema.json'
+    newSchema_file = 'Schema.json'
     currentSchema_file = 'currentSchema.json'
     
     newSchema = load_schema(newSchema_file)
@@ -88,7 +104,7 @@ def main():
     
     db_config = {
         'dbname': dbname,
-        'user': postgres,
+        'user': user,
         'password': password,
         'host': host, 
         'port': port  

@@ -21,11 +21,11 @@ import PyPDF2
 # Load the .env file
 load_dotenv()
 
-api_key = st.secrets["api_keys"]["API_KEY"]
-reader_id = st.secrets["api_keys"]["ASST_ID_READER"]
-interviewer_id = st.secrets["api_keys"]["ASST_INTERVIEWER"]
-admin_assistant_id = st.secrets["api_keys"]["ASST_ADMIN"]
-cv_analyzer = st.secrets["api_keys"]["CV_ANALYZER"]
+api_key = os.getenv('API_KEY')
+reader_id = os.getenv('ASST_ID_READER')
+interviewer_id = os.getenv('ASST_INTERVIEWER')
+admin_assistant_id = os.getenv('ASST_ADMIN')
+cv_analyzer = os.getenv('CV_ANALYZER')
 
 config = load_config()
 os.environ["KMP_DUPLICATE_LIB_OK"] = "TRUE"
