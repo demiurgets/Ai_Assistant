@@ -6,7 +6,7 @@ WORKDIR /app
 
 RUN pip install --no-cache-dir -r requirements.txt
 
-COPY .env /app/.env
+#COPY .env /app/.env
 
 EXPOSE 8501
 
