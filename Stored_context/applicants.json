@@ -67,5 +67,28 @@
         "lead_source": "LinkedIn ad",
         "availability": "This weekend",
         "contact": "123 449 2421"
+    },
+    {
+        "name": "Ian Mendoza",
+        "age": 21,
+        "location": "El Paso, Texas",
+        "position": "Legal Assistant",
+        "experience": "Studied law for 6 months",
+        "lead_source": "Facebook ad",
+        "availability": "November, between 2nd to 10th",
+        "contact": "ian.mendoza@nubasolutions.com"
+    },
+    {
+        "name": "Ian Mendoza",
+        "age": 22,
+        "location": "New York",
+        "position": "Senior Data Scientist",
+        "experience": "N/A (Entry Level)",
+        "lead_source": "Newspaper Advertisement",
+        "availability": "Available",
+        "contact": {
+            "method": "Email",
+            "email": "ian.mendoza123@gmail.com"
+        }
     }
 ]

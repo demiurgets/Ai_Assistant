@@ -1,0 +1,225 @@
+[
+    {
+        "phone_number": "19153528343",
+        "thread_id": "thread_bZ9JCuLzVMb94IM0KcRLuWxe",
+        "first_contact_timestamp": "2024-11-07T13:12:38.182673",
+        "conversation": [
+            {
+                "message_id": 1,
+                "timestamp": "2024-11-07T13:12:40.464260",
+                "message": "hi",
+                "role": "external_user"
+            },
+            {
+                "message_id": 2,
+                "timestamp": "2024-11-07T13:12:40.464260",
+                "message": "Hello! Welcome to Bitso, I'm excited to learn more about you. To start, could you please share your full name?",
+                "role": "assistant"
+            },
+            {
+                "message_id": 3,
+                "timestamp": "2024-11-07T13:14:04.604662",
+                "message": "my name is apite ster",
+                "role": "external_user"
+            },
+            {
+                "message_id": 4,
+                "timestamp": "2024-11-07T13:14:04.604662",
+                "message": "Great to meet you, Apite! Could you also share your age with me?",
+                "role": "assistant"
+            },
+            {
+                "message_id": 5,
+                "timestamp": "2024-11-07T13:16:50.402344",
+                "message": "im 45 years old",
+                "role": "external_user"
+            },
+            {
+                "message_id": 6,
+                "timestamp": "2024-11-07T13:16:50.402344",
+                "message": "Thank you, Apite. Where are you currently located?",
+                "role": "assistant"
+            },
+            {
+                "message_id": 7,
+                "timestamp": "2024-11-07T13:18:37.815817",
+                "message": "im in el paso texas",
+                "role": "external_user"
+            },
+            {
+                "message_id": 8,
+                "timestamp": "2024-11-07T13:18:37.815817",
+                "message": "Wonderful! Now, Apite, Bitso has various departments with exciting positions. Which department are you most interested in? Here are the departments available: Bitso Business, Design, Finance, Legal, Operations, Other, People, Product, Retail, and Technology.",
+                "role": "assistant"
+            },
+            {
+                "message_id": 9,
+                "timestamp": "2024-11-07T13:18:49.976711",
+                "message": "im in el paso texas",
+                "role": "external_user"
+            },
+            {
+                "message_id": 10,
+                "timestamp": "2024-11-07T13:18:49.976711",
+                "message": "I apologize for the confusion, Apite. Let me clarify my question. Among the departments I mentioned earlier (Bitso Business, Design, Finance, Legal, Operations, Other, People, Product, Retail, and Technology), which one are you most interested in for a position at Bitso?",
+                "role": "assistant"
+            },
+            {
+                "message_id": 11,
+                "timestamp": "2024-11-07T13:19:08.109939",
+                "message": "probably legal",
+                "role": "external_user"
+            },
+            {
+                "message_id": 12,
+                "timestamp": "2024-11-07T13:19:08.109939",
+                "message": "Great choice, Apite! Within the Legal department, we have the position of Legal Assistant. Is that a role that interests you, or would you like to explore other departments and positions as well?",
+                "role": "assistant"
+            },
+            {
+                "message_id": 13,
+                "timestamp": "2024-11-07T13:19:36.118470",
+                "message": "that role is fine",
+                "role": "external_user"
+            },
+            {
+                "message_id": 14,
+                "timestamp": "2024-11-07T13:19:36.118470",
+                "message": "Fantastic! Now, could you please tell me about your experience or background related to legal work?",
+                "role": "assistant"
+            },
+            {
+                "message_id": 15,
+                "timestamp": "2024-11-07T13:19:58.130384",
+                "message": "actually what positions do you have for design?",
+                "role": "external_user"
+            },
+            {
+                "message_id": 16,
+                "timestamp": "2024-11-07T13:19:58.130384",
+                "message": "In the Design department at Bitso, we have the following positions available:\n1. Localization Specialist\n2. Sr UX Designer, R&D (Europe)\n3. Sr UX Designer, R&D (Latin America)\n\nAre any of these design positions more appealing to you than the Legal Assistant role you mentioned earlier, Apite?",
+                "role": "assistant"
+            },
+            {
+                "message_id": 17,
+                "timestamp": "2024-11-07T13:20:18.047017",
+                "message": "i like the localization specialist",
+                "role": "external_user"
+            },
+            {
+                "message_id": 18,
+                "timestamp": "2024-11-07T13:20:18.047017",
+                "message": "Great choice! Now, Apite, could you share a bit about your experience or background related to design and localization work?",
+                "role": "assistant"
+            },
+            {
+                "message_id": 19,
+                "timestamp": "2024-11-07T13:20:46.860605",
+                "message": "i was a designer for several years",
+                "role": "external_user"
+            },
+            {
+                "message_id": 20,
+                "timestamp": "2024-11-07T13:20:46.860605",
+                "message": "Thank you for sharing that, Apite. How did you hear about the job openings at Bitso?",
+                "role": "assistant"
+            },
+            {
+                "message_id": 21,
+                "timestamp": "2024-11-07T13:21:17.620663",
+                "message": "through a qr code on a restaurant",
+                "role": "external_user"
+            },
+            {
+                "message_id": 22,
+                "timestamp": "2024-11-07T13:21:17.620663",
+                "message": "That's interesting! Lastly, Apite, what is your preferred form of contact for us to reach out to you regarding the job application? And could you please provide your contact information?",
+                "role": "assistant"
+            },
+            {
+                "message_id": 23,
+                "timestamp": "2024-11-07T13:21:43.622123",
+                "message": "email me at apite.ster12@yahoo.com",
+                "role": "external_user"
+            },
+            {
+                "message_id": 24,
+                "timestamp": "2024-11-07T13:21:43.622123",
+                "message": "Great, thank you so much for your time, Apite. We will take a look and reach out; If you have any other questions about a position or the company, please let me know. Otherwise have a great day!",
+                "role": "assistant"
+            },
+            {
+                "message_id": 25,
+                "timestamp": "2024-11-07T14:18:41.405663",
+                "message": "good morning",
+                "role": "external_user"
+            },
+            {
+                "message_id": 26,
+                "timestamp": "2024-11-07T14:18:41.405663",
+                "message": "Good morning! How can I assist you today?",
+                "role": "assistant"
+            },
+            {
+                "message_id": 27,
+                "timestamp": "2024-11-07T14:22:14.685654",
+                "message": "hi",
+                "role": "external_user"
+            },
+            {
+                "message_id": 28,
+                "timestamp": "2024-11-07T14:22:14.685654",
+                "message": "Hello! How are you today? If you're here for the job position at Bitso, I'd love to help you with that. Could you please start by sharing your full name with me?",
+                "role": "assistant"
+            },
+            {
+                "message_id": 29,
+                "timestamp": "2024-11-07T14:23:43.101194",
+                "message": "hello",
+                "role": "external_user"
+            },
+            {
+                "message_id": 30,
+                "timestamp": "2024-11-07T14:23:43.101194",
+                "message": "Hello! It seems like we got off on the wrong foot. Let's start fresh. What's your full name?",
+                "role": "assistant"
+            },
+            {
+                "message_id": 31,
+                "timestamp": "2024-11-07T14:27:22.329296",
+                "message": "hello",
+                "role": "external_user"
+            },
+            {
+                "message_id": 32,
+                "timestamp": "2024-11-07T14:27:22.329296",
+                "message": "It seems like we're having a bit of a miscommunication. Let's try this again. Can you please provide me with your full name?",
+                "role": "assistant"
+            },
+            {
+                "message_id": 33,
+                "timestamp": "2024-11-07T14:31:43.814404",
+                "message": "good morning",
+                "role": "external_user"
+            },
+            {
+                "message_id": 34,
+                "timestamp": "2024-11-07T14:31:43.814404",
+                "message": "Good morning! It seems like we're having a bit of a mix-up. To assist you better, could you please share your full name with me?",
+                "role": "assistant"
+            },
+            {
+                "message_id": 35,
+                "timestamp": "2024-11-07T14:34:49.930172",
+                "message": "testing hello",
+                "role": "external_user"
+            },
+            {
+                "message_id": 36,
+                "timestamp": "2024-11-07T14:34:49.930172",
+                "message": "It seems like we're having some technical difficulties. Let's try once more. Can you please share your full name with me?",
+                "role": "assistant"
+            }
+        ]
+    }
+]

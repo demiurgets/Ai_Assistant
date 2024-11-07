@@ -11,6 +11,12 @@ import subprocess
 import streamlit as st
 import psycopg2
 from datetime import datetime
+from sqlalchemy.exc import SQLAlchemyError
+
+from sqlalchemy.orm import sessionmaker
+from sqlalchemy import create_engine
+from DataAccessLayer.models.candidates import Candidates
+
 
 # Initialize Flask app
 app = Flask(__name__)
@@ -28,6 +34,12 @@ api_key = os.getenv('API_KEY')
 reader_id = os.getenv('ASST_ID_READER')
 interviewer_id = os.getenv('ASST_INTERVIEWER')
 admin_assistant_id = os.getenv('ASST_ADMIN')
+
+database_url = f"postgresql+psycopg2://{user}:{password}@{host}:{port}/{dbname}"
+
+engine = create_engine(database_url)
+Session = sessionmaker(bind=engine)
+db_session = Session()
 
 # Load config and data
 #document_embeddings = np.load('Stored_context/applicant_embeddings.npy')
@@ -47,11 +59,11 @@ admin_assistant_id = os.getenv('ASST_ADMIN')
 def get_postgres_connection():
     try:
         conn = psycopg2.connect(
-            dbname='qonda', 
-            user='postgres', 
-            password='Not24get!', 
-            host='localhost', 
-            port=5432
+            dbname=dbname, 
+            user=user, 
+            password=password, 
+            host=host, 
+            port=port
         )
         return conn
     except Exception as e:
@@ -99,7 +111,7 @@ def embeddings_search(query, response_length):
 def assistant_generate_json(thread_id):
     client = OpenAI(api_key=api_key)
     query = (
-        "using all the information you just received, generate ONLY a JSON object with the following fields: first_name, last_name, email, phone, age, city, state, zip, experience, lead_source, availability"
+        "using all the information you just received, generate ONLY a JSON object with the following fields: first_name, last_name, email, phone, age, city, state, zip, experience, lead_source, availability (in date range)"
     )
     
     message = client.beta.threads.messages.create(thread_id=thread_id, role="user", content=query)
@@ -130,90 +142,45 @@ def detect_trigger_string(text, thread_id, phoneNumber):
         json_data = assistant_generate_json(thread_id)  
         print(json_data)
         save_to_database(json_data, phoneNumber, thread_id)
-        move_single_conversation(phoneNumber)
 
         return True
     return False
 
-def move_single_conversation(phone_number):
-    # Load the JSON data
-    data = load_candidates_data()
-    
-    for candidate in data:
-        if candidate["phone_number"] == phone_number:
-            move_conversation_to_database(candidate)
-            candidate["conversation"] = []
-            break
-    save_candidates_data(data)
-
-def move_conversation_to_database(candidate):
-    print("Saving conversation to the database...")
-    conn = get_postgres_connection()
-    if not conn:
-        return
-
-    cursor = conn.cursor()
-    try:
-        cursor.execute('''
-            UPDATE candidates
-            SET conversation = %s
-            WHERE phone = %s
-        ''', (
-            json.dumps(candidate["conversation"]),  
-            candidate["phone_number"]
-        ))
-        conn.commit()
-        print("Conversation saved successfully.")
-    except Exception as e:
-        print(f"Error saving conversation: {e}")
-    
-    cursor.close()
-    conn.close()
-
-
-
-def save_to_database(json_data, phoneNumber, thread):
+def save_to_database(json_data, phone_number, thread):
     print("Saving candidate to the database...")
-    conn = get_postgres_connection()
-    if not conn:
+
+    candidate = db_session.query(Candidates).filter_by(phone=phone_number).first()
+
+    if candidate:
+        print("Candidate already exists.")
         return
 
-    cursor = conn.cursor()
+    new_candidate = Candidates()
+    setattr(new_candidate, 'phone', phone_number)
+    setattr(new_candidate, 'thread_id', thread)
 
     for key, value in json_data.items():
-        if value == "":
-            json_data[key] = None
+        if hasattr(new_candidate, key):
+            setattr(new_candidate, key, value if value != "" else None)
+        else:
+            print(f"Warning: '{key}' not a valid attribute of Candidate. Skipping.")
+
+    if not hasattr(new_candidate, 'status_id'):
+        setattr(new_candidate, 'status_id', json_data.get('status', 0))
 
     try:
-        cursor.execute('''
-            INSERT INTO candidates (first_name, last_name, email, phone, thread_id, age, experience, lead_source, availability, status_id)
-            VALUES (%s, %s, %s, %s, %s, %s, %s, %s, %s, %s)
-            
-        ''', (
-            json_data['first_name'],
-            json_data['last_name'],
-            json_data['email'],
-            phoneNumber,
-            thread,
-            json_data['age'],
-            json_data['experience'],
-            json_data['lead_source'],
-            json_data['availability'],
-            json_data.get('status', 0),  # Default to 'pending' if status is not provided
-        ))
-
-        conn.commit()
+        db_session.add(new_candidate)
+        db_session.commit()
         print("Candidate saved successfully.")
-    except Exception as e:
+    except SQLAlchemyError as e:
         print(f"Error saving candidate: {e}")
-    
-    cursor.close()
-    conn.close()
+        db_session.rollback()
 
 
-def load_candidates_data():
+
+def load_candidates_data(phone_number):
     # Load JSON data from file or create an empty list if the file doesn't exist
-    json_file_path = "Stored_context/screening_applicants.json"
+    json_file_path = "Stored_context/applicants_in_progress/" + phone_number + ".json"
 
     if os.path.exists(json_file_path):
         with open(json_file_path, 'r') as f:
@@ -224,29 +191,29 @@ def load_candidates_data():
             else:
                 return []  # If the JSON is not a list, return an empty list
     return []
-def save_candidates_data(data):
-    json_file_path = "Stored_context/screening_applicants.json"
+
+def save_candidates_data(data, phone_number):
+    json_file_path = "Stored_context/applicants_in_progress/" + phone_number + ".json"
 
     # Save JSON data to file
     with open(json_file_path, 'w') as f:
         json.dump(data, f, indent=4)
 
 def add_new_candidate(phone_number, thread_id):
-    # Add a new candidate with phone number, thread ID, and timestamp
-    data = load_candidates_data()
+    data = load_candidates_data(phone_number)
     
     new_entry = {
         "phone_number": phone_number,
         "thread_id": thread_id,
         "first_contact_timestamp": datetime.now().isoformat(),
-        "conversation": []  # Initialize an empty list for the conversation
+        "conversation": []  
     }
     
     data.append(new_entry)
-    save_candidates_data(data)
+    save_candidates_data(data, phone_number)
 
 def update_conversation(phone_number, user_message, assistant_response):
-    data = load_candidates_data()
+    data = load_candidates_data(phone_number)
     for candidate in data:
         if candidate["phone_number"] == phone_number:
             # Get the current message count and increment for each new message
@@ -255,15 +222,21 @@ def update_conversation(phone_number, user_message, assistant_response):
             candidate["conversation"].append({
                 "message_id": message_id,  # Add the new message ID
                 "timestamp": datetime.now().isoformat(),
-                "user_message": user_message,
-                "assistant_response": assistant_response
+                "message": user_message,
+                "role": "external_user"
+            })
+            candidate["conversation"].append({
+                "message_id": message_id + 1,  # Add the new message ID
+                "timestamp": datetime.now().isoformat(),
+                "message": assistant_response,
+                "role": "assistant"
             })
             break
-    save_candidates_data(data)
+    save_candidates_data(data, phone_number)
 
 
 def find_candidate_by_phone(phone_number):
-    data = load_candidates_data()
+    data = load_candidates_data(phone_number)
     for candidate in data:
         if candidate["phone_number"] == phone_number:
             return candidate
@@ -313,27 +286,10 @@ def recieve_message(query, phoneNumber):
     return response
 
 
+#ALL THESE METHOD CALLS ARE FOR LOCAL TESTING 
 
-@app.route('/webhook', methods=['POST'])
-def webhook():
-    data = request.get_json()
-    message_body = data['Body']
-    response_length = 150
-    thread_id = data.get('thread_id')
-
-    if message_body.lower().startswith("tell me"):
-        assistant_response_text = embeddings_search(message_body, response_length)
-    else:
-        if thread_id is None:
-            client = OpenAI(api_key=api_key)
-            thread = client.beta.threads.create()
-            thread_id = thread.id
-        assistant_response_text = assistant_response(thread_id, message_body, response_length)
-
-    triggered, trigger_response = detect_trigger_string(assistant_response)
-
-detect_trigger_string("have a great day please", "thread_TSIR5X4CCrwKKIZBF612tlqc", "915 338-3235")
-#recieve_message("this friday. just email me at johnny123@gmail.com", "915 338-3235")
-
-#save_to_database(json_data, "915 352-323")
+detect_trigger_string("have a great day please", "thread_oJuzEbVFPfrm9chyUI0rIcME", "915 658-4442")
+#recieve_message("hi there", "967 658-4442")
+#json_data = {'first_name': 'Michael', 'last_name': 'Soprano', 'email': 'mikey123@gmail.com', 'phone': '', 'age': 33, 'city': 'Houston', 'state': 'Texas', 'zip': '', 'experience': '3 years', 'lead_source': 'Facebook ad', 'availability': 'Next weekend', 'location': None, 'status': None, 'assistant_thread_id': None}
+#save_to_database(json_data, "915 658-4442", "thread_oJuzEbVFPfrm9chyUI0rIcME")
 
