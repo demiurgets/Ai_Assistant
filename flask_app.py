@@ -3,6 +3,9 @@ from message_reciever import recieve_message
 import os
 from dotenv import load_dotenv
 import requests
+from candidateManager import CandidateManager
+from DataAccessLayer.services import *
+from sqlalchemy.exc import SQLAlchemyError
 
 
 app = Flask(__name__)
@@ -120,7 +123,7 @@ def show_candidates():
             "email": candidate[2],
             "phone": candidate[3],
             "age": candidate[4],
-            "addresse": candidate[5],
+            "address": candidate[5],
             "enrollment_start_timestamp": candidate[6],
             "enrollment_end_timestamp": candidate[7],
             "date_created": candidate[8],
@@ -153,17 +156,84 @@ def show_candidate_details(candidate_id):
     }
 
     return jsonify({"candidate": candidate_data}), 200
-# End of new endpoints
 
-@app.route('/admin_process', methods=['POST'])
-def process_data():
+
+@app.route('/users', methods=['GET'])
+def users():
+    try:
+        users = get_all_users()
+        return jsonify({"data": users}), 200
+    except SQLAlchemyError as e:
+        return jsonify({"error": f"Error fetching users: {e}"}), 500
+
+# 2. Get a user by ID
+@app.route('/users/<int:user_id>', methods=['GET'])
+def user_by_id(user_id):
+    try:
+        user = get_user_by_id(user_id)
+        if user:
+            return jsonify({"user": user}), 200
+        return jsonify({"error": "User not found"}), 404
+    except SQLAlchemyError as e:
+        return jsonify({"error": f"Error fetching user by ID: {e}"}), 500
+
+
+# 4. Create a new user
+@app.route('/users', methods=['POST'])
+def create_new_user():
+    try:
+        user_data = request.json
+        user = create_user(user_data)
+        if user:
+            return jsonify({"message": "User created successfully", "user": user}), 201
+        return jsonify({"error": "Failed to create user"}), 500
+    except SQLAlchemyError as e:
+        return jsonify({"error": f"Error creating user: {e}"}), 500
+
+# 5. Update user by ID
+@app.route('/users/<int:user_id>', methods=['PUT'])
+def update_existing_user(user_id):
+    try:
+        update_data = request.json
+        updated_user = update_user(user_id, update_data)
+        if updated_user:
+            return jsonify({"message": "User updated successfully", "user": updated_user}), 200
+        return jsonify({"error": "Failed to update user or user not found"}), 404
+    except SQLAlchemyError as e:
+        return jsonify({"error": f"Error updating user: {e}"}), 500
+
+# 6. Delete user by ID
+@app.route('/users/<int:user_id>', methods=['DELETE'])
+def delete_existing_user(user_id):
+    try:
+        success = delete_user(user_id)
+        if success:
+            return jsonify({"message": "User deleted successfully"}), 200
+        return jsonify({"error": "Failed to delete user or user not found"}), 404
+    except SQLAlchemyError as e:
+        return jsonify({"error": f"Error deleting user: {e}"}), 500
+
+
+@app.route('/create_location', methods=['POST'])
+def location():
     # Get data from the POST request
     data = request.json
     print(f"Received data: {data}")
     
     # Process the data (here, we're just echoing it)
     processed_data = f"Processed: {data['message']}"
-    response = recieve_query_from_whatsapp(data['message'], data['number'])
+
+    # Return a response
+    return jsonify({"processed_message": response}), 200
+
+@app.route('/create_position', methods=['POST'])
+def position():
+    # Get data from the POST request
+    data = request.json
+    print(f"Received data: {data}")
+    
+    # Process the data (here, we're just echoing it)
+    processed_data = f"Processed: {data['message']}"
 
     # Return a response
     return jsonify({"processed_message": response}), 200
