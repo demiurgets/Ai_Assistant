@@ -1,4 +1,5 @@
 from flask import Flask, request, jsonify
+from DataAccessLayer.models.candidateManager import CandidateManager
 from message_reciever import recieve_message
 import os
 from dotenv import load_dotenv
@@ -105,57 +106,28 @@ def process_data_messenger():
     return jsonify({"processed_message": response}), 200
 
 # Front-end communication endpoints
-@app.route('/update_candidate', methods=['PUT'])
-def update_candidate_route():
+manager = CandidateManager()
+
+@app.route('/candidate/<int:candidate_id>', methods=['PUT'])
+def update_candidate(candidate_id):
     data = request.json
-    candidate_manager = CandidateManager()
-    return candidate_manager.update_candidate(data["candidate_id"], data)
+    return manager.update_candidate(candidate_id, data)
 
-@app.route('/get_candidates', methods=['GET'])
-def show_candidates():
-    candidate_manager = CandidateManager()  
-    candidates = candidate_manager.get_all_candidates()
+@app.route('/candidates', methods=['GET'])
+def get_all_candidates():
+    return manager.get_all_candidates()
 
-    candidates_list = [
-        {
-            "first_name": candidate[0],
-            "last_name": candidate[1],
-            "email": candidate[2],
-            "phone": candidate[3],
-            "age": candidate[4],
-            "address": candidate[5],
-            "enrollment_start_timestamp": candidate[6],
-            "enrollment_end_timestamp": candidate[7],
-            "date_created": candidate[8],
-            "date_updated": candidate[9]
-        }
-        for candidate in candidates
-    ]
+@app.route('/candidate/<int:candidate_id>', methods=['GET'])
+def get_specific_candidate(candidate_id):
+    return manager.specific_candidate(candidate_id)
 
-    return jsonify({"candidates": candidates_list}), 200
+@app.route('/candidate/<int:candidate_id>', methods=['DELETE'])
+def delete_candidate(candidate_id):
+    return manager.delete_candidate(candidate_id)
 
-@app.route('/get_candidate_by_id', methods=['GET'])
-def show_candidate_details(candidate_id):
-    candidate_manager = CandidateManager()  
-    candidate = candidate_manager.especific_candidate(candidate_id)
-
-    if not candidate:
-        return jsonify({"error": f"Candidate with ID {candidate_id} not found"}), 404
-
-    candidate_data = {
-        "first_name": candidate[0],
-        "last_name": candidate[1],
-        "email": candidate[2],
-        "phone": candidate[3],
-        "age": candidate[4],
-        "addresse": candidate[5],
-        "enrollment_start_timestamp": candidate[6],
-        "enrollment_end_timestamp": candidate[7],
-        "date_created": candidate[8],
-        "date_updated": candidate[9]
-    }
-
-    return jsonify({"candidate": candidate_data}), 200
+if __name__ == '__main__':
+    app.run(debug=True)
+# End of new endpoints
 
 
 @app.route('/users', methods=['GET'])
