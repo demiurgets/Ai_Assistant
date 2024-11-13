@@ -1,0 +1,12 @@
+version: '3.8'
+
+services:
+  flask_app:
+    build: .
+    ports:
+      - "5000:80"
+    env_file:
+      - .env # Load environment variables from .env file
+    volumes:
+      - .:/python-docker
+    command: [ "python", "-m", "flask_app", "run", "--host=0.0.0.0" ]
