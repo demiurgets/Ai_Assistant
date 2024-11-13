@@ -143,6 +143,13 @@ def get_candidate(candidate_id):
         return jsonify({"error": "Candidate not found"}), 404
     except SQLAlchemyError as e:
         return jsonify({"error": f"Error fetching candidate: {e}"}), 500
+# Front-end communication endpoints
+manager = CandidateManager()
+
+@app.route('/candidate/<int:candidate_id>', methods=['PUT'])
+def update_candidate(candidate_id):
+    data = request.json
+    return manager.update_candidate(candidate_id, data)
 
 @app.route('/candidates', methods=['GET'])
 def all_candidates():
@@ -265,6 +272,61 @@ def position():
 
     # Return a response
     return jsonify({"processed_message": response}), 200
+
+
+@app.route('/messenger_webhook', methods=["GET", "POST"])
+def index():
+    if request.method == 'GET':
+        VERIFY_TOKEN = config.VERIFY_TOKEN
+        if 'hub.mode' in request.args and 'hub.verify_token' in request.args:
+            mode = request.args.get('hub.mode')
+            token = request.args.get('hub.verify_token')
+            if mode == 'subscribe' and token == VERIFY_TOKEN:
+                print('WEBHOOK VERIFIED')
+                challenge = request.args.get('hub.challenge')
+                return challenge, 200
+            else:
+                return 'ERROR', 403
+        return 'SOMETHING', 200
+
+    if request.method == 'POST':
+        data = request.data
+        body = json.loads(data.decode('utf-8'))
+
+        if 'object' in body and body['object'] == 'page':
+            entries = body['entry']
+            for entry in entries:
+                webhookEvent = entry['messaging'][0]
+                print(webhookEvent)
+
+                senderPsid = webhookEvent['sender']['id']
+                print('Sender PSID: {}'.format(senderPsid))
+
+                if 'message' in webhookEvent:
+                    receivedMessage = webhookEvent['message']
+
+                    # Check if the received message contains text
+                    if 'text' in receivedMessage:
+                        response = {"text": 'Deployed version. You just sent -> {}'.format(receivedMessage['text'])}
+                    else:
+                        response = {"text": 'This chatbot only accepts text messages'}
+
+                    # Call the Sender API
+                    PAGE_ACCESS_TOKEN = config.PAGE_ACCESS_TOKEN
+                    payload = {
+                        'recipient': {'id': senderPsid},
+                        'message': response,
+                        'messaging_type': 'RESPONSE'
+                    }
+                    headers = {'content-type': 'application/json'}
+
+                    url = 'https://graph.facebook.com/v10.0/me/messages?access_token={}'.format(PAGE_ACCESS_TOKEN)
+                    r = requests.post(url, json=payload, headers=headers)
+                    print(r.text)
+
+                return 'EVENT_RECEIVED', 200
+        else:
+            return 'ERROR', 404
 
 
 if __name__ == "__main__":

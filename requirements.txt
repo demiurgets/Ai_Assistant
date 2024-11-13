@@ -19,3 +19,5 @@ tomli==2.0.1
 torch==2.5.1
 transformers==4.46.1
 whisper==1.1.10
+requests==2.32.3
+gunicorn
