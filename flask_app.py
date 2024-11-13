@@ -1,10 +1,8 @@
 from flask import Flask, request, jsonify
-from DataAccessLayer.models.candidateManager import CandidateManager
 from message_reciever import recieve_message
 import os
 from dotenv import load_dotenv
 import requests
-from candidateManager import CandidateManager
 from sqlalchemy.exc import SQLAlchemyError
 
 from DataAccessLayer.services.candidateServices import (
@@ -143,13 +141,7 @@ def get_candidate(candidate_id):
         return jsonify({"error": "Candidate not found"}), 404
     except SQLAlchemyError as e:
         return jsonify({"error": f"Error fetching candidate: {e}"}), 500
-# Front-end communication endpoints
-manager = CandidateManager()
 
-@app.route('/candidate/<int:candidate_id>', methods=['PUT'])
-def update_candidate(candidate_id):
-    data = request.json
-    return manager.update_candidate(candidate_id, data)
 
 @app.route('/candidates', methods=['GET'])
 def all_candidates():
