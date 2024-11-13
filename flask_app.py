@@ -5,8 +5,22 @@ import os
 from dotenv import load_dotenv
 import requests
 from candidateManager import CandidateManager
-from DataAccessLayer.services import *
 from sqlalchemy.exc import SQLAlchemyError
+
+from DataAccessLayer.services.candidateServices import (
+    get_all_candidates,
+    get_candidate_by_id,
+    create_candidate,
+    update_candidate,
+    delete_candidate
+)
+from DataAccessLayer.services.userServices import (
+    get_all_users,
+    get_user_by_id,
+    create_user,
+    update_user,
+    delete_user
+)
 
 
 app = Flask(__name__)
@@ -33,62 +47,76 @@ def webhook_verification():
 # handles incoming messages from WhatsApp
 @app.route('/whatsapp_webhook', methods=['POST'])
 def whatsapp_process_data():
-    # Extract the message and number from incoming data
+    # Extract the incoming data
     data = request.json
-    print(f"Received data: {data}")
 
     try:
-        message = data['entry'][0]['changes'][0]['value']['messages'][0]['text']['body']
-        sender_number = data['entry'][0]['changes'][0]['value']['messages'][0]['from']
-        business_phone_number_id = data['entry'][0]['changes'][0]['value']['metadata']['phone_number_id']
+        # Check if this is a message or status update
+        if 'messages' in data['entry'][0]['changes'][0]['value']:
+            print(f"Received data: {data}")
 
-        print(f"Received message: {message} from number: {sender_number}")
+            # Process message if 'messages' key exists
+            message = data['entry'][0]['changes'][0]['value']['messages'][0]['text']['body']
+            sender_number = data['entry'][0]['changes'][0]['value']['messages'][0]['from']
+            business_phone_number_id = data['entry'][0]['changes'][0]['value']['metadata']['phone_number_id']
+
+            print(f"Received message: {message} from number: {sender_number}")
+            
+            # Process the message using your application's logic
+            response_message = recieve_message(message, sender_number)
+
+            # Send the processed message back to WhatsApp using the Graph API
+            url = f"https://graph.facebook.com/v18.0/{business_phone_number_id}/messages"
+            headers = {
+                "Authorization": f"Bearer {GRAPH_API_TOKEN}",
+            }
+
+            # Construct payload for response
+            payload = {
+                "messaging_product": "whatsapp",
+                "to": sender_number,
+                "text": {"body": response_message},
+            }
+
+            try:
+                response = requests.post(url, headers=headers, json=payload)
+                print(response.status_code, response.text)  # Log status code and response body for more details
+                response.raise_for_status()  # Check if request was successful
+                print("Message sent successfully.")
+            except requests.exceptions.RequestException as e:
+                print(f"Error sending message to WhatsApp API: {e}")
+                return jsonify({"error": "Failed to send message to WhatsApp"}), 500
+
+            # Mark the message as read
+            read_url = f"https://graph.facebook.com/v18.0/{business_phone_number_id}/messages"
+            read_payload = {
+                "messaging_product": "whatsapp",
+                "status": "read",
+                "message_id": data['entry'][0]['changes'][0]['value']['messages'][0]['id']
+            }
+
+            try:
+                requests.post(read_url, headers=headers, json=read_payload)
+                print("Message marked as read.")
+            except requests.exceptions.RequestException as e:
+                print(f"Error marking message as read: {e}")
+                return jsonify({"error": "Failed to mark message as read"}), 500
+
+            return jsonify({"processed_message": response_message}), 200
+
+        elif 'statuses' in data['entry'][0]['changes'][0]['value']:
+            # Handle status update if 'statuses' key exists
+            print("Received status update:", data['entry'][0]['changes'][0]['value']['statuses'][0]['status'])
+            # You may choose to log status updates or perform other actions here
+            return jsonify({"status": "Status update received"}), 200
+
+        else:
+            print("Unexpected data format.")
+            return jsonify({"error": "Unexpected data format"}), 400
+
     except KeyError as e:
         print(f"Error extracting data: {e}")
         return jsonify({"error": "Error processing incoming message"}), 500
-
-    # Process the message using your application's logic
-    response_message = recieve_message(message, sender_number)
-
-    # Send the processed message back to WhatsApp using the Graph API
-    url = f"https://graph.facebook.com/v18.0/{business_phone_number_id}/messages"
-    headers = {
-        "Authorization": f"Bearer {GRAPH_API_TOKEN}",
-    }
-
-    # Construct payload for response
-    payload = {
-        "messaging_product": "whatsapp",
-        "to": sender_number,
-        "text": {"body": response_message},
-        
-    }
-
-    try:
-        response = requests.post(url, headers=headers, json=payload)
-        print(response.status_code, response.text)  # Log status code and response body for more details
-        response.raise_for_status()  # Check if request was successful
-        print("Message sent successfully.")
-    except requests.exceptions.RequestException as e:
-        print(f"Error sending message to WhatsApp API: {e}")
-        return jsonify({"error": "Failed to send message to WhatsApp"}), 500
-
-    # Mark the message as read
-    read_url = f"https://graph.facebook.com/v18.0/{business_phone_number_id}/messages"
-    read_payload = {
-        "messaging_product": "whatsapp",
-        "status": "read",
-        "message_id": data['entry'][0]['changes'][0]['value']['messages'][0]['id']
-    }
-
-    try:
-        requests.post(read_url, headers=headers, json=read_payload)
-        print("Message marked as read.")
-    except requests.exceptions.RequestException as e:
-        print(f"Error marking message as read: {e}")
-        return jsonify({"error": "Failed to mark message as read"}), 500
-
-    return jsonify({"processed_message": response_message}), 200
 
 
 #Endpoint for facebook messenger
@@ -105,29 +133,57 @@ def process_data_messenger():
     # Return a response
     return jsonify({"processed_message": response}), 200
 
-# Front-end communication endpoints
-manager = CandidateManager()
-
-@app.route('/candidate/<int:candidate_id>', methods=['PUT'])
-def update_candidate(candidate_id):
-    data = request.json
-    return manager.update_candidate(candidate_id, data)
+# Candidate endpoints using candidateServices functions
+@app.route('/candidates/<int:candidate_id>', methods=['GET'])
+def get_candidate(candidate_id):
+    try:
+        candidate = get_candidate_by_id(candidate_id)
+        if candidate:
+            return jsonify({"data": candidate}), 200
+        return jsonify({"error": "Candidate not found"}), 404
+    except SQLAlchemyError as e:
+        return jsonify({"error": f"Error fetching candidate: {e}"}), 500
 
 @app.route('/candidates', methods=['GET'])
-def get_all_candidates():
-    return manager.get_all_candidates()
+def all_candidates():
+    try:
+        candidates = get_all_candidates()
+        return jsonify({"data": candidates}), 200
+    except SQLAlchemyError as e:
+        return jsonify({"error": f"Error fetching candidates: {e}"}), 500
 
-@app.route('/candidate/<int:candidate_id>', methods=['GET'])
-def get_specific_candidate(candidate_id):
-    return manager.specific_candidate(candidate_id)
+@app.route('/candidates', methods=['POST'])
+def add_candidate():
+    try:
+        candidate_data = request.json
+        candidate = create_candidate(candidate_data)
+        if candidate:
+            return jsonify({"message": "Candidate created successfully", "candidate": candidate}), 201
+        return jsonify({"error": "Failed to create candidate"}), 500
+    except SQLAlchemyError as e:
+        return jsonify({"error": f"Error creating candidate: {e}"}), 500
 
-@app.route('/candidate/<int:candidate_id>', methods=['DELETE'])
-def delete_candidate(candidate_id):
-    return manager.delete_candidate(candidate_id)
+@app.route('/candidates/<int:candidate_id>', methods=['PUT'])
+def modify_candidate(candidate_id):
+    try:
+        update_data = request.json
+        updated_candidate = update_candidate(candidate_id, update_data)
+        if updated_candidate:
+            return jsonify({"message": "Candidate updated successfully", "candidate": updated_candidate}), 200
+        return jsonify({"error": "Failed to update candidate or candidate not found"}), 404
+    except SQLAlchemyError as e:
+        return jsonify({"error": f"Error updating candidate: {e}"}), 500
 
-if __name__ == '__main__':
-    app.run(debug=True)
-# End of new endpoints
+@app.route('/candidates/<int:candidate_id>', methods=['DELETE'])
+def remove_candidate(candidate_id):
+    try:
+        success = delete_candidate(candidate_id)
+        if success:
+            return jsonify({"message": "Candidate deleted successfully"}), 200
+        return jsonify({"error": "Failed to delete candidate or candidate not found"}), 404
+    except SQLAlchemyError as e:
+        return jsonify({"error": f"Error deleting candidate: {e}"}), 500
+
 
 
 @app.route('/users', methods=['GET'])
