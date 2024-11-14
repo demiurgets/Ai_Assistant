@@ -17,7 +17,7 @@ host = os.getenv('host')
 port = os.getenv('port')
 
 # Construct the database URL
-database_url = f"postgresql+psycopg2://{user}:{password}@{host}:{port}/{dbname}"
+database_url = f"postgresql+psycopg2://{user}:{password}@{host}:{port}/{dbname}?sslmode=require"
 
 def initialize_database(engine):
     """Create all tables defined in models."""
