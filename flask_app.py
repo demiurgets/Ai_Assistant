@@ -26,6 +26,8 @@ app = Flask(__name__)
 GRAPH_API_TOKEN  = os.getenv('WHATSAPP_GRAPH_API_TOKEN')
 WEBHOOK_VERIFY_TOKEN = os.getenv("WHATSAPP_WEBHOOK_VERIFY")
 
+MESSENGER_WEBHOOK_VERIFY_TOKEN = os.getenv('MESSENGER_WEBHOOK_VERIFY_TOKEN')
+MESSENGER_PAGE_ACCESS_TOKEN = os.getenv('MESSENGER_PAGE_ACCESS_TOKEN')
 
 # Endpoint for webhook verification
 @app.route('/whatsapp_webhook', methods=['GET'])
@@ -269,11 +271,10 @@ def position():
 @app.route('/messenger_webhook', methods=["GET", "POST"])
 def index():
     if request.method == 'GET':
-        VERIFY_TOKEN = config.VERIFY_TOKEN
         if 'hub.mode' in request.args and 'hub.verify_token' in request.args:
             mode = request.args.get('hub.mode')
             token = request.args.get('hub.verify_token')
-            if mode == 'subscribe' and token == VERIFY_TOKEN:
+            if mode == 'subscribe' and token == MESSENGER_WEBHOOK_VERIFY_TOKEN:
                 print('WEBHOOK VERIFIED')
                 challenge = request.args.get('hub.challenge')
                 return challenge, 200
@@ -304,7 +305,6 @@ def index():
                         response = {"text": 'This chatbot only accepts text messages'}
 
                     # Call the Sender API
-                    PAGE_ACCESS_TOKEN = config.PAGE_ACCESS_TOKEN
                     payload = {
                         'recipient': {'id': senderPsid},
                         'message': response,
@@ -312,7 +312,7 @@ def index():
                     }
                     headers = {'content-type': 'application/json'}
 
-                    url = 'https://graph.facebook.com/v10.0/me/messages?access_token={}'.format(PAGE_ACCESS_TOKEN)
+                    url = 'https://graph.facebook.com/v10.0/me/messages?access_token={}'.format(MESSENGER_PAGE_ACCESS_TOKEN)
                     r = requests.post(url, json=payload, headers=headers)
                     print(r.text)
 
