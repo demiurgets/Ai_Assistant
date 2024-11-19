@@ -10,14 +10,16 @@ from DataAccessLayer.services.candidateServices import (
     get_candidate_by_id,
     create_candidate,
     update_candidate,
-    delete_candidate
+    delete_candidate,
+    update_candidate_status
 )
 from DataAccessLayer.services.userServices import (
     get_all_users,
     get_user_by_id,
     create_user,
     update_user,
-    delete_user
+    delete_user,
+    update_user_status
 )
 
 
@@ -134,6 +136,17 @@ def process_data_messenger():
     return jsonify({"processed_message": response}), 200
 
 # Candidate endpoints using candidateServices functions
+
+# 1. Get all candidates
+@app.route('/candidates', methods=['GET'])
+def all_candidates():
+    try:
+        candidates = get_all_candidates()
+        return jsonify({"data": candidates}), 200
+    except SQLAlchemyError as e:
+        return jsonify({"error": f"Error fetching candidates: {e}"}), 500
+
+# 2. Get candidate by ID
 @app.route('/candidates/<int:candidate_id>', methods=['GET'])
 def get_candidate(candidate_id):
     try:
@@ -143,16 +156,8 @@ def get_candidate(candidate_id):
         return jsonify({"error": "Candidate not found"}), 404
     except SQLAlchemyError as e:
         return jsonify({"error": f"Error fetching candidate: {e}"}), 500
-
-
-@app.route('/candidates', methods=['GET'])
-def all_candidates():
-    try:
-        candidates = get_all_candidates()
-        return jsonify({"data": candidates}), 200
-    except SQLAlchemyError as e:
-        return jsonify({"error": f"Error fetching candidates: {e}"}), 500
-
+    
+# 4. Create a new candidate
 @app.route('/candidates', methods=['POST'])
 def add_candidate():
     try:
@@ -164,6 +169,7 @@ def add_candidate():
     except SQLAlchemyError as e:
         return jsonify({"error": f"Error creating candidate: {e}"}), 500
 
+# 5. Update candidate by ID
 @app.route('/candidates/<int:candidate_id>', methods=['PUT'])
 def modify_candidate(candidate_id):
     try:
@@ -175,6 +181,7 @@ def modify_candidate(candidate_id):
     except SQLAlchemyError as e:
         return jsonify({"error": f"Error updating candidate: {e}"}), 500
 
+# 6. Delete candidate by ID
 @app.route('/candidates/<int:candidate_id>', methods=['DELETE'])
 def remove_candidate(candidate_id):
     try:
@@ -185,8 +192,19 @@ def remove_candidate(candidate_id):
     except SQLAlchemyError as e:
         return jsonify({"error": f"Error deleting candidate: {e}"}), 500
 
+# 7. Update candidate status
+@app.route('/candidates/<int:candidate_id>/<int:new_status>', methods=['PUT'])
+def update_existing_candidate_status(candidate_id, new_status):
+    try:
+        updated_candidate = update_candidate_status(candidate_id, new_status)
+        if update_candidate:
+            return jsonify({"message": "Candidate updated successfully", "candidate": updated_candidate}), 200
+        return jsonify({"error": "Failed to update candidate or candidate not found"}), 404
+    except SQLAlchemyError as e:
+        return jsonify({"error": f"Error updating candidate: {e}"}), 500 
 
 
+# 1. Get all users
 @app.route('/users', methods=['GET'])
 def users():
     try:
@@ -242,6 +260,17 @@ def delete_existing_user(user_id):
     except SQLAlchemyError as e:
         return jsonify({"error": f"Error deleting user: {e}"}), 500
 
+
+# 7. Update user status
+@app.route('/users/<int:user_id>/<int:new_status>', methods=['PUT'])
+def update_existing_user_status(user_id, new_status):
+    try:
+        updated_user = update_user_status(user_id, new_status)
+        if updated_user:
+            return jsonify({"message": "User updated successfully", "user": updated_user}), 200
+        return jsonify({"error": "Failed to update user or user not found"}), 404
+    except SQLAlchemyError as e:
+        return jsonify({"error": f"Error updating user: {e}"}), 500        
 
 @app.route('/create_location', methods=['POST'])
 def location():

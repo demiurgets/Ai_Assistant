@@ -1,4 +1,3 @@
-open docker desktop
 ```powershell
 # Build image
 docker build -t <image-name> .
@@ -26,6 +25,3 @@ docker push < <login server> /samples/ <image-name:tag version> >
 docker push qondacr.azurecr.io/samples/flask_ai2:latest 
 
 end
-
-
-

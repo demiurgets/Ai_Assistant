@@ -153,6 +153,24 @@ class CandidateManager:
             session.close()
 
 
+    def update_candidate_status(self, candidate_id, new_status):
+        session = Session()
+        try:
+            candidate = session.query(Candidates).filter_by(id=candidate_id).first()
+            if not candidate:
+                return jsonify({"error": "Candidate not found"}), 404
+            
+            candidate.status_id = new_status
+            session.commit()  # Commit the changes to the database
+            
+            
+        except SQLAlchemyError as e:
+            session.rollback()
+            return jsonify({"error": str(e)}), 500
+        finally:
+            session.close()
+
+
 manager = CandidateManager()
 
 @app.route('/candidate/<int:candidate_id>', methods=['PUT'])

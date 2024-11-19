@@ -135,6 +135,22 @@ def delete_user(user_id):
         return False
 
 
+# 7. Update user status
+def update_user_status(user_id, new_status):
+    try:
+        user = db_session.query(Users).filter(Users.id == user_id).first()
+        if not user:
+            return None
+        
+        user.status_id = new_status
+        db_session.commit()
+        return user_to_dict(user)
+    
+    except SQLAlchemyError as e:
+        print(f"Error updating user: {e}")
+        db_session.rollback()
+        return None
+
 # Define 6 dummy users in JSON format
 dummy_users = [
     {
