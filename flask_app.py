@@ -4,20 +4,23 @@ import os
 from dotenv import load_dotenv
 import requests
 from sqlalchemy.exc import SQLAlchemyError
+import json
 
 from DataAccessLayer.services.candidateServices import (
     get_all_candidates,
     get_candidate_by_id,
     create_candidate,
     update_candidate,
-    delete_candidate
+    delete_candidate,
+    update_candidate_status
 )
 from DataAccessLayer.services.userServices import (
     get_all_users,
     get_user_by_id,
     create_user,
     update_user,
-    delete_user
+    delete_user,
+    update_user_status
 )
 from DataAccessLayer.services.locationsServices import (
     get_all_locations,
@@ -42,6 +45,8 @@ app = Flask(__name__)
 GRAPH_API_TOKEN  = os.getenv('WHATSAPP_GRAPH_API_TOKEN')
 WEBHOOK_VERIFY_TOKEN = os.getenv("WHATSAPP_WEBHOOK_VERIFY")
 
+MESSENGER_WEBHOOK_VERIFY_TOKEN = os.getenv('MESSENGER_WEBHOOK_VERIFY_TOKEN')
+MESSENGER_PAGE_ACCESS_TOKEN = os.getenv('MESSENGER_PAGE_ACCESS_TOKEN')
 
 # Endpoint for webhook verification
 @app.route('/whatsapp_webhook', methods=['GET'])
@@ -157,6 +162,17 @@ def process_data_messenger():
     return jsonify({"processed_message": response}), 200
 
 # Candidate endpoints using candidateServices functions
+
+# 1. Get all candidates
+@app.route('/candidates', methods=['GET'])
+def all_candidates():
+    try:
+        candidates = get_all_candidates()
+        return jsonify({"data": candidates}), 200
+    except SQLAlchemyError as e:
+        return jsonify({"error": f"Error fetching candidates: {e}"}), 500
+
+# 2. Get candidate by ID
 @app.route('/candidates/<int:candidate_id>', methods=['GET'])
 def get_candidate(candidate_id):
     try:
@@ -166,16 +182,8 @@ def get_candidate(candidate_id):
         return jsonify({"error": "Candidate not found"}), 404
     except SQLAlchemyError as e:
         return jsonify({"error": f"Error fetching candidate: {e}"}), 500
-
-
-@app.route('/candidates', methods=['GET'])
-def all_candidates():
-    try:
-        candidates = get_all_candidates()
-        return jsonify({"data": candidates}), 200
-    except SQLAlchemyError as e:
-        return jsonify({"error": f"Error fetching candidates: {e}"}), 500
-
+    
+# 4. Create a new candidate
 @app.route('/candidates', methods=['POST'])
 def add_candidate():
     try:
@@ -187,6 +195,7 @@ def add_candidate():
     except SQLAlchemyError as e:
         return jsonify({"error": f"Error creating candidate: {e}"}), 500
 
+# 5. Update candidate by ID
 @app.route('/candidates/<int:candidate_id>', methods=['PUT'])
 def modify_candidate(candidate_id):
     try:
@@ -198,6 +207,7 @@ def modify_candidate(candidate_id):
     except SQLAlchemyError as e:
         return jsonify({"error": f"Error updating candidate: {e}"}), 500
 
+# 6. Delete candidate by ID
 @app.route('/candidates/<int:candidate_id>', methods=['DELETE'])
 def remove_candidate(candidate_id):
     try:
@@ -208,8 +218,19 @@ def remove_candidate(candidate_id):
     except SQLAlchemyError as e:
         return jsonify({"error": f"Error deleting candidate: {e}"}), 500
 
+# 7. Update candidate status
+@app.route('/candidates/<int:candidate_id>/<int:new_status>', methods=['PUT'])
+def update_existing_candidate_status(candidate_id, new_status):
+    try:
+        updated_candidate = update_candidate_status(candidate_id, new_status)
+        if update_candidate:
+            return jsonify({"message": "Candidate updated successfully", "candidate": updated_candidate}), 200
+        return jsonify({"error": "Failed to update candidate or candidate not found"}), 404
+    except SQLAlchemyError as e:
+        return jsonify({"error": f"Error updating candidate: {e}"}), 500 
 
 
+# 1. Get all users
 @app.route('/users', methods=['GET'])
 def users():
     try:
@@ -372,11 +393,10 @@ def remove_location(location_id):
 @app.route('/messenger_webhook', methods=["GET", "POST"])
 def index():
     if request.method == 'GET':
-        VERIFY_TOKEN = config.VERIFY_TOKEN
         if 'hub.mode' in request.args and 'hub.verify_token' in request.args:
             mode = request.args.get('hub.mode')
             token = request.args.get('hub.verify_token')
-            if mode == 'subscribe' and token == VERIFY_TOKEN:
+            if mode == 'subscribe' and token == MESSENGER_WEBHOOK_VERIFY_TOKEN:
                 print('WEBHOOK VERIFIED')
                 challenge = request.args.get('hub.challenge')
                 return challenge, 200
@@ -407,7 +427,6 @@ def index():
                         response = {"text": 'This chatbot only accepts text messages'}
 
                     # Call the Sender API
-                    PAGE_ACCESS_TOKEN = config.PAGE_ACCESS_TOKEN
                     payload = {
                         'recipient': {'id': senderPsid},
                         'message': response,
@@ -415,7 +434,7 @@ def index():
                     }
                     headers = {'content-type': 'application/json'}
 
-                    url = 'https://graph.facebook.com/v10.0/me/messages?access_token={}'.format(PAGE_ACCESS_TOKEN)
+                    url = 'https://graph.facebook.com/v10.0/me/messages?access_token={}'.format(MESSENGER_PAGE_ACCESS_TOKEN)
                     r = requests.post(url, json=payload, headers=headers)
                     print(r.text)
 
@@ -425,4 +444,4 @@ def index():
 
 
 if __name__ == "__main__":
-    app.run(host="0.0.0.0", port=5001)
+    app.run(host="0.0.0.0", port=80)

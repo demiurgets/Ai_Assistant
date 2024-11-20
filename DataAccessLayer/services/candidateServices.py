@@ -141,3 +141,19 @@ def delete_candidate(candidate_id):
         print(f"Error deleting candidate: {e}")
         db_session.rollback()
         return False
+
+# 7. Update candidate status
+def update_candidate_status(candidate_id, new_status):
+    try:
+        candidate = db_session.query(Candidates).filter(Candidates.id == candidate_id).first()
+        if not candidate:
+            return None
+        
+        candidate.status_id = new_status
+        db_session.commit()
+        return candidate_to_dict(candidate)
+    
+    except SQLAlchemyError as e:
+        print(f"Error updating candidate: {e}")
+        db_session.rollback()
+        return None
