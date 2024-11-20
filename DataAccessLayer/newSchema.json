@@ -376,7 +376,7 @@
           "default": "'hired'"
         },
         {
-          "name": "addresse_id",
+          "name": "location_id",
           "type": "INT",
           "foreign_key": {
             "references": "locations(id)"
@@ -420,7 +420,7 @@
           }
         },
         {
-          "name": "addresse_id",
+          "name": "location_id",
           "type": "INT",
           "foreign_key": {
             "references": "locations(id)"
@@ -451,7 +451,7 @@
           "primary_key": true
         },
         {
-          "name": "addresse_id",
+          "name": "location_id",
           "type": "INT",
           "foreign_key": {
             "references": "locations(id)"
@@ -478,7 +478,7 @@
       ]
     },
     {
-      "name": "job_positions",
+      "name": "positions",
       "columns": [
         {
           "name": "id",
@@ -494,14 +494,14 @@
           "type": "VARCHAR(225)"
         },
         {
-          "name": "addresse_id",
+          "name": "location_id",
           "type": "INT",
           "foreign_key": {
             "references": "locations(id)"
           }
         },
         {
-          "name": "openings",
+          "name": "filled_openings",
           "type": "INT"
         },
         {

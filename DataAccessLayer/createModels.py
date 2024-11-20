@@ -85,7 +85,7 @@ def generate_model_files(schema, output_dir="models"):
         model_code = (
             "from sqlalchemy import Column, Integer, String, Float, Text, Boolean, Date, DateTime, ForeignKey\n"
             "from sqlalchemy.ext.declarative import declarative_base\n\n"
-            "from DataAccessLayer.models import Base\n\n"
+            "from models import Base\n\n"
             "from sqlalchemy import func\n\n"
         )
         model_code += create_model_class_code(table_name, columns)

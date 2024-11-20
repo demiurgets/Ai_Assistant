@@ -19,6 +19,22 @@ from DataAccessLayer.services.userServices import (
     update_user,
     delete_user
 )
+from DataAccessLayer.services.locationsServices import (
+    get_all_locations,
+    get_location_by_id,
+    create_location,
+    update_location,
+    delete_location
+)
+
+from DataAccessLayer.services.positionServices import (
+    get_all_positions,
+    get_position_by_id,
+    create_position,
+    update_position,
+    delete_position
+)
+
 
 
 app = Flask(__name__)
@@ -52,6 +68,15 @@ def whatsapp_process_data():
         # Check if this is a message or status update
         if 'messages' in data['entry'][0]['changes'][0]['value']:
             print(f"Received data: {data}")
+
+            # Extract sender info
+            sender_number = data['entry'][0]['changes'][0]['value']['messages'][0]['from']
+            
+            # Check if the phone number starts with +52 (Mexico's country code)
+            if sender_number.startswith("52"):
+                print("Received from Mexico")
+                return "", 200  # Do nothing and return
+
 
             # Process message if 'messages' key exists
             message = data['entry'][0]['changes'][0]['value']['messages'][0]['text']['body']
@@ -240,30 +265,108 @@ def delete_existing_user(user_id):
     except SQLAlchemyError as e:
         return jsonify({"error": f"Error deleting user: {e}"}), 500
 
+# Positions endpoints
+@app.route('/positions', methods=['GET'])
+def all_positions():
+    try:
+        positions = get_all_positions()
+        return jsonify({"data": positions}), 200
+    except SQLAlchemyError as e:
+        return jsonify({"error": f"Error fetching positions: {e}"}), 500
 
-@app.route('/create_location', methods=['POST'])
-def location():
-    # Get data from the POST request
-    data = request.json
-    print(f"Received data: {data}")
-    
-    # Process the data (here, we're just echoing it)
-    processed_data = f"Processed: {data['message']}"
+@app.route('/positions/<int:position_id>', methods=['GET'])
+def get_position(position_id):
+    try:
+        position = get_position_by_id(position_id)
+        if position:
+            return jsonify({"data": position}), 200
+        return jsonify({"error": "Position not found"}), 404
+    except SQLAlchemyError as e:
+        return jsonify({"error": f"Error fetching position: {e}"}), 500
 
-    # Return a response
-    return jsonify({"processed_message": response}), 200
+@app.route('/positions', methods=['POST'])
+def add_position():
+    try:
+        position_data = request.json
+        position = create_position(position_data)
+        if position:
+            return jsonify({"message": "Position created successfully", "position": position}), 201
+        return jsonify({"error": "Failed to create position"}), 500
+    except SQLAlchemyError as e:
+        return jsonify({"error": f"Error creating position: {e}"}), 500
 
-@app.route('/create_position', methods=['POST'])
-def position():
-    # Get data from the POST request
-    data = request.json
-    print(f"Received data: {data}")
-    
-    # Process the data (here, we're just echoing it)
-    processed_data = f"Processed: {data['message']}"
+@app.route('/positions/<int:position_id>', methods=['PUT'])
+def modify_position(position_id):
+    try:
+        update_data = request.json
+        updated_position = update_position(position_id, update_data)
+        if updated_position:
+            return jsonify({"message": "Position updated successfully", "position": updated_position}), 200
+        return jsonify({"error": "Failed to update position or position not found"}), 404
+    except SQLAlchemyError as e:
+        return jsonify({"error": f"Error updating position: {e}"}), 500
 
-    # Return a response
-    return jsonify({"processed_message": response}), 200
+@app.route('/positions/<int:position_id>', methods=['DELETE'])
+def remove_position(position_id):
+    try:
+        success = delete_position(position_id)
+        if success:
+            return jsonify({"message": "Position deleted successfully"}), 200
+        return jsonify({"error": "Failed to delete position or position not found"}), 404
+    except SQLAlchemyError as e:
+        return jsonify({"error": f"Error deleting position: {e}"}), 500
+
+# Locations endpoints
+@app.route('/locations', methods=['GET'])
+def all_locations():
+    try:
+        locations = get_all_locations()
+        return jsonify({"data": locations}), 200
+    except SQLAlchemyError as e:
+        return jsonify({"error": f"Error fetching locations: {e}"}), 500
+
+@app.route('/locations/<int:location_id>', methods=['GET'])
+def get_location(location_id):
+    try:
+        location = get_location_by_id(location_id)
+        if location:
+            return jsonify({"data": location}), 200
+        return jsonify({"error": "Location not found"}), 404
+    except SQLAlchemyError as e:
+        return jsonify({"error": f"Error fetching location: {e}"}), 500
+
+@app.route('/locations', methods=['POST'])
+def add_location():
+    try:
+        location_data = request.json
+        location = create_location(location_data)
+        if location:
+            return jsonify({"message": "Location created successfully", "location": location}), 201
+        return jsonify({"error": "Failed to create location"}), 500
+    except SQLAlchemyError as e:
+        return jsonify({"error": f"Error creating location: {e}"}), 500
+
+@app.route('/locations/<int:location_id>', methods=['PUT'])
+def modify_location(location_id):
+    try:
+        update_data = request.json
+        updated_location = update_location(location_id, update_data)
+        if updated_location:
+            return jsonify({"message": "Location updated successfully", "location": updated_location}), 200
+        return jsonify({"error": "Failed to update location or location not found"}), 404
+    except SQLAlchemyError as e:
+        return jsonify({"error": f"Error updating location: {e}"}), 500
+
+@app.route('/locations/<int:location_id>', methods=['DELETE'])
+def remove_location(location_id):
+    try:
+        success = delete_location(location_id)
+        if success:
+            return jsonify({"message": "Location deleted successfully"}), 200
+        return jsonify({"error": "Failed to delete location or location not found"}), 404
+    except SQLAlchemyError as e:
+        return jsonify({"error": f"Error deleting location: {e}"}), 500
+
 
 
 @app.route('/messenger_webhook', methods=["GET", "POST"])

@@ -1,4 +1,5 @@
 from flask import Flask, request, jsonify
+import re
 import numpy as np
 import json
 import faiss
@@ -16,6 +17,8 @@ from sqlalchemy.exc import SQLAlchemyError
 from sqlalchemy.orm import sessionmaker
 from sqlalchemy import create_engine
 from DataAccessLayer.models.candidates import Candidates
+from DataAccessLayer.services.positionServices import get_positions_by_location
+
 
 
 # Initialize Flask app
@@ -87,14 +90,6 @@ def search(query, result_length=5):
     
     return results
 
-def assistant_response(thread_id, query, response_length):
-    client = OpenAI(api_key=api_key)
-    message = client.beta.threads.messages.create(thread_id=thread_id, role="user", content=query)
-    run = client.beta.threads.runs.create_and_poll(thread_id=thread_id, assistant_id=interviewer_id)
-    if run.status == 'completed':
-        response_page = client.beta.threads.messages.list(thread_id=thread_id)
-        return response_page.data[0].content[0].text.value
-    return "Error processing request with AI Assistant"
 
 def embeddings_search(query, response_length):
     client = OpenAI(api_key=api_key)
@@ -108,43 +103,114 @@ def embeddings_search(query, response_length):
         return response_page.data[0].content[0].text.value
     return "Error processing request with AI Assistant"
 
+
+
 def assistant_generate_json(thread_id):
     client = OpenAI(api_key=api_key)
     query = (
-        "using all the information you just received, generate ONLY a JSON object with the following fields: first_name, last_name, email, phone, position, age, city, state, zip, experience, lead_source, availability (in date range)"
+        "using all the information you just received, generate ONLY a JSON object with the following fields: first_name, last_name, email, phone, position_id, age, city, state, zip, experience, lead_source, availability. Please write the ID integer for the position."
     )
     
+    # Send the user query
     message = client.beta.threads.messages.create(thread_id=thread_id, role="user", content=query)
+    
+    # Poll until the run is completed
     run = client.beta.threads.runs.create_and_poll(thread_id=thread_id, assistant_id=interviewer_id)
     
+    # Default response in case of failure
     response = "Error with AI API"
+    json_data = None
+    
     if run.status == 'completed':
+        # Retrieve the response page after run completion
         response_page = client.beta.threads.messages.list(thread_id=thread_id)
         response = response_page.data[0].content[0].text.value
         print(response)
-        json_data = json.loads(response)
-        
-        # Ensure all required fields are present in the JSON data
-        required_fields = ["first_name", "last_name", "email", "phone", "age", "location", 
-                           "experience", "lead_source", "availability", "status", "assistant_thread_id"]
-        
-        for field in required_fields:
-            if field not in json_data:
-                json_data[field] = None  # Set to None if not present
 
-    
+        
+        # Attempt to dynamically extract JSON from the response
+        try:
+            # Regex to find any JSON object: it looks for a string starting with `{` and ending with `}`, 
+            # containing a valid JSON-like structure (not a foolproof guarantee but a common approach)
+            json_pattern = r'\{.*?\}'  # Match any content inside curly braces
+            match = re.search(json_pattern, response, re.DOTALL)
+            
+            if match:
+                # Extract the matched JSON string
+                clean_response = match.group(0).strip()
+                print(f"Extracted JSON string: {repr(clean_response)}")  # Debugging: Show the cleaned JSON string
+                
+                # Attempt to load the cleaned JSON string
+                json_data = json.loads(clean_response)
+                print(f"Parsed JSON: {json_data}")  # Debugging: Show parsed JSON
+                
+                # Ensure all required fields are present in the parsed JSON data
+                required_fields = ["first_name", "last_name", "email", "phone", "age", "position_id", 
+                                   "experience", "lead_source", "availability", "status", "assistant_thread_id"]
+                
+                for field in required_fields:
+                    if field not in json_data:
+                        json_data[field] = None  # Set to None if not present
+                
+            else:
+                print("No JSON found in the response.")
+        
+        except json.JSONDecodeError as e:
+            print(f"JSON decoding error: {e}")
+        except Exception as e:
+            print(f"Unexpected error: {e}")
+
     return json_data
 
+def assistant_get_positions(thread_id, text):
+    numbers = re.findall(r'\d+', text)
+    location_id = int(numbers[0]) if numbers else None
+      # If a valid location_id is found, retrieve positions for that location
+    response = ""
+    if location_id is not None:
+        positions = get_positions_by_location(location_id)
+        positions_json = json.dumps(
+            positions,
+            default=lambda obj: obj.isoformat() if isinstance(obj, datetime) else str(obj)  # Handle datetime serialization
+        )
+        print("Found positions!")
+        print(positions)
+        client = OpenAI(api_key=api_key)
+        query = (
+            "Here are all the positions for the location, please present them to the user and remember the position ID of their choice: " + positions_json
+        )
+        
+        message = client.beta.threads.messages.create(thread_id=thread_id, role="user", content=query)
+        run = client.beta.threads.runs.create_and_poll(thread_id=thread_id, assistant_id=interviewer_id)
+        
+        response = "Error with AI API"
+        if run.status == 'completed':
+            response_page = client.beta.threads.messages.list(thread_id=thread_id)
+            response = response_page.data[0].content[0].text.value
+            print(response)
+        return response
+    else:
+        return response
+
+    
 def detect_trigger_string(text, thread_id, phoneNumber):
-    trigger_phrase = "have a great day"
-    if trigger_phrase in text.lower():
-        print("trigger string TRIGGERED")
+    ending_trigger = "have a great day"
+    location_trigger = "get right back to you"
+    if location_trigger in text.lower():
+        print("Location string triggered")
+        positions = assistant_get_positions(thread_id, text)
+        
+        return positions
+
+    if ending_trigger in text.lower():
+        print("ending string TRIGGERED")
+        print(text)
         json_data = assistant_generate_json(thread_id)  
         print(json_data)
         save_to_database(json_data, phoneNumber, thread_id)
 
-        return True
-    return False
+        return ""
+    return ""
 
 def save_to_database(json_data, phone_number, thread):
     print("Saving candidate to the database...")
@@ -242,6 +308,29 @@ def find_candidate_by_phone(phone_number):
             return candidate
     return None
 
+def send_to_ai(query, thread_id, client, asstId):
+    message = client.beta.threads.messages.create(
+        thread_id=thread_id,
+        role="user",
+        content=query
+    )
+    print("Ai run started...")
+
+    run = client.beta.threads.runs.create_and_poll(
+        thread_id=thread_id,
+        assistant_id=asstId,
+    )
+    response = "Error with AI API"
+    if run.status == 'completed':
+        print("AI Run completed")
+        response_page = client.beta.threads.messages.list(thread_id=thread_id)
+        response = response_page.data[0].content[0].text.value
+        
+    else:
+        response = "Error processing request with OpenAI"
+    return response
+
+
 def recieve_message(query, phoneNumber):
     key = api_key
     asstId = interviewer_id
@@ -254,6 +343,7 @@ def recieve_message(query, phoneNumber):
 
 
     else:
+        print("New candidate")
         # Create a new thread and add a new candidate to the JSON file
         client = OpenAI(api_key=api_key)
         thread = client.beta.threads.create()
@@ -262,33 +352,22 @@ def recieve_message(query, phoneNumber):
         
     response = ""
 
-    message = client.beta.threads.messages.create(
-        thread_id=thread_id,
-        role="user",
-        content=query
-    )
-    run = client.beta.threads.runs.create_and_poll(
-        thread_id=thread_id,
-        assistant_id=asstId,
-    )
-    response = "Error with AI API"
-    if run.status == 'completed':
-        response_page = client.beta.threads.messages.list(thread_id=thread_id)
-        response = response_page.data[0].content[0].text.value
-        
-    else:
-        response = "Error processing request with OpenAI"
+    response = send_to_ai(query, thread_id, client, asstId)
 
-    update_conversation(phoneNumber, query, response)
-    detect_trigger_string(response, thread_id, phoneNumber)
     
+    update_conversation(phoneNumber, query, response)
+    triggerResponse = detect_trigger_string(response, thread_id, phoneNumber)
+    
+    print(type(response), type(triggerResponse))
+
     print(response)
-    return response
+    print(triggerResponse)
+    return f"{response} \n {triggerResponse}"
 
 
 #ALL THESE METHOD CALLS ARE FOR LOCAL TESTING 
 
-#detect_trigger_string("have a great day please", "thread_oJuzEbVFPfrm9chyUI0rIcME", "915 658-4442")
+#detect_trigger_string("have a great day please", "thread_6jMNCZI3AuJqZbciEuau9VKL", "19153528343")
 #recieve_message("hi there", "967 658-4442")
 #json_data = {'first_name': 'Michael', 'last_name': 'Soprano', 'email': 'mikey123@gmail.com', 'phone': '', 'age': 33, 'city': 'Houston', 'state': 'Texas', 'zip': '', 'experience': '3 years', 'lead_source': 'Facebook ad', 'availability': 'Next weekend', 'location': None, 'status': None, 'assistant_thread_id': None}
 #save_to_database(json_data, "915 658-4442", "thread_oJuzEbVFPfrm9chyUI0rIcME")

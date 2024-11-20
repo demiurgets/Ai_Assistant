@@ -10,7 +10,7 @@ class Interviews(Base):
 
     id = Column(Integer, primary_key=True, nullable=True)
     candidate_id = Column(Integer, ForeignKey('candidates.id'), nullable=True)
-    addresse_id = Column(Integer, ForeignKey('locations.id'), nullable=True)
+    location_id = Column(Integer, ForeignKey('locations.id'), nullable=True)
     date = Column(Date, nullable=True)
     date_created = Column(DateTime, nullable=True, default=func.current_timestamp())
     date_updated = Column(DateTime, nullable=True, default=func.current_timestamp())

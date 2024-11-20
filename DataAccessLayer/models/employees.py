@@ -17,7 +17,7 @@ class Employees(Base):
     age = Column(Integer, nullable=True)
     address = Column(String(100), nullable=True)
     status = Column(String(50), nullable=True, default='hired')
-    addresse_id = Column(Integer, ForeignKey('locations.id'), nullable=True)
+    location_id = Column(Integer, ForeignKey('locations.id'), nullable=True)
     hiring_date = Column(Date, nullable=True, default=func.current_date())
     created_at = Column(DateTime, nullable=True, default=func.current_timestamp())
     date_created = Column(DateTime, nullable=True, default=func.current_timestamp())
