@@ -4,6 +4,7 @@ import os
 from dotenv import load_dotenv
 import requests
 from sqlalchemy.exc import SQLAlchemyError
+import json
 
 from DataAccessLayer.services.candidateServices import (
     get_all_candidates,
