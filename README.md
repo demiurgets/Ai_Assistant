@@ -40,3 +40,9 @@ docker build -t <nombre_imagen>:<tag> .
 docker push < <login server> /samples/ <image-name:tag version> >
 
 end
+
+##TO LOAD NEW CLIENT CONTEXT ON NEW INSTANCE...
+
+Create new assistant for client and set instructions
+Use endpoints or SQL queries to populate the database with all the locations and positions for the company
+Set new enviornment variables for the assistant ID, the DB info, openAI key, 
