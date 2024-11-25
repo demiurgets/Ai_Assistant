@@ -1,0 +1,241 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Chat Application</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            margin: 0;
+            padding: 0;
+            background-color: #f4f4f9;
+        }
+
+        #phone_number_form {
+            text-align: center;
+            margin: 50px auto;
+        }
+
+        #phone_number {
+            padding: 10px;
+            width: 250px;
+            border: 1px solid #ccc;
+            border-radius: 5px;
+        }
+
+        button {
+            padding: 10px 20px;
+            border: none;
+            background-color: #007bff;
+            color: white;
+            border-radius: 5px;
+            cursor: pointer;
+        }
+
+        button:hover {
+            background-color: #0056b3;
+        }
+
+        #chat_box {
+            max-width: 400px;
+            margin: 20px auto;
+            background: white;
+            box-shadow: 0px 0px 10px rgba(0, 0, 0, 0.1);
+            border-radius: 10px;
+            overflow: hidden;
+        }
+
+        #conversation {
+            height: 400px;
+            overflow-y: scroll;
+            padding: 15px;
+            background: #f9f9f9;
+            display: flex;
+            flex-direction: column;
+        }
+
+        #conversation::-webkit-scrollbar {
+            width: 8px;
+        }
+
+        #conversation::-webkit-scrollbar-thumb {
+            background: #ccc;
+            border-radius: 10px;
+        }
+
+        .message {
+            margin: 10px 0;
+            padding: 10px 15px;
+            border-radius: 15px;
+            max-width: 70%;
+            word-wrap: break-word;
+        }
+
+        .user {
+            background-color: #007bff;
+            color: white;
+            align-self: flex-end;
+            border-bottom-right-radius: 0;
+        }
+
+        .assistant {
+            background-color: #f1f1f1;
+            color: black;
+            align-self: flex-start;
+            border-bottom-left-radius: 0;
+        }
+
+        .message b {
+            font-weight: bold;
+        }
+
+        .message ol {
+            padding-left: 20px;
+            margin: 10px 0;
+        }
+
+        .message ol li {
+            margin-bottom: 5px;
+        }
+
+        #user_message {
+            width: 100%;
+            padding: 15px;
+            border: none;
+            border-top: 1px solid #ddd;
+            outline: none;
+            font-size: 16px;
+            box-sizing: border-box;
+        }
+
+        #user_message::placeholder {
+            color: #aaa;
+        }
+
+        #send_button {
+            padding: 15px;
+            border: none;
+            background-color: #007bff;
+            color: white;
+            font-size: 16px;
+            cursor: pointer;
+            border-top-right-radius: 10px;
+            outline: none;
+        }
+
+        #send_button:hover {
+            background-color: #0056b3;
+        }
+
+        .chat-input {
+            display: flex;
+            border-top: 1px solid #ddd;
+        }
+    </style>
+</head>
+<body>
+    <div id="phone_number_form">
+        <h2>Please enter your phone number:</h2>
+        <input type="text" id="phone_number" placeholder="Enter phone number" />
+        <button onclick="savePhoneNumber()">Save</button>
+    </div>
+
+    <div id="chat_box" style="display:none;">
+        <h2 style="text-align:center;">Chat</h2>
+        <div id="conversation"></div>
+        <div class="chat-input">
+            <textarea id="user_message" placeholder="Type your message"></textarea>
+            <button id="send_button" onclick="sendMessage()">Send</button>
+        </div>
+    </div>
+
+    <script>
+        let phoneNumber = sessionStorage.getItem('phone_number');
+
+        if (phoneNumber) {
+            document.getElementById('phone_number_form').style.display = 'none';
+            fetchConversation(phoneNumber);
+        } else {
+            document.getElementById('phone_number_form').style.display = 'block';
+            document.getElementById('chat_box').style.display = 'none';
+        }
+
+        function savePhoneNumber() {
+            phoneNumber = document.getElementById('phone_number').value;
+            if (phoneNumber) {
+                sessionStorage.setItem('phone_number', phoneNumber);
+                document.getElementById('phone_number_form').style.display = 'none';
+                fetchConversation(phoneNumber);
+            }
+        }
+
+        function fetchConversation(phoneNumber) {
+            fetch(`/find_candidate_by_phone/${phoneNumber}`)
+                .then(response => response.json())
+                .then(data => {
+                    let conversation = data.conversation;
+                    let chatBox = document.getElementById('conversation');
+                    chatBox.innerHTML = '';
+                    conversation.forEach(msg => appendMessage(msg.role, msg.message));
+                    document.getElementById('chat_box').style.display = 'block';
+                })
+                .catch(error => console.error('Error fetching conversation:', error));
+        }
+
+        function parseMarkdownToHTML(message) {
+            // Convert **bold** to <b>bold</b>
+            message = message.replace(/\*\*(.*?)\*\*/g, "<b>$1</b>");
+            
+            // Convert numbered lists to <ol>
+            message = message.replace(/(\d+)\.\s(.*?)(?=\n|$)/g, "<li>$2</li>");
+            if (message.includes("<li>")) {
+                message = `<ol>${message}</ol>`;
+            }
+
+            // Convert line breaks (\n) to <br>
+            message = message.replace(/\n/g, "<br>");
+
+            return message;
+        }
+
+        function appendMessage(role, message) {
+            let chatBox = document.getElementById('conversation');
+            let msgDiv = document.createElement('div');
+            msgDiv.classList.add('message', role === 'assistant' ? 'assistant' : 'user');
+            
+            if (role === 'assistant') {
+                msgDiv.innerHTML = parseMarkdownToHTML(message); // Apply formatting for assistant messages
+            } else {
+                msgDiv.textContent = message;
+            }
+            
+            chatBox.appendChild(msgDiv);
+            chatBox.scrollTop = chatBox.scrollHeight; // Auto-scroll to bottom
+        }
+
+        function sendMessage() {
+            let message = document.getElementById('user_message').value;
+            if (!message || !phoneNumber) return;
+
+            appendMessage('user', message);
+            document.getElementById('user_message').value = '';
+
+            fetch('/ui_send_message', {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json'
+                },
+                body: JSON.stringify({ message, phone_number: phoneNumber })
+            })
+            .then(response => response.json())
+            .then(data => {
+                if (data.response) {
+                    appendMessage('assistant', data.response);
+                }
+            })
+            .catch(error => console.error('Error sending message:', error));
+        }
+    </script>
+</body>
+</html>

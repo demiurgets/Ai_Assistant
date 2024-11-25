@@ -23,6 +23,7 @@ class Candidates(Base):
     zip = Column(String(20), nullable=True)
     phone = Column(String(20), nullable=True)
     location_id = Column(Integer, ForeignKey('locations.id'), nullable=True)
+    position_id = Column(Integer, ForeignKey('positions.id'), nullable=True)
     status_id = Column(Integer, nullable=True)
     interview_date = Column(Date, nullable=True)
     enrollment_start = Column(Date, nullable=True)

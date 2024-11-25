@@ -73,7 +73,7 @@ def create_model_class_code(table_name, columns):
     class_code += "\n"
     return class_code
 
-def generate_model_files(schema, output_dir="models"):
+def generate_model_files(schema, output_dir="DataAccessLayer/models"):
     """Generate Python files for each table in the schema."""
     if not os.path.exists(output_dir):
         os.makedirs(output_dir)
@@ -85,7 +85,7 @@ def generate_model_files(schema, output_dir="models"):
         model_code = (
             "from sqlalchemy import Column, Integer, String, Float, Text, Boolean, Date, DateTime, ForeignKey\n"
             "from sqlalchemy.ext.declarative import declarative_base\n\n"
-            "from models import Base\n\n"
+            "from DataAccessLayer.models import Base\n\n"
             "from sqlalchemy import func\n\n"
         )
         model_code += create_model_class_code(table_name, columns)
@@ -96,10 +96,10 @@ def generate_model_files(schema, output_dir="models"):
 
         print(f"Model file created for table '{table_name}': {file_path}")  # Debug print
 
-def main():
-    schema = load_schema("newSchema.json")  # Load schema from JSON file
+def createModelsMain():
+    print("Creating Models...")
+    schema = load_schema("DataAccessLayer/newSchema.json")  # Load schema from JSON file
     print(f"Loaded schema: {json.dumps(schema, indent=4)}")  # Debug print for loaded schema
     generate_model_files(schema)  # Generate model files
 
-if __name__ == "__main__":
-    main()
+

@@ -1,10 +1,14 @@
-from flask import Flask, request, jsonify
-from message_reciever import recieve_message
+from flask import Flask, render_template, request, jsonify
+
+from message_reciever import recieve_message, find_or_create_candidate
 import os
 from dotenv import load_dotenv
 import requests
 from sqlalchemy.exc import SQLAlchemyError
 import json
+from DataAccessLayer.createModels import createModelsMain
+from DataAccessLayer.createDatabaseORM import createDbMain
+
 
 from DataAccessLayer.services.candidateServices import (
     get_all_candidates,
@@ -47,6 +51,30 @@ WEBHOOK_VERIFY_TOKEN = os.getenv("WHATSAPP_WEBHOOK_VERIFY")
 
 MESSENGER_WEBHOOK_VERIFY_TOKEN = os.getenv('MESSENGER_WEBHOOK_VERIFY_TOKEN')
 MESSENGER_PAGE_ACCESS_TOKEN = os.getenv('MESSENGER_PAGE_ACCESS_TOKEN')
+
+@app.route('/')
+def index():
+    return render_template('index.html')
+
+@app.route('/find_candidate_by_phone/<phone_number>', methods=['GET'])
+def find_candidate_by_phone_endpoint(phone_number):
+    # Call the function to find the candidate by phone number
+    candidate_data = find_or_create_candidate(phone_number)
+    print(candidate_data)
+    return jsonify(candidate_data)
+
+@app.route('/ui_send_message', methods=['POST'])
+def send_message():
+    data = request.json
+    message = data.get('message')
+    phone_number = data.get('phone_number')
+
+    if message and phone_number:
+        response = recieve_message(message, phone_number)
+        return jsonify({'response': response})
+    else:
+        return jsonify({'error': 'Invalid message or phone number'}), 400
+
 
 # Endpoint for webhook verification
 @app.route('/whatsapp_webhook', methods=['GET'])
@@ -161,6 +189,8 @@ def process_data_messenger():
     # Return a response
     return jsonify({"processed_message": response}), 200
 
+
+
 # Candidate endpoints using candidateServices functions
 
 # 1. Get all candidates
@@ -229,6 +259,21 @@ def update_existing_candidate_status(candidate_id, new_status):
     except SQLAlchemyError as e:
         return jsonify({"error": f"Error updating candidate: {e}"}), 500 
 
+# 7. Delete candidate in screening by phone number
+@app.route('/candidates/screening/<phone_number>', methods=['DELETE'])
+def delete_candidate_in_screening(phone_number):
+    """
+    Deletes a candidate's JSON data in the screening process by their phone number.
+    """
+    json_file_path = os.path.join("Stored_context/applicants_in_progress", f"{phone_number}.json")
+    try:
+        if os.path.exists(json_file_path):
+            os.remove(json_file_path)
+            return jsonify({"message": f"Candidate data for phone number {phone_number} successfully deleted."}), 200
+        else:
+            return jsonify({"error": f"No screening data found for phone number {phone_number}."}), 404
+    except Exception as e:
+        return jsonify({"error": f"Failed to delete candidate screening data: {str(e)}"}), 500
 
 # 1. Get all users
 @app.route('/users', methods=['GET'])
@@ -389,9 +434,27 @@ def remove_location(location_id):
         return jsonify({"error": f"Error deleting location: {e}"}), 500
 
 
+@app.route('/createModels', methods=["POST"])
+def createModels():
+    try:
+        createModelsMain()
+        return jsonify({"message": "Models created Successfully"}), 200
+
+    except SQLAlchemyError as e:
+        return jsonify({"error": f"Error deleting location: {e}"}), 500
+
+@app.route('/createDBfromModels', methods=["POST"])
+def createDbfromModels():
+    try:
+        createDbMain()
+        return jsonify({"message": "DB created Successfully"}), 200
+
+    except SQLAlchemyError as e:
+        return jsonify({"error": f"Error deleting location: {e}"}), 500
+
 
 @app.route('/messenger_webhook', methods=["GET", "POST"])
-def index():
+def messenger_hook():
     if request.method == 'GET':
         if 'hub.mode' in request.args and 'hub.verify_token' in request.args:
             mode = request.args.get('hub.mode')
@@ -444,4 +507,4 @@ def index():
 
 
 if __name__ == "__main__":
-    app.run(host="0.0.0.0", port=80)
+    app.run(host="0.0.0.0", port=5001)

@@ -177,7 +177,7 @@ def assistant_get_positions(thread_id, text):
         print(positions)
         client = OpenAI(api_key=api_key)
         query = (
-            "Here are all the positions for the location, please present them to the user and remember the position ID of their choice: " + positions_json
+            "Here are all the positions for the location, please present these to the user and remember the position ID of their choice: " + positions_json
         )
         
         message = client.beta.threads.messages.create(thread_id=thread_id, role="user", content=query)
@@ -277,6 +277,7 @@ def add_new_candidate(phone_number, thread_id):
     
     data.append(new_entry)
     save_candidates_data(data, phone_number)
+    return new_entry
 
 def update_conversation(phone_number, user_message, assistant_response):
     data = load_candidates_data(phone_number)
@@ -301,12 +302,25 @@ def update_conversation(phone_number, user_message, assistant_response):
     save_candidates_data(data, phone_number)
 
 
-def find_candidate_by_phone(phone_number):
+def find_or_create_candidate(phone_number):
     data = load_candidates_data(phone_number)
+    
+    # Look for the candidate with the matching phone number
     for candidate in data:
         if candidate["phone_number"] == phone_number:
+            print("Candidate exists")
             return candidate
-    return None
+    
+    # If no candidate found, create a new one
+    print("No existing candidate found. Creating new candidate.")
+    # Create a new candidate with a new thread_id
+    client = OpenAI(api_key=api_key)
+    thread = client.beta.threads.create()
+    thread_id = thread.id
+    new_candidate = add_new_candidate(phone_number, thread_id)    
+    
+    return new_candidate
+
 
 def send_to_ai(query, thread_id, client, asstId):
     message = client.beta.threads.messages.create(
@@ -327,7 +341,7 @@ def send_to_ai(query, thread_id, client, asstId):
         response = response_page.data[0].content[0].text.value
         
     else:
-        response = "Error processing request with OpenAI"
+        response = "Error processing request with OpenAI. Please Try again."
     return response
 
 
@@ -336,33 +350,24 @@ def recieve_message(query, phoneNumber):
     asstId = interviewer_id
     client = OpenAI(api_key=key)
 
-    candidate = find_candidate_by_phone(phoneNumber)
-    if candidate:
-        thread_id = candidate['thread_id']
-        print("Candidate already exists in the database.")
-
-
-    else:
-        print("New candidate")
-        # Create a new thread and add a new candidate to the JSON file
-        client = OpenAI(api_key=api_key)
-        thread = client.beta.threads.create()
-        thread_id = thread.id
-        add_new_candidate(phoneNumber, thread_id)
-        
+    candidate = find_or_create_candidate(phoneNumber)
+    
     response = ""
 
-    response = send_to_ai(query, thread_id, client, asstId)
+    response = send_to_ai(query, candidate["thread_id"], client, asstId)
 
     
-    update_conversation(phoneNumber, query, response)
-    triggerResponse = detect_trigger_string(response, thread_id, phoneNumber)
+    #if positions are queried they will be returned here for the user to see
+    triggerResponse = detect_trigger_string(response, candidate["thread_id"], phoneNumber)
     
-    print(type(response), type(triggerResponse))
+    combined_response = f"{response}\n{triggerResponse}" if triggerResponse else response
 
-    print(response)
-    print(triggerResponse)
-    return f"{response} \n {triggerResponse}"
+    # Update the conversation with the combined response
+    update_conversation(phoneNumber, query, combined_response)
+    
+    # Return the combined response
+    return combined_response
+    
 
 
 #ALL THESE METHOD CALLS ARE FOR LOCAL TESTING 

@@ -71,6 +71,7 @@ def create_location(location_data):
         )
         db_session.add(new_location)
         db_session.commit()
+        update_location_context()
         return location_to_dict(new_location)
     except SQLAlchemyError as e:
         print(f"Error creating location: {e}")
@@ -86,6 +87,7 @@ def update_location(location_id, update_data):
         for key, value in update_data.items():
             setattr(location, key, value)
         db_session.commit()
+        update_location_context()
         return location_to_dict(location)
     except SQLAlchemyError as e:
         print(f"Error updating location: {e}")
@@ -100,6 +102,7 @@ def delete_location(location_id):
             return False
         db_session.delete(location)
         db_session.commit()
+        update_location_context()
         return True
     except SQLAlchemyError as e:
         print(f"Error deleting location: {e}")

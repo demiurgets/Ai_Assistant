@@ -288,6 +288,13 @@
           }
         },
         {
+          "name": "position_id",
+          "type": "INT",
+          "foreign_key": {
+            "references": "positions(id)"
+          }
+        },
+        {
           "name": "status_id",
           "type": "INT"
         },
