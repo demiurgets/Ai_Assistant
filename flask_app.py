@@ -249,7 +249,7 @@ def remove_candidate(candidate_id):
         return jsonify({"error": f"Error deleting candidate: {e}"}), 500
 
 # 7. Update candidate status
-@app.route('/candidates/<int:candidate_id>/<int:new_status>', methods=['PUT'])
+@app.route('/candidates/<int:candidate_id>/status/<int:new_status>', methods=['PUT'])
 def update_existing_candidate_status(candidate_id, new_status):
     try:
         updated_candidate = update_candidate_status(candidate_id, new_status)
@@ -330,6 +330,19 @@ def delete_existing_user(user_id):
         return jsonify({"error": "Failed to delete user or user not found"}), 404
     except SQLAlchemyError as e:
         return jsonify({"error": f"Error deleting user: {e}"}), 500
+    
+# 7. Update user status
+@app.route('/users/<int:user_id>/status/<int:new_status>', methods=['PUT'])
+def update_existing_user_status(user_id, new_status):
+    try:
+        updated_user = update_user_status(user_id, new_status)
+        if update_user:
+            return jsonify({"message": "User updated successfully", "user": updated_user}), 200
+        return jsonify({"error": "Failed to update user or user not found"}), 404
+    except SQLAlchemyError as e:
+        return jsonify({"error": f"Error updating user: {e}"}), 500 
+
+
 
 # Positions endpoints
 @app.route('/positions', methods=['GET'])
