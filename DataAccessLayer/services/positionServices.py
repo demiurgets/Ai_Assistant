@@ -161,4 +161,4 @@ def update_position_context():
         return None
 
 # Generate the dynamic JSON for job positions
-#positions_json = update_position_context()
+positions_json = update_position_context()

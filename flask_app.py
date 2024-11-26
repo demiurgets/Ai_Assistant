@@ -214,6 +214,7 @@ def get_candidate(candidate_id):
         return jsonify({"error": "Candidate not found"}), 404
     except SQLAlchemyError as e:
         return jsonify({"error": f"Error fetching candidate: {e}"}), 500
+    
 # 3. Get candidates by status
 @app.route('/candidates/status/<int:status_id>', methods=['GET'])
 def candidates_by_status(status_id):

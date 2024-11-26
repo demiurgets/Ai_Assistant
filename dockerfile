@@ -9,4 +9,7 @@ COPY . .
 
 EXPOSE 80
 
-CMD ["python", "-m", "flask_app", "run", "--host=0.0.0.0", "--port=80"]
+# Run your services first and then start the Flask server
+CMD python -m DataAccessLayer.services.locationsServices && \
+    python -m DataAccessLayer.services.positionServices && \
+    python -m flask_app run --host=0.0.0.0 --port=80

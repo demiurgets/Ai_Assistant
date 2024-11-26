@@ -35,7 +35,7 @@ az acr login --name <container-registry-name>
 
 docker pull < <login server> /samples/ <image-name:tag version> >
 
-docker build -t <nombre_imagen>:<tag> .
+docker build -t < <login server> /samples/ <image-name:tag version> > .
 
 docker push < <login server> /samples/ <image-name:tag version> >
 
