@@ -16,7 +16,8 @@ from DataAccessLayer.services.candidateServices import (
     create_candidate,
     update_candidate,
     delete_candidate,
-    update_candidate_status
+    update_candidate_status,
+    get_candidates_by_status
 )
 from DataAccessLayer.services.userServices import (
     get_all_users,
@@ -24,7 +25,8 @@ from DataAccessLayer.services.userServices import (
     create_user,
     update_user,
     delete_user,
-    update_user_status
+    update_user_status,
+    get_users_by_status
 )
 from DataAccessLayer.services.locationsServices import (
     get_all_locations,
@@ -212,6 +214,14 @@ def get_candidate(candidate_id):
         return jsonify({"error": "Candidate not found"}), 404
     except SQLAlchemyError as e:
         return jsonify({"error": f"Error fetching candidate: {e}"}), 500
+# 3. Get candidates by status
+@app.route('/candidates/status/<int:status_id>', methods=['GET'])
+def candidates_by_status(status_id):
+    try:
+        candidates = get_candidates_by_status(status_id)
+        return jsonify({"data": candidates}), 200
+    except SQLAlchemyError as e:
+        return jsonify({"error": f"Error fetching candidates by status: {e}"}), 500    
     
 # 4. Create a new candidate
 @app.route('/candidates', methods=['POST'])
@@ -220,7 +230,7 @@ def add_candidate():
         candidate_data = request.json
         candidate = create_candidate(candidate_data)
         if candidate:
-            return jsonify({"message": "Candidate created successfully", "candidate": candidate}), 201
+            return jsonify({"message": "Candidate created successfully", "data": candidate}), 201
         return jsonify({"error": "Failed to create candidate"}), 500
     except SQLAlchemyError as e:
         return jsonify({"error": f"Error creating candidate: {e}"}), 500
@@ -232,7 +242,7 @@ def modify_candidate(candidate_id):
         update_data = request.json
         updated_candidate = update_candidate(candidate_id, update_data)
         if updated_candidate:
-            return jsonify({"message": "Candidate updated successfully", "candidate": updated_candidate}), 200
+            return jsonify({"message": "Candidate updated successfully", "data": updated_candidate}), 200
         return jsonify({"error": "Failed to update candidate or candidate not found"}), 404
     except SQLAlchemyError as e:
         return jsonify({"error": f"Error updating candidate: {e}"}), 500
@@ -254,7 +264,7 @@ def update_existing_candidate_status(candidate_id, new_status):
     try:
         updated_candidate = update_candidate_status(candidate_id, new_status)
         if update_candidate:
-            return jsonify({"message": "Candidate updated successfully", "candidate": updated_candidate}), 200
+            return jsonify({"message": "Candidate updated successfully", "data": updated_candidate}), 200
         return jsonify({"error": "Failed to update candidate or candidate not found"}), 404
     except SQLAlchemyError as e:
         return jsonify({"error": f"Error updating candidate: {e}"}), 500 
@@ -290,10 +300,20 @@ def user_by_id(user_id):
     try:
         user = get_user_by_id(user_id)
         if user:
-            return jsonify({"user": user}), 200
+            return jsonify({"data": user}), 200
         return jsonify({"error": "User not found"}), 404
     except SQLAlchemyError as e:
         return jsonify({"error": f"Error fetching user by ID: {e}"}), 500
+    
+# 3. Get users by status
+@app.route('/users/status/<int:status_id>', methods=['GET'])
+def users_by_status(status_id):
+    try:
+        users = get_users_by_status(status_id)
+        return jsonify({"data": users}), 200
+    except SQLAlchemyError as e:
+        return jsonify({"error": f"Error fetching users by status: {e}"}), 500
+    
 
 
 # 4. Create a new user
@@ -303,7 +323,7 @@ def create_new_user():
         user_data = request.json
         user = create_user(user_data)
         if user:
-            return jsonify({"message": "User created successfully", "user": user}), 201
+            return jsonify({"message": "User created successfully", "data": user}), 201
         return jsonify({"error": "Failed to create user"}), 500
     except SQLAlchemyError as e:
         return jsonify({"error": f"Error creating user: {e}"}), 500
@@ -315,7 +335,7 @@ def update_existing_user(user_id):
         update_data = request.json
         updated_user = update_user(user_id, update_data)
         if updated_user:
-            return jsonify({"message": "User updated successfully", "user": updated_user}), 200
+            return jsonify({"message": "User updated successfully", "data": updated_user}), 200
         return jsonify({"error": "Failed to update user or user not found"}), 404
     except SQLAlchemyError as e:
         return jsonify({"error": f"Error updating user: {e}"}), 500
@@ -337,7 +357,7 @@ def update_existing_user_status(user_id, new_status):
     try:
         updated_user = update_user_status(user_id, new_status)
         if update_user:
-            return jsonify({"message": "User updated successfully", "user": updated_user}), 200
+            return jsonify({"message": "User updated successfully", "data": updated_user}), 200
         return jsonify({"error": "Failed to update user or user not found"}), 404
     except SQLAlchemyError as e:
         return jsonify({"error": f"Error updating user: {e}"}), 500 
@@ -369,7 +389,7 @@ def add_position():
         position_data = request.json
         position = create_position(position_data)
         if position:
-            return jsonify({"message": "Position created successfully", "position": position}), 201
+            return jsonify({"message": "Position created successfully", "data": position}), 201
         return jsonify({"error": "Failed to create position"}), 500
     except SQLAlchemyError as e:
         return jsonify({"error": f"Error creating position: {e}"}), 500
@@ -380,7 +400,7 @@ def modify_position(position_id):
         update_data = request.json
         updated_position = update_position(position_id, update_data)
         if updated_position:
-            return jsonify({"message": "Position updated successfully", "position": updated_position}), 200
+            return jsonify({"message": "Position updated successfully", "data": updated_position}), 200
         return jsonify({"error": "Failed to update position or position not found"}), 404
     except SQLAlchemyError as e:
         return jsonify({"error": f"Error updating position: {e}"}), 500
@@ -420,7 +440,7 @@ def add_location():
         location_data = request.json
         location = create_location(location_data)
         if location:
-            return jsonify({"message": "Location created successfully", "location": location}), 201
+            return jsonify({"message": "Location created successfully", "data": location}), 201
         return jsonify({"error": "Failed to create location"}), 500
     except SQLAlchemyError as e:
         return jsonify({"error": f"Error creating location: {e}"}), 500
@@ -431,7 +451,7 @@ def modify_location(location_id):
         update_data = request.json
         updated_location = update_location(location_id, update_data)
         if updated_location:
-            return jsonify({"message": "Location updated successfully", "location": updated_location}), 200
+            return jsonify({"message": "Location updated successfully", "data": updated_location}), 200
         return jsonify({"error": "Failed to update location or location not found"}), 404
     except SQLAlchemyError as e:
         return jsonify({"error": f"Error updating location: {e}"}), 500
@@ -520,4 +540,4 @@ def messenger_hook():
 
 
 if __name__ == "__main__":
-    app.run(host="0.0.0.0", port=5001)
+    app.run(host="0.0.0.0", port=80) ## dejar puerto 80 para que funcione en azure

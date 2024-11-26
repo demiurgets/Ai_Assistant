@@ -1,9 +1,11 @@
 from sqlalchemy.orm import Session
 from sqlalchemy.exc import SQLAlchemyError
 from DataAccessLayer.models.candidates import Candidates
+from DataAccessLayer.models.positions import Positions
+from DataAccessLayer.models.locations import Locations
 import os
 from dotenv import load_dotenv
-from sqlalchemy.orm import sessionmaker
+from sqlalchemy.orm import sessionmaker, joinedload
 from sqlalchemy import create_engine
 from sqlalchemy import func
 
@@ -15,7 +17,7 @@ dbname = os.getenv('dbname', 'qonda')
 user = os.getenv('user', 'postgres')
 password = os.getenv('password', 'Not24get!')
 host = os.getenv('host', 'localhost')
-port = os.getenv('port', '5432')
+port = os.getenv('pg_port', '5432')
 
 # Database URL
 database_url = f"postgresql+psycopg2://{user}:{password}@{host}:{port}/{dbname}"
@@ -41,6 +43,7 @@ def candidate_to_dict(candidate):
         "zip": candidate.zip,
         "phone": candidate.phone,
         "location_id": candidate.location_id,
+        "position_id": candidate.position_id,
         "status_id": candidate.status_id,
         "interview_date": candidate.interview_date,
         "enrollment_start": candidate.enrollment_start,
@@ -50,6 +53,54 @@ def candidate_to_dict(candidate):
         "profile_img_url": candidate.profile_img_url,
         "files_id": candidate.files_id,
         "conversation": candidate.conversation,
+    }
+    
+def candidate_position_location_to_dict(candidate, position, location):
+    return {
+        "id": candidate.id,
+        "first_name": candidate.first_name,
+        "last_name": candidate.last_name,
+        "thread_id": candidate.thread_id,
+        "age": candidate.age,
+        "email": candidate.email,
+        "experience": candidate.experience,
+        "lead_source": candidate.lead_source,
+        "availability": candidate.availability,
+        "address": candidate.address,
+        "city": candidate.city,
+        "state": candidate.state,
+        "zip": candidate.zip,
+        "phone": candidate.phone,
+        "location_id": candidate.location_id,
+        "position_id": candidate.position_id,
+        "status_id": candidate.status_id,
+        "interview_date": candidate.interview_date,
+        "enrollment_start": candidate.enrollment_start,
+        "enrollment_end": candidate.enrollment_end,
+        "created_date": candidate.created_date,
+        "updated_date": candidate.updated_date,
+        "profile_img_url": candidate.profile_img_url,
+        "files_id": candidate.files_id,
+        "conversation": candidate.conversation,
+        "position": {
+            "id": position.id,
+            "name": position.name,
+            "description": position.description,
+            "location_id": position.location_id,
+            "filled_openings": position.filled_openings,
+            "max_openings": position.max_openings,
+            "date_created": position.date_created,
+            "date_updated": position.date_updated,
+        },
+        "location": {
+            "id": location.id,
+            "name": location.name,
+            "address": location.address,
+            "city": location.city,
+            "state": location.state,
+            "zip": location.zip,
+            "phone": location.phone,
+        }
     }
 
 # 1. Get all candidates
@@ -62,13 +113,19 @@ def get_all_candidates():
         return []
 
 # 2. Get candidate by ID
+
 def get_candidate_by_id(candidate_id):
     try:
         candidate = db_session.query(Candidates).filter(Candidates.id == candidate_id).first()
-        return candidate_to_dict(candidate) if candidate else None
+        if not candidate:
+            return None
+        position = db_session.query(Positions).filter(Positions.id == candidate.position_id).first()
+        location = db_session.query(Locations).filter(Locations.id == candidate.location_id).first()
+        return candidate_position_location_to_dict(candidate, position, location)
     except SQLAlchemyError as e:
         print(f"Error fetching candidate by ID: {e}")
         return None
+
 
 # 3. Get candidates by status
 def get_candidates_by_status(status_id):
@@ -97,6 +154,7 @@ def create_candidate(candidate_data):
             zip=candidate_data.get("zip"),
             phone=candidate_data.get("phone"),
             location_id=candidate_data.get("location_id"),
+            position_id=candidate_data.get("position_id"),
             status_id=candidate_data.get("status_id"),
             interview_date=candidate_data.get("interview_date"),
             enrollment_start=candidate_data.get("enrollment_start"),

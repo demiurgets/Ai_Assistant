@@ -19,7 +19,7 @@ dbname = os.getenv('dbname')
 user = os.getenv('user')
 password = os.getenv('password')
 host = os.getenv('host')
-port = os.getenv('port')
+port = os.getenv('pg_port')
 
 assistant_id = os.getenv('ASST_INTERVIEWER')
 api_key = os.getenv('API_KEY')
