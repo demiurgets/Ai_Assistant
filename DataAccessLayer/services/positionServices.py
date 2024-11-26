@@ -39,8 +39,8 @@ def position_to_dict(position):
         "location_id": position.location_id,
         "filled_openings": position.filled_openings,
         "max_openings": position.max_openings,
-        "date_created": position.date_created,
-        "date_updated": position.date_updated,
+        "created_date": position.date_created,
+        "updated_date": position.date_updated, 
     }
 
 # 1. Get all job positions

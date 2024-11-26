@@ -89,8 +89,8 @@ def candidate_position_location_to_dict(candidate, position, location):
             "location_id": position.location_id,
             "filled_openings": position.filled_openings,
             "max_openings": position.max_openings,
-            "date_created": position.date_created,
-            "date_updated": position.date_updated,
+            "created_date": position.date_created,
+            "updated_date": position.date_updated,
         },
         "location": {
             "id": location.id,
