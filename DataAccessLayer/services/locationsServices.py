@@ -126,7 +126,7 @@ def update_location_context():
             for location in locations
         ]
 
-        locations_json = json.dumps(locations_data, indent=4)
+        locations_json = json.dumps(locations_data, indent=4).replace("\\", "\\\\")
 
         client = OpenAI(api_key=api_key)
 

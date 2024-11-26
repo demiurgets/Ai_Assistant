@@ -135,7 +135,7 @@ def update_position_context():
             for position in positions
         ]
         
-        positions_json = json.dumps(positions_data, indent=4)
+        positions_json = json.dumps(positions_data, indent=4).replace("\\", "\\\\")
         
         client = OpenAI(api_key=api_key)
 
