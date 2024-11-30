@@ -108,12 +108,10 @@ def embeddings_search(query, response_length):
 def assistant_generate_json(thread_id):
     client = OpenAI(api_key=api_key)
     query = (
-        "using all the information you just received, generate ONLY a JSON object with the following fields: first_name, last_name, email, phone, position_id, age, city, state, zip, experience, lead_source, availability. Please write the ID integer for the position."
+        "using all the information you just received, generate ONLY a JSON object with the following fields: first_name, last_name, email, location_id, position_id, age, city, state, zip, experience, lead_source, availability. Please write the ID integer for the position."
     )
-    
     # Send the user query
     message = client.beta.threads.messages.create(thread_id=thread_id, role="user", content=query)
-    
     # Poll until the run is completed
     run = client.beta.threads.runs.create_and_poll(thread_id=thread_id, assistant_id=interviewer_id)
     
@@ -194,8 +192,8 @@ def assistant_get_positions(thread_id, text):
 
     
 def detect_trigger_string(text, thread_id, phoneNumber):
-    ending_trigger = "have a great day"
-    location_trigger = "get right back to you"
+    ending_trigger = "ending_phrase_trigger"
+    location_trigger = "location_phrase_trigger"
     if location_trigger in text.lower():
         print("Location string triggered")
         positions = assistant_get_positions(thread_id, text)
@@ -208,9 +206,9 @@ def detect_trigger_string(text, thread_id, phoneNumber):
         json_data = assistant_generate_json(thread_id)  
         print(json_data)
         save_to_database(json_data, phoneNumber, thread_id)
-
-        return ""
-    return ""
+        text_without_trigger = text.lower().replace(ending_trigger, "").strip()
+        return text_without_trigger
+    return text
 
 def save_to_database(json_data, phone_number, thread):
     print("Saving candidate to the database...")
@@ -222,17 +220,20 @@ def save_to_database(json_data, phone_number, thread):
         return
 
     new_candidate = Candidates()
-    setattr(new_candidate, 'phone', phone_number)
-    setattr(new_candidate, 'thread_id', thread)
+   
 
     for key, value in json_data.items():
         if hasattr(new_candidate, key):
             setattr(new_candidate, key, value if value != "" else None)
         else:
-            print(f"Warning: '{key}' not a valid attribute of Candidate. Skipping.")
+            print(f"Warning: '{key}' Not included in generated JSON. Skipping...")
 
-    if not hasattr(new_candidate, 'status_id'):
-        setattr(new_candidate, 'status_id', json_data.get('status', 0))
+    print("Setting phone attribute, printing phone below: ")
+    print(phone_number)
+    setattr(new_candidate, 'phone', phone_number)
+    setattr(new_candidate, 'thread_id', thread)
+    setattr(new_candidate, 'status_id', 1)
+
 
     try:
         db_session.add(new_candidate)
@@ -363,10 +364,10 @@ def recieve_message(query, phoneNumber):
     combined_response = f"{response}\n{triggerResponse}" if triggerResponse else response
 
     # Update the conversation with the combined response
-    update_conversation(phoneNumber, query, combined_response)
+    update_conversation(phoneNumber, query, triggerResponse)
     
     # Return the combined response
-    return combined_response
+    return triggerResponse
     
 
 

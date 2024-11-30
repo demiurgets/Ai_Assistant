@@ -5,6 +5,8 @@ import os
 from dotenv import load_dotenv
 from sqlalchemy.orm import sessionmaker
 from sqlalchemy import create_engine
+import bcrypt
+
 #TO RUN THIS SCRIPT THRU TERMINAL, RUN python -m DataAccessLayer.services  FROM ROOT
 
 # Load environment variables
@@ -77,13 +79,22 @@ def get_users_by_status(status_id):
         return []
 
 # 4. Create a new user
+
+
 def create_user(user_data):
     try:
+        # Encrypt the password
+        plain_password = user_data.get("password")
+        if not plain_password:
+            raise ValueError("Password is required")
+        hashed_password = bcrypt.hashpw(plain_password.encode('utf-8'), bcrypt.gensalt())
+
+        # Create a new user
         new_user = Users(
             first_name=user_data.get("first_name"),
             last_name=user_data.get("last_name"),
             email=user_data.get("email"),
-            password=user_data.get("password"),
+            password=hashed_password.decode('utf-8'),  # Store as a string
             phone=user_data.get("phone"),
             company_id=user_data.get("company_id"),
             user_type_id=user_data.get("user_type_id"),
@@ -103,6 +114,9 @@ def create_user(user_data):
     except SQLAlchemyError as e:
         print(f"Error creating user: {e}")
         db_session.rollback()
+        return None
+    except ValueError as e:
+        print(f"Error: {e}")
         return None
 
 # 5. Update user by ID
@@ -132,6 +146,21 @@ def delete_user(user_id):
     except SQLAlchemyError as e:
         print(f"Error deleting user: {e}")
         db_session.rollback()
+        return False
+
+def validate_password(user_email, plain_password):
+    try:
+        user = db_session.query(Users).filter(Users.email == user_email).first()
+        if not user:
+            return False
+        
+        hashed_password = user.password.encode('utf-8')
+        if bcrypt.checkpw(plain_password.encode('utf-8'), hashed_password):
+            return True
+        else:
+            return False
+    except SQLAlchemyError as e:
+        print(f"Error validating password: {e}")
         return False
 
 
@@ -189,7 +218,7 @@ dummy_users = [
         "email": "charlie.williams@example.com",
         "password": "password123",
         "phone": "555-1003",
-        "company_id": 2,
+        "company_id": 1,
         "address": "789 Cherry Blvd",
         "city": "Houston",
         "state": "TX",
@@ -204,7 +233,7 @@ dummy_users = [
         "email": "diana.brown@example.com",
         "password": "password123",
         "phone": "555-1004",
-        "company_id": 3,
+        "company_id": 1,
         "address": "321 Date Dr",
         "city": "San Antonio",
         "state": "TX",
@@ -234,7 +263,7 @@ dummy_users = [
         "email": "frank.davis@example.com",
         "password": "password123",
         "phone": "555-1006",
-        "company_id": 2,
+        "company_id": 1,
         "address": "987 Fig Ln",
         "city": "Houston",
         "state": "TX",
@@ -248,7 +277,7 @@ dummy_users = [
 # Loop through the list of dummy users and call the create_user function
 #for user in dummy_users:
 #    create_user(user)
- #   print(f"Created user: {user['first_name']} {user['last_name']}")
+#    print(f"Created user: {user['first_name']} {user['last_name']}")
 
 
 #delete_user(3)

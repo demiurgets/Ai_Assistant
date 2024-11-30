@@ -6,6 +6,10 @@ from dotenv import load_dotenv
 from sqlalchemy.orm import sessionmaker
 from sqlalchemy import create_engine
 from sqlalchemy import func
+import json
+from flask import Flask, request, jsonify
+
+
 
 # Load environment variables
 load_dotenv()
@@ -40,6 +44,7 @@ def candidate_to_dict(candidate):
         "state": candidate.state,
         "zip": candidate.zip,
         "phone": candidate.phone,
+        "position_id": candidate.position_id,
         "location_id": candidate.location_id,
         "status_id": candidate.status_id,
         "interview_date": candidate.interview_date,
@@ -96,6 +101,7 @@ def create_candidate(candidate_data):
             state=candidate_data.get("state"),
             zip=candidate_data.get("zip"),
             phone=candidate_data.get("phone"),
+            position_id=candidate_data.get("position_id"),
             location_id=candidate_data.get("location_id"),
             status_id=candidate_data.get("status_id"),
             interview_date=candidate_data.get("interview_date"),
@@ -134,8 +140,12 @@ def delete_candidate(candidate_id):
         candidate = db_session.query(Candidates).filter(Candidates.id == candidate_id).first()
         if not candidate:
             return False
+
+        phone_number = candidate.phone
         db_session.delete(candidate)
         db_session.commit()
+        delete_by_phone(phone_number)
+
         return True
     except SQLAlchemyError as e:
         print(f"Error deleting candidate: {e}")
@@ -157,3 +167,29 @@ def update_candidate_status(candidate_id, new_status):
         print(f"Error updating candidate: {e}")
         db_session.rollback()
         return None
+
+#Searches db for phone and deletes, then deletes jsons
+def delete_by_phone(phone_number):
+    try:
+        candidates_to_delete = db_session.query(Candidates).filter(Candidates.phone == phone_number).all()
+        
+        # Check if there are any candidates to delete
+        if candidates_to_delete:
+            for candidate in candidates_to_delete:
+                db_session.delete(candidate)
+            db_session.commit()
+
+        # Now delete the corresponding JSON file(s) in the applicants_in_progress folder
+        json_file_path = os.path.join("Stored_context/applicants_in_progress", f"{phone_number}.json")
+        if os.path.exists(json_file_path):
+            os.remove(json_file_path)
+            return jsonify({"message": f"All candidate data for phone number {phone_number} successfully deleted."}), 200
+        else:
+            return jsonify({"error": f"No screening data found for phone number {phone_number}."}), 404
+            
+    except SQLAlchemyError as e:
+        db_session.rollback()
+        return jsonify({"error": f"Failed to delete candidate screening data from the database: {str(e)}"}), 500
+    except Exception as e:
+        return jsonify({"error": f"Failed to delete candidate screening data: {str(e)}"}), 500
+

@@ -22,3 +22,4 @@ whisper==1.1.10
 requests==2.32.3
 appinsights==0.13.0
 gunicorn
+bcrypt

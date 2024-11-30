@@ -16,7 +16,8 @@ from DataAccessLayer.services.candidateServices import (
     create_candidate,
     update_candidate,
     delete_candidate,
-    update_candidate_status
+    update_candidate_status,
+    delete_by_phone
 )
 from DataAccessLayer.services.userServices import (
     get_all_users,
@@ -24,7 +25,8 @@ from DataAccessLayer.services.userServices import (
     create_user,
     update_user,
     delete_user,
-    update_user_status
+    update_user_status,
+    validate_password
 )
 from DataAccessLayer.services.locationsServices import (
     get_all_locations,
@@ -46,22 +48,25 @@ from DataAccessLayer.services.positionServices import (
 
 app = Flask(__name__)
 
+SECURITY_TOKEN = os.getenv('FLASK_API_TOKEN')
+
 GRAPH_API_TOKEN  = os.getenv('WHATSAPP_GRAPH_API_TOKEN')
 WEBHOOK_VERIFY_TOKEN = os.getenv("WHATSAPP_WEBHOOK_VERIFY")
 
 MESSENGER_WEBHOOK_VERIFY_TOKEN = os.getenv('MESSENGER_WEBHOOK_VERIFY_TOKEN')
 MESSENGER_PAGE_ACCESS_TOKEN = os.getenv('MESSENGER_PAGE_ACCESS_TOKEN')
 
+def validate_token():
+    token = request.headers.get('Authorization')
+    if token != f"Bearer {SECURITY_TOKEN}":
+        return jsonify({'error': 'Unauthorized access'}), 403
+    return None
+
 @app.route('/')
 def index():
     return render_template('index.html')
 
-@app.route('/find_candidate_by_phone/<phone_number>', methods=['GET'])
-def find_candidate_by_phone_endpoint(phone_number):
-    # Call the function to find the candidate by phone number
-    candidate_data = find_or_create_candidate(phone_number)
-    print(candidate_data)
-    return jsonify(candidate_data)
+
 
 @app.route('/ui_send_message', methods=['POST'])
 def send_message():
@@ -196,6 +201,9 @@ def process_data_messenger():
 # 1. Get all candidates
 @app.route('/candidates', methods=['GET'])
 def all_candidates():
+    auth_error = validate_token()
+    if auth_error:
+        return auth_error
     try:
         candidates = get_all_candidates()
         return jsonify({"data": candidates}), 200
@@ -205,6 +213,9 @@ def all_candidates():
 # 2. Get candidate by ID
 @app.route('/candidates/<int:candidate_id>', methods=['GET'])
 def get_candidate(candidate_id):
+    auth_error = validate_token()
+    if auth_error:
+        return auth_error
     try:
         candidate = get_candidate_by_id(candidate_id)
         if candidate:
@@ -216,6 +227,9 @@ def get_candidate(candidate_id):
 # 4. Create a new candidate
 @app.route('/candidates', methods=['POST'])
 def add_candidate():
+    auth_error = validate_token()
+    if auth_error:
+        return auth_error
     try:
         candidate_data = request.json
         candidate = create_candidate(candidate_data)
@@ -228,6 +242,9 @@ def add_candidate():
 # 5. Update candidate by ID
 @app.route('/candidates/<int:candidate_id>', methods=['PUT'])
 def modify_candidate(candidate_id):
+    auth_error = validate_token()
+    if auth_error:
+        return auth_error
     try:
         update_data = request.json
         updated_candidate = update_candidate(candidate_id, update_data)
@@ -240,6 +257,9 @@ def modify_candidate(candidate_id):
 # 6. Delete candidate by ID
 @app.route('/candidates/<int:candidate_id>', methods=['DELETE'])
 def remove_candidate(candidate_id):
+    auth_error = validate_token()
+    if auth_error:
+        return auth_error
     try:
         success = delete_candidate(candidate_id)
         if success:
@@ -251,6 +271,9 @@ def remove_candidate(candidate_id):
 # 7. Update candidate status
 @app.route('/candidates/<int:candidate_id>/status/<int:new_status>', methods=['PUT'])
 def update_existing_candidate_status(candidate_id, new_status):
+    auth_error = validate_token()
+    if auth_error:
+        return auth_error
     try:
         updated_candidate = update_candidate_status(candidate_id, new_status)
         if update_candidate:
@@ -259,25 +282,46 @@ def update_existing_candidate_status(candidate_id, new_status):
     except SQLAlchemyError as e:
         return jsonify({"error": f"Error updating candidate: {e}"}), 500 
 
-# 7. Delete candidate in screening by phone number
-@app.route('/candidates/screening/<phone_number>', methods=['DELETE'])
-def delete_candidate_in_screening(phone_number):
-    """
-    Deletes a candidate's JSON data in the screening process by their phone number.
-    """
-    json_file_path = os.path.join("Stored_context/applicants_in_progress", f"{phone_number}.json")
+@app.route('/conversation_by_phone/<phone_number>', methods=['GET'])
+def find_conversation_by_phone(phone_number):
+    # Call the function to find the candidate by phone number
+    candidate_data = find_or_create_candidate(phone_number)
+    print(candidate_data)
+    return jsonify(candidate_data)
+
+#  Delete candidate in screening by phone number
+@app.route('/candidates/phone/<phone_number>', methods=['DELETE'])
+def delete_by_phone_endpoint(phone_number):
     try:
-        if os.path.exists(json_file_path):
-            os.remove(json_file_path)
-            return jsonify({"message": f"Candidate data for phone number {phone_number} successfully deleted."}), 200
-        else:
-            return jsonify({"error": f"No screening data found for phone number {phone_number}."}), 404
+        return delete_by_phone(phone_number)
+        
     except Exception as e:
         return jsonify({"error": f"Failed to delete candidate screening data: {str(e)}"}), 500
+
+
+@app.route('/validate-password', methods=['POST'])
+def validate_password_endpoint():
+    auth_error = validate_token()
+    if auth_error:
+        return auth_error
+    data = request.json
+    email = data.get("email")
+    password = data.get("password")
+    
+    if not email or not password:
+        return jsonify({"success": False, "message": "Email and password are required"}), 400
+
+    if validate_password(email, password):
+        return jsonify({"success": True, "message": "Password is valid"})
+    else:
+        return jsonify({"success": False, "message": "Invalid credentials"}), 401
 
 # 1. Get all users
 @app.route('/users', methods=['GET'])
 def users():
+    auth_error = validate_token()
+    if auth_error:
+        return auth_error
     try:
         users = get_all_users()
         return jsonify({"data": users}), 200
@@ -287,6 +331,9 @@ def users():
 # 2. Get a user by ID
 @app.route('/users/<int:user_id>', methods=['GET'])
 def user_by_id(user_id):
+    auth_error = validate_token()
+    if auth_error:
+        return auth_error
     try:
         user = get_user_by_id(user_id)
         if user:
@@ -299,6 +346,9 @@ def user_by_id(user_id):
 # 4. Create a new user
 @app.route('/users', methods=['POST'])
 def create_new_user():
+    auth_error = validate_token()
+    if auth_error:
+        return auth_error
     try:
         user_data = request.json
         user = create_user(user_data)
@@ -311,6 +361,9 @@ def create_new_user():
 # 5. Update user by ID
 @app.route('/users/<int:user_id>', methods=['PUT'])
 def update_existing_user(user_id):
+    auth_error = validate_token()
+    if auth_error:
+        return auth_error
     try:
         update_data = request.json
         updated_user = update_user(user_id, update_data)
@@ -323,6 +376,9 @@ def update_existing_user(user_id):
 # 6. Delete user by ID
 @app.route('/users/<int:user_id>', methods=['DELETE'])
 def delete_existing_user(user_id):
+    auth_error = validate_token()
+    if auth_error:
+        return auth_error
     try:
         success = delete_user(user_id)
         if success:
@@ -334,6 +390,9 @@ def delete_existing_user(user_id):
 # 7. Update user status
 @app.route('/users/<int:user_id>/status/<int:new_status>', methods=['PUT'])
 def update_existing_user_status(user_id, new_status):
+    auth_error = validate_token()
+    if auth_error:
+        return auth_error
     try:
         updated_user = update_user_status(user_id, new_status)
         if update_user:
@@ -347,6 +406,9 @@ def update_existing_user_status(user_id, new_status):
 # Positions endpoints
 @app.route('/positions', methods=['GET'])
 def all_positions():
+    auth_error = validate_token()
+    if auth_error:
+        return auth_error
     try:
         positions = get_all_positions()
         return jsonify({"data": positions}), 200
@@ -355,6 +417,9 @@ def all_positions():
 
 @app.route('/positions/<int:position_id>', methods=['GET'])
 def get_position(position_id):
+    auth_error = validate_token()
+    if auth_error:
+        return auth_error
     try:
         position = get_position_by_id(position_id)
         if position:
@@ -365,6 +430,9 @@ def get_position(position_id):
 
 @app.route('/positions', methods=['POST'])
 def add_position():
+    auth_error = validate_token()
+    if auth_error:
+        return auth_error
     try:
         position_data = request.json
         position = create_position(position_data)
@@ -376,6 +444,9 @@ def add_position():
 
 @app.route('/positions/<int:position_id>', methods=['PUT'])
 def modify_position(position_id):
+    auth_error = validate_token()
+    if auth_error:
+        return auth_error
     try:
         update_data = request.json
         updated_position = update_position(position_id, update_data)
@@ -387,6 +458,9 @@ def modify_position(position_id):
 
 @app.route('/positions/<int:position_id>', methods=['DELETE'])
 def remove_position(position_id):
+    auth_error = validate_token()
+    if auth_error:
+        return auth_error
     try:
         success = delete_position(position_id)
         if success:
@@ -398,6 +472,9 @@ def remove_position(position_id):
 # Locations endpoints
 @app.route('/locations', methods=['GET'])
 def all_locations():
+    auth_error = validate_token()
+    if auth_error:
+        return auth_error
     try:
         locations = get_all_locations()
         return jsonify({"data": locations}), 200
@@ -406,6 +483,9 @@ def all_locations():
 
 @app.route('/locations/<int:location_id>', methods=['GET'])
 def get_location(location_id):
+    auth_error = validate_token()
+    if auth_error:
+        return auth_error
     try:
         location = get_location_by_id(location_id)
         if location:
@@ -416,6 +496,9 @@ def get_location(location_id):
 
 @app.route('/locations', methods=['POST'])
 def add_location():
+    auth_error = validate_token()
+    if auth_error:
+        return auth_error
     try:
         location_data = request.json
         location = create_location(location_data)
@@ -427,6 +510,9 @@ def add_location():
 
 @app.route('/locations/<int:location_id>', methods=['PUT'])
 def modify_location(location_id):
+    auth_error = validate_token()
+    if auth_error:
+        return auth_error
     try:
         update_data = request.json
         updated_location = update_location(location_id, update_data)
@@ -438,6 +524,9 @@ def modify_location(location_id):
 
 @app.route('/locations/<int:location_id>', methods=['DELETE'])
 def remove_location(location_id):
+    auth_error = validate_token()
+    if auth_error:
+        return auth_error
     try:
         success = delete_location(location_id)
         if success:
@@ -449,6 +538,9 @@ def remove_location(location_id):
 
 @app.route('/createModels', methods=["POST"])
 def createModels():
+    auth_error = validate_token()
+    if auth_error:
+        return auth_error
     try:
         createModelsMain()
         return jsonify({"message": "Models created Successfully"}), 200
@@ -458,6 +550,9 @@ def createModels():
 
 @app.route('/createDBfromModels', methods=["POST"])
 def createDbfromModels():
+    auth_error = validate_token()
+    if auth_error:
+        return auth_error
     try:
         createDbMain()
         return jsonify({"message": "DB created Successfully"}), 200
@@ -468,6 +563,7 @@ def createDbfromModels():
 
 @app.route('/messenger_webhook', methods=["GET", "POST"])
 def messenger_hook():
+    
     if request.method == 'GET':
         if 'hub.mode' in request.args and 'hub.verify_token' in request.args:
             mode = request.args.get('hub.mode')

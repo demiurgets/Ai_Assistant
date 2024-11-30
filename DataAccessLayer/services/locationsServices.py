@@ -1,8 +1,12 @@
 import json
 import re
 from sqlalchemy.orm import Session
+from sqlalchemy import func
 from sqlalchemy.exc import SQLAlchemyError
 from DataAccessLayer.models.locations import Locations  # Importing the Locations model
+from DataAccessLayer.models.positions import Positions  # Importing the Positions model
+
+
 import os
 from dotenv import load_dotenv
 from sqlalchemy.orm import sessionmaker
@@ -109,10 +113,22 @@ def delete_location(location_id):
         db_session.rollback()
         return False
 
-# 6. Update assistant context with latest location data
+
 def update_location_context():
     try:
-        locations = db_session.query(Locations).all()
+        # Query locations with their position counts
+        locations_with_positions = (
+            db_session.query(
+                Locations,
+                func.count(Positions.id).label("position_count")
+            )
+            .join(Positions, Locations.id == Positions.location_id)
+            .group_by(Locations.id)
+            .having(func.count(Positions.id) > 0)  # Only include locations with positions
+            .all()
+        )
+
+        # Create the JSON structure
         locations_data = [
             {
                 "id": location.id,
@@ -122,34 +138,42 @@ def update_location_context():
                 "state": location.state,
                 "zip": location.zip,
                 "phone": location.phone,
+                "position_count": position_count,  # Include the count of positions
             }
-            for location in locations
+            for location, position_count in locations_with_positions
         ]
 
-        locations_json = json.dumps(locations_data, indent=4)
+        # Convert to JSON with proper formatting
+        locations_json = json.dumps(locations_data, ensure_ascii=False, indent=4)
 
+        print(locations_json)
+        # Interact with OpenAI API to update assistant context
         client = OpenAI(api_key=api_key)
-
         my_assistant = client.beta.assistants.retrieve(assistant_id)
-
         current_instructions = getattr(my_assistant, "instructions", None)
 
+       
         print(current_instructions)
         print("current above, updated instructions below: ")
         locations_pattern = r"(Here are the different locations:\s*\[.*?\])"
         updated_instructions = re.sub(locations_pattern, f"Here are the different locations: {locations_json}", current_instructions, flags=re.DOTALL)
+        
+
+        # Print updated instructions for debugging
         print(updated_instructions)
+
+        # Update the assistant (commented out for now)
         my_updated_assistant = client.beta.assistants.update(
             assistant_id,
             instructions=updated_instructions,
         )
 
-        # Dynamically generate the updated locations JSON
-        return locations_json
+        return locations_json  # Return the updated JSON for debugging/logging
 
     except SQLAlchemyError as e:
-        print(f"Error generating locations JSON: {e}")
+        print(f"Error updating location context: {e}")
         return None
 
+
 # Generate the dynamic JSON for locations
-#locations_json = update_location_context()
+locations_json = update_location_context()

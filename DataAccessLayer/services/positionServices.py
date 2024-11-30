@@ -135,8 +135,8 @@ def update_position_context():
             for position in positions
         ]
         
-        positions_json = json.dumps(positions_data, indent=4)
-        
+        positions_json = json.dumps(positions_data, indent=4, ensure_ascii=False)
+
         client = OpenAI(api_key=api_key)
 
         my_assistant = client.beta.assistants.retrieve(assistant_id)
@@ -146,6 +146,16 @@ def update_position_context():
         print(current_instructions)
         print("current above, updated instructions below: ")
         positions_pattern = r"(Here are the different positions:\s*\[.*?\])"
+
+        escaped_positions_json = positions_json.replace("\\", "\\\\")
+
+        updated_instructions = re.sub(
+            positions_pattern, 
+            f"Here are the different positions: {escaped_positions_json}", 
+            current_instructions, 
+            flags=re.DOTALL
+        )
+
         updated_instructions = re.sub(positions_pattern, f"Here are the different positions: {positions_json}", current_instructions, flags=re.DOTALL)
         print(updated_instructions)
         my_updated_assistant = client.beta.assistants.update(
