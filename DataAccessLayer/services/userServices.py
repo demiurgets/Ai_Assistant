@@ -17,7 +17,7 @@ dbname = os.getenv('dbname', 'qonda')
 user = os.getenv('user', 'postgres')
 password = os.getenv('password', 'Not24get!')
 host = os.getenv('host', 'localhost')
-port = os.getenv('port', '5432')
+port = os.getenv('pg_port', '5432')
 
 print(host)
 print(port)

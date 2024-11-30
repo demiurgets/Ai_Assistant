@@ -21,7 +21,7 @@ dbname = os.getenv('dbname')
 user = os.getenv('user')
 password = os.getenv('password')
 host = os.getenv('host')
-port = os.getenv('port')
+port = os.getenv('pg_port')
 
 assistant_id = os.getenv('ASST_INTERVIEWER')
 api_key = os.getenv('API_KEY')
@@ -143,8 +143,7 @@ def update_location_context():
             for location, position_count in locations_with_positions
         ]
 
-        # Convert to JSON with proper formatting
-        locations_json = json.dumps(locations_data, ensure_ascii=False, indent=4)
+        locations_json = json.dumps(locations_data, indent=4).replace("\\", "\\\\")
 
         print(locations_json)
         # Interact with OpenAI API to update assistant context
@@ -176,4 +175,4 @@ def update_location_context():
 
 
 # Generate the dynamic JSON for locations
-locations_json = update_location_context()
+#locations_json = update_location_context()

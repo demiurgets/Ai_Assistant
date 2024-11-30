@@ -14,7 +14,7 @@ dbname = os.getenv('dbname')
 user = os.getenv('user')
 password = os.getenv('password')
 host = os.getenv('host')
-port = os.getenv('port')
+port = os.getenv('pg_port')
 
 # Construct the database URL
 database_url = f"postgresql+psycopg2://{user}:{password}@{host}:{port}/{dbname}"

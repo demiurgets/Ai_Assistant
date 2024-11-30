@@ -31,7 +31,7 @@ dbname = os.getenv('dbname')
 user = os.getenv('user')
 password = os.getenv('password')
 host = os.getenv('host')
-port = os.getenv('port')
+port = os.getenv('pg_port')
 
 api_key = os.getenv('API_KEY')
 reader_id = os.getenv('ASST_ID_READER')

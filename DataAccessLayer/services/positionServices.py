@@ -19,7 +19,7 @@ dbname = os.getenv('dbname')
 user = os.getenv('user')
 password = os.getenv('password')
 host = os.getenv('host')
-port = os.getenv('port')
+port = os.getenv('pg_port')
 
 assistant_id = os.getenv('ASST_INTERVIEWER')
 api_key = os.getenv('API_KEY')
@@ -39,8 +39,8 @@ def position_to_dict(position):
         "location_id": position.location_id,
         "filled_openings": position.filled_openings,
         "max_openings": position.max_openings,
-        "date_created": position.date_created,
-        "date_updated": position.date_updated,
+        "created_date": position.date_created,
+        "updated_date": position.date_updated, 
     }
 
 # 1. Get all job positions
@@ -135,8 +135,8 @@ def update_position_context():
             for position in positions
         ]
         
-        positions_json = json.dumps(positions_data, indent=4, ensure_ascii=False)
-
+        positions_json = json.dumps(positions_data, indent=4).replace("\\", "\\\\")
+        
         client = OpenAI(api_key=api_key)
 
         my_assistant = client.beta.assistants.retrieve(assistant_id)
