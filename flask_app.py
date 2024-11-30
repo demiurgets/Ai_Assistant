@@ -17,7 +17,7 @@ from DataAccessLayer.services.candidateServices import (
     update_candidate,
     delete_candidate,
     update_candidate_status,
-    delete_by_phone
+    delete_by_phone,
     get_candidates_by_status
 )
 from DataAccessLayer.services.userServices import (
@@ -27,7 +27,7 @@ from DataAccessLayer.services.userServices import (
     update_user,
     delete_user,
     update_user_status,
-    validate_password
+    validate_password,
     get_users_by_status
 )
 from DataAccessLayer.services.locationsServices import (

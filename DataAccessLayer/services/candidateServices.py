@@ -160,7 +160,6 @@ def create_candidate(candidate_data):
             phone=candidate_data.get("phone"),
             position_id=candidate_data.get("position_id"),
             location_id=candidate_data.get("location_id"),
-            position_id=candidate_data.get("position_id"),
             status_id=candidate_data.get("status_id"),
             interview_date=candidate_data.get("interview_date"),
             enrollment_start=candidate_data.get("enrollment_start"),
