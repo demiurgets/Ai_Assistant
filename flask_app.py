@@ -1,6 +1,6 @@
 from flask import Flask, render_template, request, jsonify
 
-from message_reciever import recieve_message, find_or_create_candidate
+from message_reciever import recieve_message, find_or_create_candidate_json
 import os
 from dotenv import load_dotenv
 import requests
@@ -28,7 +28,8 @@ from DataAccessLayer.services.userServices import (
     delete_user,
     update_user_status,
     validate_password,
-    get_users_by_status
+    get_users_by_status,
+    get_user_by_email
 )
 from DataAccessLayer.services.locationsServices import (
     get_all_locations,
@@ -296,8 +297,8 @@ def update_existing_candidate_status(candidate_id, new_status):
 @app.route('/conversation_by_phone/<phone_number>', methods=['GET'])
 def find_conversation_by_phone(phone_number):
     # Call the function to find the candidate by phone number
-    candidate_data = find_or_create_candidate(phone_number)
-    print(candidate_data)
+    candidate_data = find_or_create_candidate_json(phone_number)
+    #print(candidate_data)
     return jsonify(candidate_data)
 
 #  Delete candidate in screening by phone number
@@ -362,6 +363,19 @@ def users_by_status(status_id):
     except SQLAlchemyError as e:
         return jsonify({"error": f"Error fetching users by status: {e}"}), 500
     
+# 7. Get user by email
+@app.route('/users/email/<string:email>', methods=['GET'])
+def user_by_email(email):
+    auth_error = validate_token()
+    if auth_error:
+        return auth_error
+    try:
+        user = get_user_by_email(email)
+        if user:
+            return jsonify({"data": user}), 200
+        return jsonify({"error": "User not found"}), 404
+    except SQLAlchemyError as e:
+        return jsonify({"error": f"Error fetching user by email: {e}"}), 500
 
 
 # 4. Create a new user

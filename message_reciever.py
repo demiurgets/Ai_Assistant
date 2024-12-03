@@ -18,6 +18,9 @@ from sqlalchemy.orm import sessionmaker
 from sqlalchemy import create_engine
 from DataAccessLayer.models.candidates import Candidates
 from DataAccessLayer.services.positionServices import get_positions_by_location
+from DataAccessLayer.services.candidateServices import (find_or_create_candidate_json, update_conversation, save_to_database)
+
+from AI.openai_utils import OpenAIUtility
 
 
 
@@ -44,6 +47,8 @@ engine = create_engine(database_url)
 Session = sessionmaker(bind=engine)
 db_session = Session()
 
+openAiUtils = OpenAIUtility()
+
 # Load config and data
 #document_embeddings = np.load('Stored_context/applicant_embeddings.npy')
 #with open('Stored_context/document_chunks.json', 'r') as f:
@@ -59,19 +64,6 @@ db_session = Session()
 #tokenizer = AutoTokenizer.from_pretrained(model_name)
 #model = AutoModel.from_pretrained(model_name)
 
-def get_postgres_connection():
-    try:
-        conn = psycopg2.connect(
-            dbname=dbname, 
-            user=user, 
-            password=password, 
-            host=host, 
-            port=port
-        )
-        return conn
-    except Exception as e:
-        print(f"Error connecting to PostgreSQL: {e}")
-        return None
 
 def get_embedding(text):
     inputs = tokenizer(text, return_tensors='pt', padding=True, truncation=True)
@@ -125,8 +117,6 @@ def assistant_generate_json(thread_id):
         response = response_page.data[0].content[0].text.value
         print(response)
 
-        
-        # Attempt to dynamically extract JSON from the response
         try:
             # Regex to find any JSON object: it looks for a string starting with `{` and ending with `}`, 
             # containing a valid JSON-like structure (not a foolproof guarantee but a common approach)
@@ -171,21 +161,12 @@ def assistant_get_positions(thread_id, text):
             positions,
             default=lambda obj: obj.isoformat() if isinstance(obj, datetime) else str(obj)  # Handle datetime serialization
         )
-        print("Found positions!")
-        print(positions)
-        client = OpenAI(api_key=api_key)
+        print("Queried positions!")
         query = (
             "Here are all the positions for the location, please present these to the user and remember the position ID of their choice: " + positions_json
         )
         
-        message = client.beta.threads.messages.create(thread_id=thread_id, role="user", content=query)
-        run = client.beta.threads.runs.create_and_poll(thread_id=thread_id, assistant_id=interviewer_id)
-        
-        response = "Error with AI API"
-        if run.status == 'completed':
-            response_page = client.beta.threads.messages.list(thread_id=thread_id)
-            response = response_page.data[0].content[0].text.value
-            print(response)
+        response = openAiUtils.send_to_ai(query, thread_id, interviewer_id)
         return response
     else:
         return response
@@ -204,160 +185,23 @@ def detect_trigger_string(text, thread_id, phoneNumber):
         print("ending string TRIGGERED")
         print(text)
         json_data = assistant_generate_json(thread_id)  
+        json_data["phone"] = phoneNumber
+        json_data["thread_id"] = thread_id
         print(json_data)
-        save_to_database(json_data, phoneNumber, thread_id)
+        save_to_database(json_data)
         text_without_trigger = text.lower().replace(ending_trigger, "").strip()
         return text_without_trigger
     return text
 
-def save_to_database(json_data, phone_number, thread):
-    print("Saving candidate to the database...")
 
-    candidate = db_session.query(Candidates).filter_by(phone=phone_number).first()
-
-    if candidate:
-        print("Candidate already exists.")
-        return
-
-    new_candidate = Candidates()
-   
-
-    for key, value in json_data.items():
-        if hasattr(new_candidate, key):
-            setattr(new_candidate, key, value if value != "" else None)
-        else:
-            print(f"Warning: '{key}' Not included in generated JSON. Skipping...")
-
-    print("Setting phone attribute, printing phone below: ")
-    print(phone_number)
-    setattr(new_candidate, 'phone', phone_number)
-    setattr(new_candidate, 'thread_id', thread)
-    setattr(new_candidate, 'status_id', 1)
-
-
-    try:
-        db_session.add(new_candidate)
-        db_session.commit()
-        print("Candidate saved successfully.")
-    except SQLAlchemyError as e:
-        print(f"Error saving candidate: {e}")
-        db_session.rollback()
-
-
-
-def load_candidates_data(phone_number):
-    # Load JSON data from file or create an empty list if the file doesn't exist
-    json_file_path = "Stored_context/applicants_in_progress/" + phone_number + ".json"
-
-    if os.path.exists(json_file_path):
-        with open(json_file_path, 'r') as f:
-            data = json.load(f)
-            # Ensure that the data is a list
-            if isinstance(data, list):
-                return data
-            else:
-                return []  # If the JSON is not a list, return an empty list
-    return []
-
-def save_candidates_data(data, phone_number):
-    json_file_path = "Stored_context/applicants_in_progress/" + phone_number + ".json"
-
-    # Save JSON data to file
-    with open(json_file_path, 'w') as f:
-        json.dump(data, f, indent=4)
-
-def add_new_candidate(phone_number, thread_id):
-    data = load_candidates_data(phone_number)
-    
-    new_entry = {
-        "phone_number": phone_number,
-        "thread_id": thread_id,
-        "first_contact_timestamp": datetime.now().isoformat(),
-        "conversation": []  
-    }
-    
-    data.append(new_entry)
-    save_candidates_data(data, phone_number)
-    return new_entry
-
-def update_conversation(phone_number, user_message, assistant_response):
-    data = load_candidates_data(phone_number)
-    for candidate in data:
-        if candidate["phone_number"] == phone_number:
-            # Get the current message count and increment for each new message
-            message_id = len(candidate["conversation"]) + 1
-            
-            candidate["conversation"].append({
-                "message_id": message_id,  # Add the new message ID
-                "timestamp": datetime.now().isoformat(),
-                "message": user_message,
-                "role": "external_user"
-            })
-            candidate["conversation"].append({
-                "message_id": message_id + 1,  # Add the new message ID
-                "timestamp": datetime.now().isoformat(),
-                "message": assistant_response,
-                "role": "assistant"
-            })
-            break
-    save_candidates_data(data, phone_number)
-
-
-def find_or_create_candidate(phone_number):
-    data = load_candidates_data(phone_number)
-    
-    # Look for the candidate with the matching phone number
-    for candidate in data:
-        if candidate["phone_number"] == phone_number:
-            print("Candidate exists")
-            return candidate
-    
-    # If no candidate found, create a new one
-    print("No existing candidate found. Creating new candidate.")
-    # Create a new candidate with a new thread_id
-    client = OpenAI(api_key=api_key)
-    thread = client.beta.threads.create()
-    thread_id = thread.id
-    new_candidate = add_new_candidate(phone_number, thread_id)    
-    
-    return new_candidate
-
-
-def send_to_ai(query, thread_id, client, asstId):
-    message = client.beta.threads.messages.create(
-        thread_id=thread_id,
-        role="user",
-        content=query
-    )
-    print("Ai run started...")
-
-    run = client.beta.threads.runs.create_and_poll(
-        thread_id=thread_id,
-        assistant_id=asstId,
-    )
-    response = "Error with AI API"
-    if run.status == 'completed':
-        print("AI Run completed")
-        response_page = client.beta.threads.messages.list(thread_id=thread_id)
-        response = response_page.data[0].content[0].text.value
-        
-    else:
-        response = "Error processing request with OpenAI. Please Try again."
-    return response
 
 
 def recieve_message(query, phoneNumber):
-    key = api_key
-    asstId = interviewer_id
-    client = OpenAI(api_key=key)
-
-    candidate = find_or_create_candidate(phoneNumber)
+    candidate = find_or_create_candidate_json(phoneNumber)
     
     response = ""
+    response = openAiUtils.send_to_ai(query, candidate["thread_id"], interviewer_id)
 
-    response = send_to_ai(query, candidate["thread_id"], client, asstId)
-
-    
     #if positions are queried they will be returned here for the user to see
     triggerResponse = detect_trigger_string(response, candidate["thread_id"], phoneNumber)
     

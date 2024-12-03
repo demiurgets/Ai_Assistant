@@ -10,6 +10,9 @@ from sqlalchemy import create_engine
 from sqlalchemy import func
 import json
 from flask import Flask, request, jsonify
+from AI.openai_utils import OpenAIUtility
+from datetime import datetime
+
 
 
 
@@ -176,6 +179,29 @@ def create_candidate(candidate_data):
         db_session.rollback()
         return None
 
+def save_to_database(json_data):
+    print("Saving candidate to the database...")
+
+    
+    new_candidate = Candidates()
+   
+    for key, value in json_data.items():
+        if hasattr(new_candidate, key):
+            setattr(new_candidate, key, value if value != "" else None)
+        else:
+            print(f"Warning: '{key}' Not included in generated JSON. Skipping...")
+
+    
+    setattr(new_candidate, 'status_id', 1)
+    try:
+        db_session.add(new_candidate)
+        db_session.commit()
+        print("Candidate saved successfully.")
+    except SQLAlchemyError as e:
+        print(f"Error saving candidate: {e}")
+        db_session.rollback()
+
+
 # 5. Update candidate by ID
 def update_candidate(candidate_id, update_data):
     try:
@@ -250,3 +276,76 @@ def delete_by_phone(phone_number):
     except Exception as e:
         return jsonify({"error": f"Failed to delete candidate screening data: {str(e)}"}), 500
 
+
+def load_candidates_json(phone_number):
+    # Load JSON data from file or create an empty list if the file doesn't exist
+    json_file_path = "Stored_context/applicants_in_progress/" + phone_number + ".json"
+
+    if os.path.exists(json_file_path):
+        with open(json_file_path, 'r') as f:
+            data = json.load(f)
+            # Ensure that the data is a list
+            if isinstance(data, list):
+                return data
+            else:
+                return []  # If the JSON is not a list, return an empty list
+    return []
+
+def save_candidates_json(data, phone_number):
+    json_file_path = "Stored_context/applicants_in_progress/" + phone_number + ".json"
+
+    # Save JSON data to file
+    with open(json_file_path, 'w') as f:
+        json.dump(data, f, indent=4)
+
+def update_conversation(phone_number, user_message, assistant_response):
+    data = load_candidates_json(phone_number)
+    for candidate in data:
+        if candidate["phone_number"] == phone_number:
+            # Get the current message count and increment for each new message
+            message_id = len(candidate["conversation"]) + 1
+            
+            candidate["conversation"].append({
+                "message_id": message_id,  # Add the new message ID
+                "timestamp": datetime.now().isoformat(),
+                "message": user_message,
+                "role": "external_user"
+            })
+            candidate["conversation"].append({
+                "message_id": message_id + 1,  # Add the new message ID
+                "timestamp": datetime.now().isoformat(),
+                "message": assistant_response,
+                "role": "assistant"
+            })
+            break
+    save_candidates_json(data, phone_number)
+
+
+def find_or_create_candidate_json(phone_number):
+    data = load_candidates_json(phone_number)
+    
+    # Look for the candidate with the matching phone number
+    for candidate in data:
+        if candidate["phone_number"] == phone_number:
+            print("Candidate exists")
+            return candidate
+    
+    # If no candidate found, create a new one
+    print("No existing candidate found. Creating new candidate.")
+    # Create a new candidate with a new thread_id
+    openAiUtils = OpenAIUtility()
+
+    thread_id = openAiUtils.create_thread()
+    
+    
+    new_entry = {
+        "phone_number": phone_number,
+        "thread_id": thread_id,
+        "first_contact_timestamp": datetime.now().isoformat(),
+        "conversation": []  
+    }
+    
+    data.append(new_entry)
+    save_candidates_json(data, phone_number)
+    return new_entry
+    

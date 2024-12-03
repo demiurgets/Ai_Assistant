@@ -35,6 +35,7 @@ def user_to_dict(user):
         "first_name": user.first_name,
         "last_name": user.last_name,
         "email": user.email,
+        "password": user.password,
         "phone": user.phone,
         "company_id": user.company_id,
         "user_type_id": user.user_type_id,
@@ -67,6 +68,16 @@ def get_user_by_id(user_id):
         return user_to_dict(user) if user else None
     except SQLAlchemyError as e:
         print(f"Error fetching user by ID: {e}")
+        return None
+
+# 8. Get user by email
+def get_user_by_email(email):
+    
+    try:
+        user = db_session.query(Users).filter(Users.email == email).first()
+        return user_to_dict(user) if user else None
+    except SQLAlchemyError as e:
+        print(f"Error fetching user by email: {e}")
         return None
 
 # 3. Get users by status

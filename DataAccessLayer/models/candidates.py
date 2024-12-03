@@ -8,7 +8,7 @@ from sqlalchemy import func
 class Candidates(Base):
     __tablename__ = 'candidates'
 
-    id = Column(Integer, primary_key=True, nullable=True)
+    id = Column(Integer, primary_key=True, nullable=True, autoincrement=True)
     first_name = Column(String(255), nullable=False)
     last_name = Column(String(255), nullable=False)
     thread_id = Column(String(255), nullable=False)
