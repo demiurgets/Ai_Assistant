@@ -1,6 +1,10 @@
 from sqlalchemy.orm import Session
 from sqlalchemy.exc import SQLAlchemyError
 from DataAccessLayer.models.users import Users
+from DataAccessLayer.models.user_location import UserLocation
+from DataAccessLayer.models.locations import Locations
+
+
 import os
 from dotenv import load_dotenv
 from sqlalchemy.orm import sessionmaker
@@ -10,7 +14,7 @@ import bcrypt
 #TO RUN THIS SCRIPT THRU TERMINAL, RUN python -m DataAccessLayer.services  FROM ROOT
 
 # Load environment variables
-load_dotenv()
+load_dotenv(override=True)
 
 # Database configuration
 dbname = os.getenv('dbname', 'qonda')
@@ -39,7 +43,6 @@ def user_to_dict(user):
         "phone": user.phone,
         "company_id": user.company_id,
         "user_type_id": user.user_type_id,
-        "location_id": user.location_id,
         "address": user.address,
         "city": user.city,
         "state": user.state,
@@ -51,6 +54,43 @@ def user_to_dict(user):
         "start_date": user.start_date,
         "profile_img_url": user.profile_img_url,
     }
+    
+#from DataAccessLayer.models import Base
+#from sqlalchemy import create_engine
+
+
+#def test_alchemy():
+#    engine = create_engine(database_url)
+#    Base.metadata.create_all(engine)  # This creates all tables defined by Base subclasses
+
+#test_alchemy()
+    
+    
+    
+def user_with_location_to_dict(user, location_data):
+    return {
+        "id": user.id,
+        "first_name": user.first_name,
+        "last_name": user.last_name,
+        "email": user.email,
+        "password": user.password,
+        "phone": user.phone,
+        "company_id": user.company_id,
+        "user_type_id": user.user_type_id,
+        "address": user.address,
+        "city": user.city,
+        "state": user.state,
+        "zip": user.zip,
+        "status_id": user.status_id,
+        "focus_percentage": user.focus_percentage,
+        "created_date": user.created_date,
+        "updated_date": user.updated_date,
+        "start_date": user.start_date,
+        "profile_img_url": user.profile_img_url,
+        "location_ids": location_data
+    }
+    
+
 
 # 1. Get all users
 def get_all_users():
@@ -65,19 +105,18 @@ def get_all_users():
 def get_user_by_id(user_id):
     try:
         user = db_session.query(Users).filter(Users.id == user_id).first()
-        return user_to_dict(user) if user else None
+        if not user:
+            return None
+        user_locations = db_session.query(
+            UserLocation.location_id,
+            Locations.name
+        ).join(Locations, UserLocation.location_id == Locations.id).filter(UserLocation.user_id == user.id).all()
+        
+        location_data = [{"id": ul.location_id, "name": ul.name} for ul in user_locations]
+
+        return user_with_location_to_dict(user, location_data)
     except SQLAlchemyError as e:
         print(f"Error fetching user by ID: {e}")
-        return None
-
-# 8. Get user by email
-def get_user_by_email(email):
-    
-    try:
-        user = db_session.query(Users).filter(Users.email == email).first()
-        return user_to_dict(user) if user else None
-    except SQLAlchemyError as e:
-        print(f"Error fetching user by email: {e}")
         return None
 
 # 3. Get users by status
@@ -130,6 +169,7 @@ def get_users_by_status(status_id):
 #         print(f"Error: {e}")
 #         return None
 
+# 4. Create a new user
 def create_user(user_data):
     try:
         # Get the password
@@ -146,7 +186,6 @@ def create_user(user_data):
             phone=user_data.get("phone"),
             company_id=user_data.get("company_id"),
             user_type_id=user_data.get("user_type_id"),
-            location_id=user_data.get("location_id"),
             address=user_data.get("address"),
             city=user_data.get("city"),
             state=user_data.get("state"),
@@ -156,9 +195,27 @@ def create_user(user_data):
             start_date=user_data.get("start_date"),
             profile_img_url=user_data.get("profile_img_url"),
         )
+        
+        
         db_session.add(new_user)
         db_session.commit()
-        return user_to_dict(new_user)
+        
+        location_ids = user_data.get("location_ids", [])
+        if location_ids:
+            for location_id in location_ids:
+                user_location = UserLocation(user_id=new_user.id, location_id=location_id)
+                db_session.add(user_location)
+
+            db_session.commit()
+            
+        user_locations = db_session.query(
+            UserLocation.location_id,
+            Locations.name
+        ).join(Locations, UserLocation.location_id == Locations.id).filter(UserLocation.user_id == new_user.id).all()
+        
+        location_data = [{"id": ul.location_id, "name": ul.name} for ul in user_locations]
+        
+        return user_with_location_to_dict(new_user,location_data)
     except SQLAlchemyError as e:
         print(f"Error creating user: {e}")
         db_session.rollback()
@@ -173,14 +230,40 @@ def update_user(user_id, update_data):
         user = db_session.query(Users).filter(Users.id == user_id).first()
         if not user:
             return None
+        
+        # Update user fields (except for location_ids)
         for key, value in update_data.items():
-            setattr(user, key, value)
+            if key != "location_ids":  # Skip location_ids here
+                setattr(user, key, value)
+        
+        # If location_ids are provided in the update_data, modify the user's locations
+        if "location_ids" in update_data:
+            # Remove the existing user_location associations
+            db_session.query(UserLocation).filter(UserLocation.user_id == user_id).delete()
+
+            # Add new user_location associations
+            location_ids = update_data["location_ids"]
+            for location_id in location_ids:
+                user_location = UserLocation(user_id=user.id, location_id=location_id)
+                db_session.add(user_location)
+
         db_session.commit()
-        return user_to_dict(user)
+
+        # Fetch the updated locations of the user
+        user_locations = db_session.query(
+            UserLocation.location_id,
+            Locations.name
+        ).join(Locations, UserLocation.location_id == Locations.id).filter(UserLocation.user_id == user.id).all()
+        
+        location_data = [{"id": ul.location_id, "name": ul.name} for ul in user_locations]
+        
+        return user_with_location_to_dict(user, location_data)
+    
     except SQLAlchemyError as e:
         print(f"Error updating user: {e}")
         db_session.rollback()
         return None
+
 
 # 6. Delete user by ID
 def delete_user(user_id):
@@ -242,6 +325,18 @@ def update_user_status(user_id, new_status):
         db_session.rollback()
         return None
 
+
+# 8. Get user by email
+def get_user_by_email(email):
+    
+    try:
+        user = db_session.query(Users).filter(Users.email == email).first()
+        return user_to_dict(user) if user else None
+    except SQLAlchemyError as e:
+        print(f"Error fetching user by email: {e}")
+        
+        
+        return None
 # Define 6 dummy users in JSON format
 dummy_users = [
     {

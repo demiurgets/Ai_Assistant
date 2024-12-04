@@ -12,7 +12,7 @@ from openai import OpenAI
 
 
 # Load environment variables
-load_dotenv()
+load_dotenv(override=True)
 
 # Database configuration
 dbname = os.getenv('dbname')

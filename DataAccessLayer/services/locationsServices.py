@@ -14,7 +14,7 @@ from sqlalchemy import create_engine
 from openai import OpenAI
 
 # Load environment variables
-load_dotenv()
+load_dotenv(override=True)
 
 # Database configuration
 dbname = os.getenv('dbname')
@@ -175,4 +175,4 @@ def update_location_context():
 
 
 # Generate the dynamic JSON for locations
-#locations_json = update_location_context()
+locations_json = update_location_context()

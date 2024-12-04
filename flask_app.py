@@ -183,21 +183,6 @@ def whatsapp_process_data():
         return jsonify({"error": "Error processing incoming message"}), 500
 
 
-#Endpoint for facebook messenger
-@app.route('/messenger_process', methods=['POST'])
-def process_data_messenger():
-    # Get data from the POST request
-    data = request.json
-    print(f"Received data: {data}")
-    
-    # Process the data (here, we're just echoing it)
-    processed_data = f"Processed: {data['message']}"
-    response = recieve_message(data['message'], "", data['email'])
-
-    # Return a response
-    return jsonify({"processed_message": response}), 200
-
-
 
 # Candidate endpoints using candidateServices functions
 
@@ -363,19 +348,6 @@ def users_by_status(status_id):
     except SQLAlchemyError as e:
         return jsonify({"error": f"Error fetching users by status: {e}"}), 500
     
-# 7. Get user by email
-@app.route('/users/email/<string:email>', methods=['GET'])
-def user_by_email(email):
-    auth_error = validate_token()
-    if auth_error:
-        return auth_error
-    try:
-        user = get_user_by_email(email)
-        if user:
-            return jsonify({"data": user}), 200
-        return jsonify({"error": "User not found"}), 404
-    except SQLAlchemyError as e:
-        return jsonify({"error": f"Error fetching user by email: {e}"}), 500
 
 
 # 4. Create a new user
@@ -422,6 +394,7 @@ def delete_existing_user(user_id):
     except SQLAlchemyError as e:
         return jsonify({"error": f"Error deleting user: {e}"}), 500
     
+    
 # 7. Update user status
 @app.route('/users/<int:user_id>/status/<int:new_status>', methods=['PUT'])
 def update_existing_user_status(user_id, new_status):
@@ -437,6 +410,19 @@ def update_existing_user_status(user_id, new_status):
         return jsonify({"error": f"Error updating user: {e}"}), 500 
 
 
+# 8. Get user by email
+@app.route('/users/email/<string:email>', methods=['GET'])
+def user_by_email(email):
+    auth_error = validate_token()
+    if auth_error:
+        return auth_error
+    try:
+        user = get_user_by_email(email)
+        if user:
+            return jsonify({"data": user}), 200
+        return jsonify({"error": "User not found"}), 404
+    except SQLAlchemyError as e:
+        return jsonify({"error": f"Error fetching user by email: {e}"}), 500
 
 # Positions endpoints
 @app.route('/positions', methods=['GET'])

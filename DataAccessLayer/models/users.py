@@ -1,5 +1,6 @@
-from sqlalchemy import Column, Integer, String, Float, Text, Boolean, Date, DateTime, ForeignKey
+from sqlalchemy import Column, Integer, String, Float, Text, Boolean, Date, DateTime, ForeignKey 
 from sqlalchemy.ext.declarative import declarative_base
+from sqlalchemy.orm import relationship
 
 from DataAccessLayer.models import Base
 
@@ -16,7 +17,6 @@ class Users(Base):
     phone = Column(String(20), nullable=True)
     company_id = Column(Integer, ForeignKey('companies.id'), nullable=True)
     user_type_id = Column(Integer, nullable=True)
-    location_id = Column(Integer, ForeignKey('locations.id'), nullable=True)
     address = Column(String(255), nullable=True)
     city = Column(String(100), nullable=True)
     state = Column(String(100), nullable=True)
@@ -28,3 +28,4 @@ class Users(Base):
     start_date = Column(Date, nullable=True)
     profile_img_url = Column(String(255), nullable=True)
 
+    locations = relationship("Locations", secondary='user_location', back_populates="users")

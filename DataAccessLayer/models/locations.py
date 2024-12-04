@@ -1,5 +1,6 @@
 from sqlalchemy import Column, Integer, String, Float, Text, Boolean, Date, DateTime, ForeignKey
 from sqlalchemy.ext.declarative import declarative_base
+from sqlalchemy.orm import relationship
 
 from DataAccessLayer.models import Base
 
@@ -16,3 +17,4 @@ class Locations(Base):
     zip = Column(String(20), nullable=True)
     phone = Column(String(20), nullable=True)
 
+    users = relationship("Users", secondary='user_location', back_populates="locations")
