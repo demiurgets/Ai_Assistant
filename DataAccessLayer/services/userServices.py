@@ -92,20 +92,57 @@ def get_users_by_status(status_id):
 # 4. Create a new user
 
 
+# def create_user(user_data):
+#     try:
+#         # Encrypt the password
+#         plain_password = user_data.get("password")
+#         if not plain_password:
+#             raise ValueError("Password is required")
+#         hashed_password = bcrypt.hashpw(plain_password.encode('utf-8'), bcrypt.gensalt())
+
+#         # Create a new user
+#         new_user = Users(
+#             first_name=user_data.get("first_name"),
+#             last_name=user_data.get("last_name"),
+#             email=user_data.get("email"),
+#             password=hashed_password.decode('utf-8'),  # Store as a string
+#             phone=user_data.get("phone"),
+#             company_id=user_data.get("company_id"),
+#             user_type_id=user_data.get("user_type_id"),
+#             location_id=user_data.get("location_id"),
+#             address=user_data.get("address"),
+#             city=user_data.get("city"),
+#             state=user_data.get("state"),
+#             zip=user_data.get("zip"),
+#             status_id=user_data.get("status_id"),
+#             focus_percentage=user_data.get("focus_percentage"),
+#             start_date=user_data.get("start_date"),
+#             profile_img_url=user_data.get("profile_img_url"),
+#         )
+#         db_session.add(new_user)
+#         db_session.commit()
+#         return user_to_dict(new_user)
+#     except SQLAlchemyError as e:
+#         print(f"Error creating user: {e}")
+#         db_session.rollback()
+#         return None
+#     except ValueError as e:
+#         print(f"Error: {e}")
+#         return None
+
 def create_user(user_data):
     try:
-        # Encrypt the password
+        # Get the password
         plain_password = user_data.get("password")
         if not plain_password:
             raise ValueError("Password is required")
-        hashed_password = bcrypt.hashpw(plain_password.encode('utf-8'), bcrypt.gensalt())
 
         # Create a new user
         new_user = Users(
             first_name=user_data.get("first_name"),
             last_name=user_data.get("last_name"),
             email=user_data.get("email"),
-            password=hashed_password.decode('utf-8'),  # Store as a string
+            password=plain_password,  # Store as plain text
             phone=user_data.get("phone"),
             company_id=user_data.get("company_id"),
             user_type_id=user_data.get("user_type_id"),
@@ -159,14 +196,28 @@ def delete_user(user_id):
         db_session.rollback()
         return False
 
+# def validate_password(user_email, plain_password):
+#     try:
+#         user = db_session.query(Users).filter(Users.email == user_email).first()
+#         if not user:
+#             return False
+        
+#         hashed_password = user.password.encode('utf-8')
+#         if bcrypt.checkpw(plain_password.encode('utf-8'), hashed_password):
+#             return True
+#         else:
+#             return False
+#     except SQLAlchemyError as e:
+#         print(f"Error validating password: {e}")
+#         return False
+
 def validate_password(user_email, plain_password):
     try:
         user = db_session.query(Users).filter(Users.email == user_email).first()
         if not user:
             return False
         
-        hashed_password = user.password.encode('utf-8')
-        if bcrypt.checkpw(plain_password.encode('utf-8'), hashed_password):
+        if user.password == plain_password:
             return True
         else:
             return False
