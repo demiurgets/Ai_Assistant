@@ -5,6 +5,7 @@ from sqlalchemy import func
 from sqlalchemy.exc import SQLAlchemyError
 from DataAccessLayer.models.locations import Locations  # Importing the Locations model
 from DataAccessLayer.models.positions import Positions  # Importing the Positions model
+from DataAccessLayer.models.locations_positions import LocationsPositions
 
 
 import os
@@ -41,7 +42,19 @@ def location_to_dict(location):
         "city": location.city,
         "state": location.state,
         "zip": location.zip,
+        "phone": location.phone
+    }
+    
+def location_with_positions_to_dict(location, position_data):
+        return {
+        "id": location.id,
+        "name": location.name,
+        "address": location.address,
+        "city": location.city,
+        "state": location.state,
+        "zip": location.zip,
         "phone": location.phone,
+        "positions": position_data
     }
 
 # 1. Get all locations
@@ -56,15 +69,34 @@ def get_all_locations():
 # 2. Get location by ID
 def get_location_by_id(location_id):
     try:
+        # Fetch the location based on the provided ID
         location = db_session.query(Locations).filter(Locations.id == location_id).first()
-        return location_to_dict(location) if location else None
+        if not location:
+            return None
+        
+        # Fetch positions associated with the location
+        location_positions = db_session.query(
+            LocationsPositions.position_id,
+            Positions.name,
+            LocationsPositions.max_openings,
+            LocationsPositions.filled_openings
+        ).join(Positions, LocationsPositions.position_id == Positions.id).filter(LocationsPositions.location_id == location_id).all()
+        
+        # Structure position data into a list of dictionaries
+        position_data = [{"id": lp.position_id, "name": lp.name, "max_openings": lp.max_openings, "filled_openings": lp.filled_openings} for lp in location_positions]
+
+        # Combine location and position data into the final dictionary
+        return location_with_positions_to_dict(location, position_data)
+    
     except SQLAlchemyError as e:
         print(f"Error fetching location by ID: {e}")
         return None
 
+
 # 3. Create a new location
 def create_location(location_data):
     try:
+        # Create a new location
         new_location = Locations(
             name=location_data.get("name"),
             address=location_data.get("address"),
@@ -74,9 +106,36 @@ def create_location(location_data):
             phone=location_data.get("phone"),
         )
         db_session.add(new_location)
-        db_session.commit()
-        update_location_context()
-        return location_to_dict(new_location)
+        db_session.commit()  # Commit to generate new_location.id
+        
+        # Handle associated positions if provided
+        positions_data = location_data.get("positions", [])
+        if positions_data:
+            for pos in positions_data:
+                location_position = LocationsPositions(
+                    location_id=new_location.id,
+                    position_id=pos.get("position_id"),
+                    max_openings=pos.get("max_openings", 0),  # Default to 0 if not provided
+                    filled_openings=pos.get("filled_openings", 0)
+                )
+                db_session.add(location_position)
+        
+            db_session.commit()
+        
+        # Fetch associated positions for the new location
+        location_positions = db_session.query(
+            LocationsPositions.position_id,
+            Positions.name,
+            LocationsPositions.max_openings,
+            LocationsPositions.filled_openings
+        ).join(Positions, LocationsPositions.position_id == Positions.id).filter(LocationsPositions.location_id == new_location.id).all()
+        
+        # Structure position data into a list of dictionaries
+        position_data = [{"id": lp.position_id, "name": lp.name, "max_openings": lp.max_openings, "filled_openings": lp.filled_openings} for lp in location_positions]
+        
+        # Combine location and position data into the final dictionary
+        return location_with_positions_to_dict(new_location, position_data)
+    
     except SQLAlchemyError as e:
         print(f"Error creating location: {e}")
         db_session.rollback()
@@ -87,16 +146,74 @@ def update_location(location_id, update_data):
     try:
         location = db_session.query(Locations).filter(Locations.id == location_id).first()
         if not location:
-            return None
+            return None  # Return None if the location doesn't exist
+
         for key, value in update_data.items():
-            setattr(location, key, value)
-        db_session.commit()
-        update_location_context()
-        return location_to_dict(location)
+            if key != 'positions':  # Skip 'positions' for now
+                setattr(location, key, value)
+
+        # Only update 'positions' if provided in update_data
+        if 'positions' in update_data:
+            positions_data = update_data.get("positions", [])
+
+            # Get existing position relations for this location
+            existing_position_ids = {
+                lp.position_id for lp in db_session.query(LocationsPositions).filter(LocationsPositions.location_id == location_id).all()
+            }
+
+            # Extract new position IDs from the update data
+            new_position_ids = {pos.get("position_id") for pos in positions_data}
+
+            # Delete any existing position relations not in the new list
+            for position_id in existing_position_ids:
+                if position_id not in new_position_ids:
+                    db_session.query(LocationsPositions).filter(
+                        LocationsPositions.location_id == location_id,
+                        LocationsPositions.position_id == position_id
+                    ).delete()
+
+            # Update existing or add new position relations
+            for pos in positions_data:
+                position_id = pos.get("position_id")
+
+                # Check if this position relation already exists
+                location_position = db_session.query(LocationsPositions).filter(
+                    LocationsPositions.location_id == location_id,
+                    LocationsPositions.position_id == position_id
+                ).first()
+
+                if location_position:
+                    # Update existing position relation
+                    location_position.max_openings = pos.get("max_openings", location_position.max_openings)
+                    location_position.filled_openings = pos.get("filled_openings", location_position.filled_openings)
+                else:
+                    # Add new position relation if it doesn't exist
+                    new_location_position = LocationsPositions(
+                        location_id=location_id,
+                        position_id=position_id,
+                        max_openings=pos.get("max_openings", 0),
+                        filled_openings=pos.get("filled_openings", 0)
+                    )
+                    db_session.add(new_location_position)
+
+        db_session.commit()  
+
+        updated_locations_positions = db_session.query(
+            LocationsPositions.position_id,
+            Positions.name,
+            LocationsPositions.max_openings,
+            LocationsPositions.filled_openings
+        ).join(Positions, LocationsPositions.position_id == Positions.id).filter(LocationsPositions.location_id == location_id).all()
+
+        position_data = [{"id": lp.position_id, "name": lp.name, "max_openings": lp.max_openings, "filled_openings": lp.filled_openings} for lp in updated_locations_positions]
+
+        return location_with_positions_to_dict(location, position_data)  # Return updated location with positions
+
     except SQLAlchemyError as e:
         print(f"Error updating location: {e}")
         db_session.rollback()
         return None
+
 
 # 5. Delete location by ID
 def delete_location(location_id):
@@ -116,15 +233,16 @@ def delete_location(location_id):
 
 def update_location_context():
     try:
-        # Query locations with their position counts
+        # Query locations with their position counts using the LocationsPositions table
         locations_with_positions = (
             db_session.query(
                 Locations,
-                func.count(Positions.id).label("position_count")
+                func.count(LocationsPositions.position_id).label("position_count")
             )
-            .join(Positions, Locations.id == Positions.location_id)
+            .join(LocationsPositions, Locations.id == LocationsPositions.location_id)  
+            .join(Positions, Positions.id == LocationsPositions.position_id)  
             .group_by(Locations.id)
-            .having(func.count(Positions.id) > 0)  # Only include locations with positions
+            .having(func.count(LocationsPositions.position_id) > 0)  # Only include locations with associated positions
             .all()
         )
 
@@ -138,7 +256,7 @@ def update_location_context():
                 "state": location.state,
                 "zip": location.zip,
                 "phone": location.phone,
-                "position_count": position_count,  # Include the count of positions
+                "position_count": position_count,  # count of positions
             }
             for location, position_count in locations_with_positions
         ]

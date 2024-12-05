@@ -87,7 +87,7 @@ def user_with_location_to_dict(user, location_data):
         "updated_date": user.updated_date,
         "start_date": user.start_date,
         "profile_img_url": user.profile_img_url,
-        "location_ids": location_data
+        "locations": location_data
     }
     
 

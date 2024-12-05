@@ -18,3 +18,4 @@ class Locations(Base):
     phone = Column(String(20), nullable=True)
 
     users = relationship("Users", secondary='user_location', back_populates="locations")
+    positions = relationship("Positions", secondary="locations_positions", back_populates="locations")

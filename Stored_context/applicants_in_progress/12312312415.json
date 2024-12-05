@@ -1,0 +1,117 @@
+[
+    {
+        "phone_number": "12312312415",
+        "thread_id": "thread_9UCmAFMXOTnONQhKXRQxjaJ0",
+        "first_contact_timestamp": "2024-12-04T22:50:11.626185",
+        "conversation": [
+            {
+                "message_id": 1,
+                "timestamp": "2024-12-04T22:50:16.796278",
+                "message": "Hola",
+                "role": "external_user"
+            },
+            {
+                "message_id": 2,
+                "timestamp": "2024-12-04T22:50:16.796278",
+                "message": "\u00a1Hola! Gracias por mostrarnos tu inter\u00e9s en Servizik. Para comenzar, \u00bfpodr\u00edas decirme en qu\u00e9 ciudad y estado te encuentras? As\u00ed podr\u00e9 mostrarte las ubicaciones cercanas a ti.",
+                "role": "assistant"
+            },
+            {
+                "message_id": 3,
+                "timestamp": "2024-12-04T22:50:31.355056",
+                "message": "Atitalaquia",
+                "role": "external_user"
+            },
+            {
+                "message_id": 4,
+                "timestamp": "2024-12-04T22:50:31.355056",
+                "message": "\u00a1Estupendo! Cerca de Atitalaquia, tenemos la ubicaci\u00f3n de \"SIFATEC TULA\" en el estado de Hidalgo. \u00bfTe gustar\u00eda solicitar un empleo en esa ubicaci\u00f3n? Si est\u00e1s interesado, por favor confirma y te mostrar\u00e9 las posiciones disponibles.",
+                "role": "assistant"
+            },
+            {
+                "message_id": 5,
+                "timestamp": "2024-12-04T22:50:49.174098",
+                "message": "Me interesa",
+                "role": "external_user"
+            },
+            {
+                "message_id": 6,
+                "timestamp": "2024-12-04T22:50:49.174098",
+                "message": "Perfecto, en \"SIFATEC TULA\" tenemos la siguiente posici\u00f3n disponible:\n\n1. **Gerente de Ventas**\n   - **Objetivo:** Aumentar las ventas por medio de un liderazgo eficiente del talento humano, durante un plazo determinado. Dirigir y organizar el departamento de ventas; incentivar a su equipo de trabajo para obtener mejores resultados.\n   - **Requisitos:**\n     - Edad: 25 a 50 a\u00f1os\n     - Sexo: Indistinto\n     - Licenciatura en Administraci\u00f3n o afines CONCLUIDA\n     - Capacidad de resoluci\u00f3n de problemas\n     - Tolerancia al trabajo bajo presi\u00f3n\n     - 1 a\u00f1o de experiencia deseable\n   - **Actividades:**\n     - Organizar los planes de ventas.\n     - Incentivar a su equipo.\n     - Lograr que cumplan con los objetivos propuestos.\n     - Incrementar el volumen de las ventas.\n     - Aumentar las ganancias de la compa\u00f1\u00eda.\n     - Contribuir en el crecimiento a largo plazo de la organizaci\u00f3n.\n\nSi est\u00e1s interesado en esta posici\u00f3n, por favor h\u00e1zmelo saber.",
+                "role": "assistant"
+            },
+            {
+                "message_id": 7,
+                "timestamp": "2024-12-04T22:50:58.894963",
+                "message": "Me interesa",
+                "role": "external_user"
+            },
+            {
+                "message_id": 8,
+                "timestamp": "2024-12-04T22:50:58.894963",
+                "message": "\u00a1Excelente elecci\u00f3n! Ahora, por favor, podr\u00edas proporcionarme tu nombre completo y tu edad.",
+                "role": "assistant"
+            },
+            {
+                "message_id": 9,
+                "timestamp": "2024-12-04T22:51:11.775939",
+                "message": "Fernando Franco 22 a\u00f1os",
+                "role": "external_user"
+            },
+            {
+                "message_id": 10,
+                "timestamp": "2024-12-04T22:51:11.775939",
+                "message": "\u00a1Gracias, Fernando! \u00bfPodr\u00edas contarme un poco sobre tu experiencia laboral previa?",
+                "role": "assistant"
+            },
+            {
+                "message_id": 11,
+                "timestamp": "2024-12-04T22:51:39.606995",
+                "message": "Gerente de ventas en una empresa de seguros durante 3 a\u00f1os",
+                "role": "external_user"
+            },
+            {
+                "message_id": 12,
+                "timestamp": "2024-12-04T22:51:39.606995",
+                "message": "Eso suena impresionante, Fernando. Con esa experiencia est\u00e1s bien encaminado. Ahora, me gustar\u00eda saber, \u00bfc\u00f3mo te enteraste de esta oportunidad de trabajo en Servizik?",
+                "role": "assistant"
+            },
+            {
+                "message_id": 13,
+                "timestamp": "2024-12-04T22:51:49.251275",
+                "message": "Twitter",
+                "role": "external_user"
+            },
+            {
+                "message_id": 14,
+                "timestamp": "2024-12-04T22:51:49.251275",
+                "message": "\u00a1Ah, el maravilloso mundo de Twitter! Gracias por la respuesta. Ahora, por favor, ay\u00fadame con tu rango de disponibilidad para programar una entrevista. \u00bfQu\u00e9 d\u00edas y horarios te vendr\u00edan bien?",
+                "role": "assistant"
+            },
+            {
+                "message_id": 15,
+                "timestamp": "2024-12-04T22:52:03.922213",
+                "message": "Puedo cuando sea a partir de ma\u00f1ana",
+                "role": "external_user"
+            },
+            {
+                "message_id": 16,
+                "timestamp": "2024-12-04T22:52:03.922213",
+                "message": "Genial, har\u00e9 una nota de tu disponibilidad amplia. Para finalizar, \u00bfpodr\u00edas confirmarme tu direcci\u00f3n de correo electr\u00f3nico para enviarte m\u00e1s detalles sobre la entrevista?",
+                "role": "assistant"
+            },
+            {
+                "message_id": 17,
+                "timestamp": "2024-12-04T22:52:35.265996",
+                "message": "fernando.franco@example.com",
+                "role": "external_user"
+            },
+            {
+                "message_id": 18,
+                "timestamp": "2024-12-04T22:52:35.265996",
+                "message": "\u00a1gracias, fernando! tu inter\u00e9s y compromiso son notables. te agradecemos por considerar a servizik para avanzar en tu carrera. revisaremos toda la informaci\u00f3n y nos pondremos en contacto contigo pronto a trav\u00e9s del correo fernando.franco@example.com para programar los detalles de la entrevista. \u00a1buena suerte y hasta pronto!",
+                "role": "assistant"
+            }
+        ]
+    }
+]
