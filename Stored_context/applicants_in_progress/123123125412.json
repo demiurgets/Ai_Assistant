@@ -1,0 +1,117 @@
+[
+    {
+        "phone_number": "123123125412",
+        "thread_id": "thread_8LMNko1PjmvFK0xQvm4pNiNF",
+        "first_contact_timestamp": "2024-12-04T23:18:04.703550",
+        "conversation": [
+            {
+                "message_id": 1,
+                "timestamp": "2024-12-04T23:18:15.306614",
+                "message": "Hola",
+                "role": "external_user"
+            },
+            {
+                "message_id": 2,
+                "timestamp": "2024-12-04T23:18:15.306614",
+                "message": "\u00a1Hola! Bienvenido a la entrevista para Servizik. Para comenzar, \u00bfpuedes decirme de qu\u00e9 ciudad y estado eres? De esta forma, podr\u00e9 mostrarte las ubicaciones cercanas a ti para que elijas en cu\u00e1l lugar te gustar\u00eda aplicar.",
+                "role": "assistant"
+            },
+            {
+                "message_id": 3,
+                "timestamp": "2024-12-04T23:18:38.200972",
+                "message": "Aguascalientes",
+                "role": "external_user"
+            },
+            {
+                "message_id": 4,
+                "timestamp": "2024-12-04T23:18:38.200972",
+                "message": "Perfecto. Aqu\u00ed tienes las ubicaciones que podr\u00edas considerar:\n\n- SUKARNE AGUASCALIENTES, Jes\u00fas Mar\u00eda, Aguascalientes\n\n\u00bfTe gustar\u00eda m\u00e1s informaci\u00f3n sobre alguna de estas ubicaciones?",
+                "role": "assistant"
+            },
+            {
+                "message_id": 5,
+                "timestamp": "2024-12-04T23:18:57.592952",
+                "message": "Me interesa",
+                "role": "external_user"
+            },
+            {
+                "message_id": 6,
+                "timestamp": "2024-12-04T23:18:57.592952",
+                "message": "Aqu\u00ed tienes las posiciones disponibles en SUKARNE AGUASCALIENTES:\n\n1. **T\u00e9cnico Electricista**\n   - Objetivo: Garantizar el correcto manejo, instalaci\u00f3n, aplicaci\u00f3n y durabilidad de las instalaciones.\n   - Requisitos: \n     - Vivir en el sur de Pachuca\n     - 1 a\u00f1o de experiencia comprobable\n     - Disponibilidad de tiempo e inmediata\n     - Con licencia\n     - Edad: 25 a 50 a\u00f1os\n     - Sexo indistinto\n     - Escolaridad: Bachillerato\n   - Actividades incluyen dise\u00f1ar planos, identificar ubicaciones para instalaciones, solucionar problemas el\u00e9ctricos entre otros.\n\n2. **Gerente de Operaciones**\n   - Objetivo: Garantizar actividades eficientes y alineadas con los objetivos estrat\u00e9gicos.\n   - Requisitos:\n     - Edad 25 a 50 a\u00f1os\n     - Sexo indistinto\n     - Licenciatura en Administraci\u00f3n o afines concluida\n     - Capacidad de resoluci\u00f3n de problemas\n     - Tolerancia al trabajo bajo presi\u00f3n\n     - Experiencia deseable de 1 a\u00f1o\n   - Actividades incluyen colaborar con compras, seguimiento de objetivos, implementaci\u00f3n de l\u00edneas de producci\u00f3n entre otros.\n\n3. **Auxiliar de Recursos Humanos**\n   - Objetivo: Apoyar en el proceso de selecci\u00f3n de personal.\n   - Requisitos:\n     - Licenciatura trunca o reci\u00e9n egresado en Psicolog\u00eda o afines\n     - Experiencia m\u00ednima de 6 meses\n     - Edad: 25 a 50 a\u00f1os\n     - Reclutamiento masivo\n     - Capturas en NOI y manejo de IDSE\n     - Sexo indistinto\n   - Actividades incluyen reclutamiento, control de ingresos y bajas, apoyo a gerencia de recursos humanos entre otros.\n\n\u00bfCu\u00e1l de estas posiciones te interesa?",
+                "role": "assistant"
+            },
+            {
+                "message_id": 7,
+                "timestamp": "2024-12-04T23:19:11.653060",
+                "message": "Electricista",
+                "role": "external_user"
+            },
+            {
+                "message_id": 8,
+                "timestamp": "2024-12-04T23:19:11.653060",
+                "message": "\u00a1Genial! Has elegido la posici\u00f3n de T\u00e9cnico Electricista. Ahora, por favor, dime tu nombre completo y tu edad.",
+                "role": "assistant"
+            },
+            {
+                "message_id": 9,
+                "timestamp": "2024-12-04T23:19:29.523114",
+                "message": "Fernando Electricista 23 a\u00f1os",
+                "role": "external_user"
+            },
+            {
+                "message_id": 10,
+                "timestamp": "2024-12-04T23:19:29.523114",
+                "message": "Gracias, Fernando. Ahora, cu\u00e9ntame sobre tu experiencia laboral relevante para esta posici\u00f3n de T\u00e9cnico Electricista.",
+                "role": "assistant"
+            },
+            {
+                "message_id": 11,
+                "timestamp": "2024-12-04T23:19:50.099897",
+                "message": "Soy electricista desde los 18 a\u00f1os",
+                "role": "external_user"
+            },
+            {
+                "message_id": 12,
+                "timestamp": "2024-12-04T23:19:50.099897",
+                "message": "\u00a1Impresionante, Fernando! As\u00ed que tienes alrededor de 5 a\u00f1os de experiencia. Eso es bastante tiempo en el campo. \u00bfC\u00f3mo te enteraste de esta oferta de trabajo?",
+                "role": "assistant"
+            },
+            {
+                "message_id": 13,
+                "timestamp": "2024-12-04T23:19:59.254088",
+                "message": "Facebook",
+                "role": "external_user"
+            },
+            {
+                "message_id": 14,
+                "timestamp": "2024-12-04T23:19:59.254088",
+                "message": "Muchas gracias por la informaci\u00f3n. Ahora, \u00bfpodr\u00edas indicarme tu disponibilidad para una entrevista? \u00bfQu\u00e9 d\u00edas y horarios te vienen bien?",
+                "role": "assistant"
+            },
+            {
+                "message_id": 15,
+                "timestamp": "2024-12-04T23:20:13.186071",
+                "message": "A partir del proximo lunes",
+                "role": "external_user"
+            },
+            {
+                "message_id": 16,
+                "timestamp": "2024-12-04T23:20:13.186071",
+                "message": "Perfecto, entonces est\u00e1s disponible a partir del pr\u00f3ximo lunes. Lo anotaremos. Por \u00faltimo, \u00bfpodr\u00edas darme tu direcci\u00f3n de correo electr\u00f3nico para poder enviarte los detalles de la entrevista?",
+                "role": "assistant"
+            },
+            {
+                "message_id": 17,
+                "timestamp": "2024-12-04T23:20:29.492652",
+                "message": "fer.electricista@example.com",
+                "role": "external_user"
+            },
+            {
+                "message_id": 18,
+                "timestamp": "2024-12-04T23:20:29.492652",
+                "message": "gracias, fernando. todo est\u00e1 listo. te enviaremos la confirmaci\u00f3n de tu entrevista al correo fer.electricista@example.com. ha sido un placer charlar contigo y conocer m\u00e1s sobre tu experiencia. \u00a1te deseamos mucho \u00e9xito! \u00a1hasta pronto!",
+                "role": "assistant"
+            }
+        ]
+    }
+]

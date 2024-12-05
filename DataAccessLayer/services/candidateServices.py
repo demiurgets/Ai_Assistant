@@ -3,6 +3,7 @@ from sqlalchemy.exc import SQLAlchemyError
 from DataAccessLayer.models.candidates import Candidates
 from DataAccessLayer.models.positions import Positions
 from DataAccessLayer.models.locations import Locations
+from DataAccessLayer.models.locations_positions import LocationsPositions
 import os
 from dotenv import load_dotenv
 from sqlalchemy.orm import sessionmaker, joinedload
@@ -63,7 +64,7 @@ def candidate_to_dict(candidate):
         "conversation": candidate.conversation,
     }
     
-def candidate_position_location_to_dict(candidate, position, location):
+def candidate_position_location_to_dict(candidate, position_data, location):
     return {
         "id": candidate.id,
         "first_name": candidate.first_name,
@@ -79,8 +80,6 @@ def candidate_position_location_to_dict(candidate, position, location):
         "state": candidate.state,
         "zip": candidate.zip,
         "phone": candidate.phone,
-        "location_id": candidate.location_id,
-        "position_id": candidate.position_id,
         "status_id": candidate.status_id,
         "interview_date": candidate.interview_date,
         "enrollment_start": candidate.enrollment_start,
@@ -90,16 +89,21 @@ def candidate_position_location_to_dict(candidate, position, location):
         "profile_img_url": candidate.profile_img_url,
         "files_id": candidate.files_id,
         "conversation": candidate.conversation,
-        "position": {
-            "id": position.id,
-            "name": position.name,
-            "description": position.description,
-            "location_id": position.location_id,
-            "filled_openings": position.filled_openings,
-            "max_openings": position.max_openings,
-            "created_date": position.date_created,
-            "updated_date": position.date_updated,
-        },
+        "location_id": candidate.location_id,
+        "position_id": candidate.position_id,
+        "position": position_data,
+            
+        # {  
+        #    "id": position.id,
+        #    "name": position.name,
+        #    "description": position.description,
+        #    "location_id": position.location_id,
+        #    "filled_openings": position.filled_openings,
+        #    "max_openings": position.max_openings,
+        #    "created_date": position.date_created,
+        #    "updated_date": position.date_updated,
+        # }
+        
         "location": {
             "id": location.id,
             "name": location.name,
@@ -120,19 +124,67 @@ def get_all_candidates():
         print(f"Error fetching all candidates: {e}")
         return []
 
-# 2. Get candidate by ID
 
+
+def replace_nulls_with_empty_string(data):
+    if isinstance(data, dict):
+        
+        return {key: replace_nulls_with_empty_string(value) for key, value in data.items()}
+    elif isinstance(data, list):
+        
+        return [replace_nulls_with_empty_string(item) for item in data]
+    elif data is None:
+        
+        return ""   
+    return data
+
+
+# 2. Get candidate by ID
 def get_candidate_by_id(candidate_id):
     try:
+        # Retrieve the candidate
         candidate = db_session.query(Candidates).filter(Candidates.id == candidate_id).first()
         if not candidate:
             return None
-        position = db_session.query(Positions).filter(Positions.id == candidate.position_id).first()
+
+        # Retrieve the position and location details associated with the candidate
+        location_position = db_session.query(
+            LocationsPositions.position_id,
+            Positions.name,
+            Positions.description,
+            LocationsPositions.location_id,
+            LocationsPositions.max_openings,
+            LocationsPositions.filled_openings
+        ).join(Positions, Positions.id == LocationsPositions.position_id) \
+         .filter(
+             LocationsPositions.position_id == candidate.position_id,
+             LocationsPositions.location_id == candidate.location_id
+         ).first()
+
+        if not location_position:
+            return None  # No matching position found for the candidate's location and position ID
+
+        # Create a dictionary with the required fields
+        position_data = {
+            "position_id": location_position.position_id,
+            "name": location_position.name,
+            "description": location_position.description,
+            "location_id": location_position.location_id,
+            "max_openings": location_position.max_openings,
+            "filled_openings": location_position.filled_openings
+        }
+
         location = db_session.query(Locations).filter(Locations.id == candidate.location_id).first()
-        return candidate_position_location_to_dict(candidate, position, location)
+        
+        candidate_dict_with_position_location = candidate_position_location_to_dict(candidate, position_data, location)
+        return replace_nulls_with_empty_string(candidate_dict_with_position_location)
+    
     except SQLAlchemyError as e:
         print(f"Error fetching candidate by ID: {e}")
         return None
+
+
+
 
 
 # 3. Get candidates by status
