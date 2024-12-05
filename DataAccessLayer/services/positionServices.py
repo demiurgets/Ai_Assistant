@@ -32,12 +32,22 @@ engine = create_engine(database_url)
 Session = sessionmaker(bind=engine)
 db_session = Session()
 
+
+
 # Function to convert job position model to dictionary
 def position_to_dict(position):
     return {
         "id": position.id,
         "name": position.name,
         "description": position.description,
+        "key_responsibilities": position.key_responsibilities,
+        "qualifications": position.qualifications,
+        "benefits": position.benefits,
+        "salary_range": position.salary_range,
+        "salary_currency": position.salary_currency,
+        "salary_period": position.salary_period,
+        "job_type": position.job_type,
+        "location_type": position.location_type,
         "created_date": position.date_created,
         "updated_date": position.date_updated, 
     }
@@ -47,6 +57,14 @@ def position_with_locations_to_dict(position, location_data):
         "id": position.id,
         "name": position.name,
         "description": position.description,
+        "key_responsibilities": position.key_responsibilities,
+        "qualifications": position.qualifications,
+        "benefits": position.benefits,
+        "salary_range": position.salary_range,
+        "salary_currency": position.salary_currency,
+        "salary_period": position.salary_period,
+        "job_type": position.job_type,
+        "location_type": position.location_type,
         "created_date": position.date_created,
         "updated_date": position.date_updated,
         "locations": location_data
