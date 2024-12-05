@@ -60,20 +60,30 @@ def location_with_positions_to_dict(location, position_data):
 # 1. Get all locations
 def get_all_locations():
     try:
-        # Retrieve all locations
         locations = db_session.query(Locations).all()
         
         locations_data = []
         for location in locations:
-            # Query position IDs associated with the current location
-            position_ids = db_session.query(
-                LocationsPositions.position_id
-            ).filter(
+            # Query positions associated with the current location, including names and openings
+            positions_locations = db_session.query(
+                LocationsPositions.position_id,
+                Positions.name,
+                LocationsPositions.max_openings,
+                LocationsPositions.filled_openings
+            ).join(Positions, LocationsPositions.position_id == Positions.id).filter(
                 LocationsPositions.location_id == location.id
             ).all()
             
-            position_data = [pos_id[0] for pos_id in position_ids]
+            position_data = [
+                {
+                    "id": pl.position_id,
+                    "name": pl.name,
+                    "max_openings": pl.max_openings,
+                    "filled_openings": pl.filled_openings
+                } for pl in positions_locations
+            ]
             
+            # Append location data with associated positions
             locations_data.append(location_with_positions_to_dict(location, position_data))
         
         return locations_data
