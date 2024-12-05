@@ -200,9 +200,9 @@ def create_user(user_data):
         db_session.add(new_user)
         db_session.commit()
         
-        location_ids = user_data.get("location_ids", [])
-        if location_ids:
-            for location_id in location_ids:
+        locations = user_data.get("locations", [])
+        if locations:
+            for location_id in locations:
                 user_location = UserLocation(user_id=new_user.id, location_id=location_id)
                 db_session.add(user_location)
 
@@ -231,19 +231,19 @@ def update_user(user_id, update_data):
         if not user:
             return None
         
-        # Update user fields (except for location_ids)
+        # Update user fields (except for locations)
         for key, value in update_data.items():
-            if key != "location_ids":  # Skip location_ids here
+            if key != "locations":  # Skip locations here
                 setattr(user, key, value)
         
-        # If location_ids are provided in the update_data, modify the user's locations
-        if "location_ids" in update_data:
+        # If locations are provided in the update_data, modify the user's locations
+        if "locations" in update_data:
             # Remove the existing user_location associations
             db_session.query(UserLocation).filter(UserLocation.user_id == user_id).delete()
 
             # Add new user_location associations
-            location_ids = update_data["location_ids"]
-            for location_id in location_ids:
+            locations = update_data["locations"]
+            for location_id in locations:
                 user_location = UserLocation(user_id=user.id, location_id=location_id)
                 db_session.add(user_location)
 

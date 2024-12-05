@@ -60,11 +60,28 @@ def location_with_positions_to_dict(location, position_data):
 # 1. Get all locations
 def get_all_locations():
     try:
+        # Retrieve all locations
         locations = db_session.query(Locations).all()
-        return [location_to_dict(location) for location in locations]
+        
+        locations_data = []
+        for location in locations:
+            # Query position IDs associated with the current location
+            position_ids = db_session.query(
+                LocationsPositions.position_id
+            ).filter(
+                LocationsPositions.location_id == location.id
+            ).all()
+            
+            position_data = [pos_id[0] for pos_id in position_ids]
+            
+            locations_data.append(location_with_positions_to_dict(location, position_data))
+        
+        return locations_data
+    
     except SQLAlchemyError as e:
         print(f"Error fetching all locations: {e}")
         return []
+
 
 # 2. Get location by ID
 def get_location_by_id(location_id):

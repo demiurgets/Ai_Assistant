@@ -75,10 +75,26 @@ def position_with_locations_to_dict(position, location_data):
 def get_all_positions():
     try:
         positions = db_session.query(Positions).all()
-        return [position_to_dict(position) for position in positions]
+        
+        positions_data = []
+        for position in positions:
+            # Query location IDs associated with the current position
+            location_ids = db_session.query(
+                LocationsPositions.location_id
+            ).filter(
+                LocationsPositions.position_id == position.id
+            ).all()
+            
+            location_data = [loc_id[0] for loc_id in location_ids]
+            
+            positions_data.append(position_with_locations_to_dict(position, location_data))
+        
+        return positions_data
+    
     except SQLAlchemyError as e:
         print(f"Error fetching all positions: {e}")
         return []
+
 
 # 2. Get job position by ID
 def get_position_by_id(position_id):
