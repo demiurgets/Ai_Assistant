@@ -10,7 +10,7 @@ from DataAccessLayer.models.locations_positions import LocationsPositions
 
 import os
 from dotenv import load_dotenv
-from sqlalchemy.orm import sessionmaker
+from sqlalchemy.orm import sessionmaker, scoped_session
 from sqlalchemy import create_engine
 from openai import OpenAI
 
@@ -30,8 +30,9 @@ api_key = os.getenv('API_KEY')
 # Database URL
 database_url = f"postgresql+psycopg2://{user}:{password}@{host}:{port}/{dbname}"
 engine = create_engine(database_url)
-Session = sessionmaker(bind=engine)
-db_session = Session()
+
+SessionFactory = sessionmaker(bind=engine)
+db_session = scoped_session(SessionFactory)
 
 # Function to convert location model to dictionary
 def location_to_dict(location):
@@ -89,8 +90,12 @@ def get_all_locations():
         return locations_data
     
     except SQLAlchemyError as e:
+        db_session.rollback()  # Rollback en caso de error
         print(f"Error fetching all locations: {e}")
         return []
+    finally:
+        db_session.remove()  # Asegurar limpieza de la sesión
+
 
 
 # 2. Get location by ID
@@ -116,8 +121,12 @@ def get_location_by_id(location_id):
         return location_with_positions_to_dict(location, position_data)
     
     except SQLAlchemyError as e:
+        db_session.rollback()  # Rollback in case of an error
         print(f"Error fetching location by ID: {e}")
         return None
+    finally:
+        db_session.remove()  # Ensure session cleanup
+
 
 
 # 3. Create a new location
@@ -170,8 +179,11 @@ def create_location(location_data):
     
     except SQLAlchemyError as e:
         print(f"Error creating location: {e}")
-        db_session.rollback()
+        db_session.rollback()  # Rollback in case of an error
         return None
+    finally:
+        db_session.remove()  # Ensure session cleanup
+
 
 
 # 4. Update location by ID
@@ -244,6 +256,8 @@ def update_location(location_id, update_data):
         print(f"Error updating location: {e}")
         db_session.rollback()
         return None
+    finally:
+        db_session.remove()  # Ensure session cleanup
 
 
 # 5. Delete location by ID
@@ -260,6 +274,8 @@ def delete_location(location_id):
         print(f"Error deleting location: {e}")
         db_session.rollback()
         return False
+    finally:
+        db_session.remove()  # Ensure session cleanup
 
 
 def update_location_context():
@@ -320,7 +336,10 @@ def update_location_context():
 
     except SQLAlchemyError as e:
         print(f"Error updating location context: {e}")
+        db_session.rollback()
         return None
+    finally:
+        db_session.remove()
 
 
 # Generate the dynamic JSON for locations

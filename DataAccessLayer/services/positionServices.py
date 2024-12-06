@@ -8,7 +8,7 @@ from DataAccessLayer.models.locations_positions import LocationsPositions
 from DataAccessLayer.models.locations import Locations
 import os
 from dotenv import load_dotenv
-from sqlalchemy.orm import sessionmaker
+from sqlalchemy.orm import sessionmaker,scoped_session
 from sqlalchemy import create_engine
 from openai import OpenAI
 
@@ -29,8 +29,8 @@ api_key = os.getenv('API_KEY')
 # Database URL
 database_url = f"postgresql+psycopg2://{user}:{password}@{host}:{port}/{dbname}"
 engine = create_engine(database_url)
-Session = sessionmaker(bind=engine)
-db_session = Session()
+SessionFactory = sessionmaker(bind=engine)
+db_session = scoped_session(SessionFactory)
 
 
 
@@ -103,7 +103,10 @@ def get_all_positions():
     
     except SQLAlchemyError as e:
         print(f"Error fetching all positions: {e}")
+        db_session.rollback()
         return []
+    finally:
+        db_session.remove()
 
 
 
@@ -127,7 +130,10 @@ def get_position_by_id(position_id):
     
     except SQLAlchemyError as e:
         print(f"Error fetching position by ID: {e}")
+        db_session.rollback()
         return None
+    finally:
+        db_session.remove()
     
 # 3. Create a new job position
 def create_position(position_data):
@@ -185,6 +191,8 @@ def create_position(position_data):
         print(f"Error creating position: {e}")
         db_session.rollback()
         return None
+    finally:
+        db_session.remove()
 
 
 # 4. Update job position by ID
@@ -257,6 +265,8 @@ def update_position(position_id, update_data):
         print(f"Error updating position: {e}")
         db_session.rollback()
         return None
+    finally:
+        db_session.remove()
 
 
 
@@ -274,6 +284,8 @@ def delete_position(position_id):
         print(f"Error deleting position: {e}")
         db_session.rollback()
         return False
+    finally:
+        db_session.remove()
 
 def get_positions_by_location(location_id):
     try:
@@ -290,7 +302,10 @@ def get_positions_by_location(location_id):
     
     except SQLAlchemyError as e:
         print(f"Error fetching positions by location ID {location_id}: {e}")
+        db_session.rollback()
         return []
+    finally:
+        db_session.remove()
 
 
 
@@ -341,7 +356,10 @@ def update_position_context():
 
     except SQLAlchemyError as e:
         print(f"Error generating positions JSON: {e}")
+        db_session.rollback()
         return None
+    finally:
+        db_session.remove()
 
 # Generate the dynamic JSON for job positions
 #positions_json = update_position_context()

@@ -7,7 +7,7 @@ from DataAccessLayer.models.locations import Locations
 
 import os
 from dotenv import load_dotenv
-from sqlalchemy.orm import sessionmaker
+from sqlalchemy.orm import sessionmaker, scoped_session
 from sqlalchemy import create_engine
 import bcrypt
 
@@ -29,8 +29,8 @@ print(port)
 # Database URL
 database_url = f"postgresql+psycopg2://{user}:{password}@{host}:{port}/{dbname}"
 engine = create_engine(database_url)
-Session = sessionmaker(bind=engine)
-db_session = Session()
+SessionFactory = sessionmaker(bind=engine)
+db_session = scoped_session(SessionFactory)
 
 # Function to convert user model to dictionary
 def user_to_dict(user):
@@ -99,7 +99,10 @@ def get_all_users():
         return [user_to_dict(user) for user in users]
     except SQLAlchemyError as e:
         print(f"Error fetching all users: {e}")
+        db_session.rollback()
         return []
+    finally:
+        db_session.remove()
 
 # 2. Get user by ID
 def get_user_by_id(user_id):
@@ -117,7 +120,10 @@ def get_user_by_id(user_id):
         return user_with_location_to_dict(user, location_data)
     except SQLAlchemyError as e:
         print(f"Error fetching user by ID: {e}")
+        db_session.rollback()
         return None
+    finally:
+        db_session.remove()
 
 # 3. Get users by status
 def get_users_by_status(status_id):
@@ -126,7 +132,10 @@ def get_users_by_status(status_id):
         return [user_to_dict(user) for user in users]
     except SQLAlchemyError as e:
         print(f"Error fetching users by status: {e}")
+        db_session.rollback()
         return []
+    finally:
+        db_session.remove()
 
 # 4. Create a new user
 
@@ -223,6 +232,8 @@ def create_user(user_data):
     except ValueError as e:
         print(f"Error: {e}")
         return None
+    finally:
+        db_session.remove()
 
 # 5. Update user by ID
 def update_user(user_id, update_data):
@@ -263,6 +274,8 @@ def update_user(user_id, update_data):
         print(f"Error updating user: {e}")
         db_session.rollback()
         return None
+    finally:
+        db_session.remove()
 
 
 # 6. Delete user by ID
@@ -278,6 +291,8 @@ def delete_user(user_id):
         print(f"Error deleting user: {e}")
         db_session.rollback()
         return False
+    finally:
+        db_session.remove()
 
 # def validate_password(user_email, plain_password):
 #     try:
@@ -306,7 +321,10 @@ def validate_password(user_email, plain_password):
             return False
     except SQLAlchemyError as e:
         print(f"Error validating password: {e}")
+        db_session.rollback()
         return False
+    finally:
+        db_session.remove()
 
 
 # 7. Update user status
@@ -324,6 +342,8 @@ def update_user_status(user_id, new_status):
         print(f"Error updating user: {e}")
         db_session.rollback()
         return None
+    finally:
+        db_session.remove()
 
 
 # 8. Get user by email
@@ -334,9 +354,12 @@ def get_user_by_email(email):
         return user_to_dict(user) if user else None
     except SQLAlchemyError as e:
         print(f"Error fetching user by email: {e}")
-        
+        db_session.rollback()
         
         return None
+    finally:
+        db_session.remove()
+        
 # Define 6 dummy users in JSON format
 dummy_users = [
     {
