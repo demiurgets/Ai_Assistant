@@ -133,7 +133,7 @@ def create_location(location_data):
             phone=location_data.get("phone"),
         )
         db_session.add(new_location)
-        db_session.commit()  # Commit to generate new_location.id
+        db_session.commit()  
         
         # Handle associated positions if provided
         positions_data = location_data.get("positions", [])
@@ -141,7 +141,7 @@ def create_location(location_data):
             for pos in positions_data:
                 location_position = LocationsPositions(
                     location_id=new_location.id,
-                    position_id=pos.get("position_id"),
+                    position_id=pos.get("id"), 
                     max_openings=pos.get("max_openings", 0),  # Default to 0 if not provided
                     filled_openings=pos.get("filled_openings", 0)
                 )
@@ -149,7 +149,6 @@ def create_location(location_data):
         
             db_session.commit()
         
-        # Fetch associated positions for the new location
         location_positions = db_session.query(
             LocationsPositions.position_id,
             Positions.name,
@@ -157,16 +156,23 @@ def create_location(location_data):
             LocationsPositions.filled_openings
         ).join(Positions, LocationsPositions.position_id == Positions.id).filter(LocationsPositions.location_id == new_location.id).all()
         
-        # Structure position data into a list of dictionaries
-        position_data = [{"id": lp.position_id, "name": lp.name, "max_openings": lp.max_openings, "filled_openings": lp.filled_openings} for lp in location_positions]
+        position_data = [
+            {
+                "id": lp.position_id,  
+                "name": lp.name, 
+                "max_openings": lp.max_openings, 
+                "filled_openings": lp.filled_openings
+            } 
+            for lp in location_positions
+        ]
         
-        # Combine location and position data into the final dictionary
         return location_with_positions_to_dict(new_location, position_data)
     
     except SQLAlchemyError as e:
         print(f"Error creating location: {e}")
         db_session.rollback()
         return None
+
 
 # 4. Update location by ID
 def update_location(location_id, update_data):
@@ -183,13 +189,11 @@ def update_location(location_id, update_data):
         if 'positions' in update_data:
             positions_data = update_data.get("positions", [])
 
-            # Get existing position relations for this location
             existing_position_ids = {
                 lp.position_id for lp in db_session.query(LocationsPositions).filter(LocationsPositions.location_id == location_id).all()
             }
 
-            # Extract new position IDs from the update data
-            new_position_ids = {pos.get("position_id") for pos in positions_data}
+            new_position_ids = {pos.get("id") for pos in positions_data}
 
             # Delete any existing position relations not in the new list
             for position_id in existing_position_ids:
@@ -201,7 +205,7 @@ def update_location(location_id, update_data):
 
             # Update existing or add new position relations
             for pos in positions_data:
-                position_id = pos.get("position_id")
+                position_id = pos.get("id")
 
                 # Check if this position relation already exists
                 location_position = db_session.query(LocationsPositions).filter(
