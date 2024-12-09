@@ -8,7 +8,7 @@ from DataAccessLayer.models.locations_positions import LocationsPositions
 from DataAccessLayer.models.locations import Locations
 import os
 from dotenv import load_dotenv
-from sqlalchemy.orm import sessionmaker
+from sqlalchemy.orm import sessionmaker,scoped_session
 from sqlalchemy import create_engine
 from openai import OpenAI
 
@@ -29,8 +29,10 @@ api_key = os.getenv('API_KEY')
 # Database URL
 database_url = f"postgresql+psycopg2://{user}:{password}@{host}:{port}/{dbname}"
 engine = create_engine(database_url)
-Session = sessionmaker(bind=engine)
-db_session = Session()
+SessionFactory = sessionmaker(bind=engine)
+db_session = scoped_session(SessionFactory)
+
+
 
 # Function to convert job position model to dictionary
 def position_to_dict(position):
@@ -38,6 +40,14 @@ def position_to_dict(position):
         "id": position.id,
         "name": position.name,
         "description": position.description,
+        "key_responsibilities": position.key_responsibilities,
+        "qualifications": position.qualifications,
+        "benefits": position.benefits,
+        "salary_range": position.salary_range,
+        "salary_currency": position.salary_currency,
+        "salary_period": position.salary_period,
+        "job_type": position.job_type,
+        "location_type": position.location_type,
         "created_date": position.date_created,
         "updated_date": position.date_updated, 
     }
@@ -47,6 +57,14 @@ def position_with_locations_to_dict(position, location_data):
         "id": position.id,
         "name": position.name,
         "description": position.description,
+        "key_responsibilities": position.key_responsibilities,
+        "qualifications": position.qualifications,
+        "benefits": position.benefits,
+        "salary_range": position.salary_range,
+        "salary_currency": position.salary_currency,
+        "salary_period": position.salary_period,
+        "job_type": position.job_type,
+        "location_type": position.location_type,
         "created_date": position.date_created,
         "updated_date": position.date_updated,
         "locations": location_data
@@ -57,10 +75,40 @@ def position_with_locations_to_dict(position, location_data):
 def get_all_positions():
     try:
         positions = db_session.query(Positions).all()
-        return [position_to_dict(position) for position in positions]
+        
+        positions_data = []
+        for position in positions:
+            # Query locations associated with the current position
+            locations_positions = db_session.query(
+                LocationsPositions.location_id,
+                Locations.name,
+                LocationsPositions.max_openings,
+                LocationsPositions.filled_openings
+            ).join(Locations, LocationsPositions.location_id == Locations.id).filter(
+                LocationsPositions.position_id == position.id
+            ).all()
+            
+            location_data = [
+                {
+                    "id": lp.location_id,
+                    "name": lp.name,
+                    "max_openings": lp.max_openings,
+                    "filled_openings": lp.filled_openings
+                } for lp in locations_positions
+            ]
+            
+            positions_data.append(position_with_locations_to_dict(position, location_data))
+        
+        return positions_data
+    
     except SQLAlchemyError as e:
         print(f"Error fetching all positions: {e}")
+        db_session.rollback()
         return []
+    finally:
+        db_session.remove()
+
+
 
 # 2. Get job position by ID
 def get_position_by_id(position_id):
@@ -82,7 +130,10 @@ def get_position_by_id(position_id):
     
     except SQLAlchemyError as e:
         print(f"Error fetching position by ID: {e}")
+        db_session.rollback()
         return None
+    finally:
+        db_session.remove()
     
 # 3. Create a new job position
 def create_position(position_data):
@@ -91,6 +142,15 @@ def create_position(position_data):
         new_position = Positions(
             name=position_data.get("name"),
             description=position_data.get("description"),
+            key_responsibilities = position_data.get("key_responsibilities"),
+            qualifications = position_data.get("qualifications"),
+            benefits = position_data.get("benefits"),
+            salary_range = position_data.get("salary_range"),
+            salary_currency = position_data.get("salary_currency"),
+            salary_period = position_data.get("salary_period"),
+            job_type = position_data.get("job_type"),
+            location_type = position_data.get("location_type")
+            
         )
         db_session.add(new_position)
         db_session.commit()  # Commit to generate new_position.id
@@ -99,7 +159,7 @@ def create_position(position_data):
         if locations_data:
             for loc in locations_data:
                 location_position = LocationsPositions(
-                    location_id=loc.get("location_id"),
+                    location_id=loc.get("id"),
                     position_id=new_position.id,
                     max_openings=loc.get("max_openings", 0),  # Default to 0 if not provided
                     filled_openings=loc.get("filled_openings", 0)
@@ -115,13 +175,24 @@ def create_position(position_data):
             LocationsPositions.filled_openings
         ).join(Locations, LocationsPositions.location_id == Locations.id).filter(LocationsPositions.position_id == new_position.id).all()
             
-        location_data = [{"id": lp.location_id, "name": lp.name, "max_openings": lp.max_openings, "filled_openings": lp.filled_openings} for lp in locations_positions]
+        location_data = [
+            {
+                "id": lp.location_id,
+                "name": lp.name,
+                "max_openings": lp.max_openings,
+                "filled_openings": lp.filled_openings
+            } 
+            for lp in locations_positions
+            ]
         
         return position_with_locations_to_dict(new_position, location_data)
+    
     except SQLAlchemyError as e:
         print(f"Error creating position: {e}")
         db_session.rollback()
         return None
+    finally:
+        db_session.remove()
 
 
 # 4. Update job position by ID
@@ -139,13 +210,11 @@ def update_position(position_id, update_data):
         if 'locations' in update_data:
             locations_data = update_data.get("locations", [])
 
-            # Get existing location relations for this position
             existing_location_ids = {
                 lp.location_id for lp in db_session.query(LocationsPositions).filter(LocationsPositions.position_id == position_id).all()
             }
 
-            # Extract new location IDs from the update data
-            new_location_ids = {loc.get("location_id") for loc in locations_data}
+            new_location_ids = {loc.get("id") for loc in locations_data}
 
             # Delete any existing location relations not in the new list
             for location_id in existing_location_ids:
@@ -157,7 +226,7 @@ def update_position(position_id, update_data):
 
             # Update existing or add new location relations
             for loc in locations_data:
-                location_id = loc.get("location_id")
+                location_id = loc.get("id")
 
                 # Check if this location relation already exists
                 location_position = db_session.query(LocationsPositions).filter(
@@ -196,6 +265,8 @@ def update_position(position_id, update_data):
         print(f"Error updating position: {e}")
         db_session.rollback()
         return None
+    finally:
+        db_session.remove()
 
 
 
@@ -213,6 +284,8 @@ def delete_position(position_id):
         print(f"Error deleting position: {e}")
         db_session.rollback()
         return False
+    finally:
+        db_session.remove()
 
 def get_positions_by_location(location_id):
     try:
@@ -229,7 +302,10 @@ def get_positions_by_location(location_id):
     
     except SQLAlchemyError as e:
         print(f"Error fetching positions by location ID {location_id}: {e}")
+        db_session.rollback()
         return []
+    finally:
+        db_session.remove()
 
 
 
@@ -280,7 +356,10 @@ def update_position_context():
 
     except SQLAlchemyError as e:
         print(f"Error generating positions JSON: {e}")
+        db_session.rollback()
         return None
+    finally:
+        db_session.remove()
 
 # Generate the dynamic JSON for job positions
 #positions_json = update_position_context()

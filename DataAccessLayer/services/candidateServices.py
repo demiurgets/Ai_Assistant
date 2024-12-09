@@ -7,13 +7,14 @@ from DataAccessLayer.models.locations import Locations
 from DataAccessLayer.models.locations_positions import LocationsPositions
 import os
 from dotenv import load_dotenv
-from sqlalchemy.orm import sessionmaker, joinedload
+from sqlalchemy.orm import sessionmaker, scoped_session
 from sqlalchemy import create_engine
 from sqlalchemy import func
 import json
 from flask import Flask, request, jsonify
 from AI.openai_utils import OpenAIUtility
 from datetime import datetime
+import logging
 
 
 
@@ -31,8 +32,11 @@ port = os.getenv('pg_port', '5432')
 # Database URL
 database_url = f"postgresql+psycopg2://{user}:{password}@{host}:{port}/{dbname}"
 engine = create_engine(database_url)
-Session = sessionmaker(bind=engine)
-db_session = Session()
+
+SessionFactory = sessionmaker(bind=engine)
+db_session = scoped_session(SessionFactory)
+
+logging.basicConfig(level=logging.INFO)
 
 # Function to convert candidate model to dictionary
 def candidate_to_dict(candidate):
@@ -122,8 +126,11 @@ def get_all_candidates():
         candidates = db_session.query(Candidates).all()
         return [candidate_to_dict(candidate) for candidate in candidates]
     except SQLAlchemyError as e:
-        print(f"Error fetching all candidates: {e}")
+        db_session.rollback()
+        logging.error(f"Error fetching all candidates: {e}")
         return []
+    finally:
+        db_session.remove()
 
 
 
@@ -163,7 +170,8 @@ def get_candidate_by_id(candidate_id):
          ).first()
 
         if not location_position:
-            return None  # No matching position found for the candidate's location and position ID
+            logging.warning(f"No position found for candidate ID: {candidate_id}")
+            return None
 
         # Create a dictionary with the required fields
         position_data = {
@@ -175,14 +183,29 @@ def get_candidate_by_id(candidate_id):
             "filled_openings": location_position.filled_openings
         }
 
+        # Retrieve location details
         location = db_session.query(Locations).filter(Locations.id == candidate.location_id).first()
-        
+
+        if not location:
+            logging.warning(f"No location found for candidate ID: {candidate_id}")
+            return None
+
+        # Combine data into the final dictionary
         candidate_dict_with_position_location = candidate_position_location_to_dict(candidate, position_data, location)
+
+        # Replace null values with empty strings
         return replace_nulls_with_empty_string(candidate_dict_with_position_location)
-    
+
     except SQLAlchemyError as e:
-        print(f"Error fetching candidate by ID: {e}")
+        # Log the error and rollback the session
+        db_session.rollback()
+        logging.error(f"Error fetching candidate by ID {candidate_id}: {e}")
         return None
+
+    finally:
+        # Always remove the session
+        db_session.remove()
+
 
 
 
@@ -194,8 +217,11 @@ def get_candidates_by_status(status_id):
         candidates = db_session.query(Candidates).filter(Candidates.status_id == status_id).all()
         return [candidate_to_dict(candidate) for candidate in candidates]
     except SQLAlchemyError as e:
-        print(f"Error fetching candidates by status: {e}")
+        db_session.rollback()
+        logging.error(f"Error fetching candidates by status (status_id={status_id}): {e}")
         return []
+    finally:
+        db_session.remove()
 
 # 4. Create a new candidate
 def create_candidate(candidate_data):
@@ -228,31 +254,36 @@ def create_candidate(candidate_data):
         db_session.commit()
         return candidate_to_dict(new_candidate)
     except SQLAlchemyError as e:
-        print(f"Error creating candidate: {e}")
         db_session.rollback()
+        logging.error(f"Error creating candidate: {e}, candidate data: {candidate_data}")
         return None
+    finally:
+        db_session.remove()
 
 def save_to_database(json_data):
-    print("Saving candidate to the database...")
-
+    logging.info("Saving candidate to the database...")
     
     new_candidate = Candidates()
-   
+    
     for key, value in json_data.items():
         if hasattr(new_candidate, key):
             setattr(new_candidate, key, value if value != "" else None)
         else:
-            print(f"Warning: '{key}' Not included in generated JSON. Skipping...")
-
+            logging.warning(f"'{key}' is not a valid attribute of Candidates. Skipping...")
     
     setattr(new_candidate, 'status_id', 1)
+    
     try:
         db_session.add(new_candidate)
         db_session.commit()
-        print("Candidate saved successfully.")
+        logging.info("Candidate saved successfully.")
+        return True  
     except SQLAlchemyError as e:
-        print(f"Error saving candidate: {e}")
         db_session.rollback()
+        logging.error(f"Error saving candidate: {e}, data: {json_data}")
+        return False  
+    finally:
+        db_session.remove()  
 
 
 # 5. Update candidate by ID
@@ -260,49 +291,76 @@ def update_candidate(candidate_id, update_data):
     try:
         candidate = db_session.query(Candidates).filter(Candidates.id == candidate_id).first()
         if not candidate:
+            logging.warning(f"Candidate with ID {candidate_id} not found.")
             return None
+        
         for key, value in update_data.items():
-            setattr(candidate, key, value)
+            if hasattr(candidate, key):
+                setattr(candidate, key, value)
+            else:
+                logging.warning(f"Warning: '{key}' not included in Candidates model. Skipping...")
+        
         db_session.commit()
+        logging.info(f"Candidate with ID {candidate_id} updated successfully.")
         return candidate_to_dict(candidate)
     except SQLAlchemyError as e:
-        print(f"Error updating candidate: {e}")
         db_session.rollback()
+        logging.error(f"Error updating candidate with ID {candidate_id}: {e}, data: {update_data}")
         return None
+    finally:
+        db_session.remove()
+
 
 # 6. Delete candidate by ID
 def delete_candidate(candidate_id):
     try:
         candidate = db_session.query(Candidates).filter(Candidates.id == candidate_id).first()
         if not candidate:
+            logging.warning(f"Candidate with ID {candidate_id} not found.")
             return False
 
         phone_number = candidate.phone
+        
         db_session.delete(candidate)
         db_session.commit()
-        delete_by_phone(phone_number)
+        logging.info(f"Candidate with ID {candidate_id} deleted successfully.")
+
+        try:
+            delete_by_phone(phone_number)
+            logging.info(f"Associated data with phone number {phone_number} deleted successfully.")
+        except Exception as e:
+            logging.warning(f"Failed to delete associated data for phone number {phone_number}: {e}")
 
         return True
     except SQLAlchemyError as e:
-        print(f"Error deleting candidate: {e}")
         db_session.rollback()
+        logging.error(f"Error deleting candidate with ID {candidate_id}: {e}")
         return False
+    finally:
+        db_session.remove()
 
 # 7. Update candidate status
 def update_candidate_status(candidate_id, new_status):
     try:
+        # Buscar el candidato
         candidate = db_session.query(Candidates).filter(Candidates.id == candidate_id).first()
         if not candidate:
+            logging.warning(f"Candidate with ID {candidate_id} not found.")
             return None
-        
+
+        # Actualizar el estado del candidato
         candidate.status_id = new_status
         db_session.commit()
+        logging.info(f"Candidate with ID {candidate_id} updated to status {new_status}.")
         return candidate_to_dict(candidate)
     
     except SQLAlchemyError as e:
-        print(f"Error updating candidate: {e}")
         db_session.rollback()
+        logging.error(f"Error updating candidate status (ID: {candidate_id}, Status: {new_status}): {e}")
         return None
+    finally:
+        # Limpiar la sesión
+        db_session.remove()
 
 def get_corresponding_assistant(phone_number):
     """
@@ -375,27 +433,37 @@ def upgrade_candidate(phone_number):
 
 def delete_by_phone(phone_number):
     try:
-        candidates_to_delete = db_session.query(Candidates).filter(Candidates.phone == phone_number).all()
-        
-        # Check if there are any candidates to delete
-        if candidates_to_delete:
-            for candidate in candidates_to_delete:
-                db_session.delete(candidate)
-            db_session.commit()
+        rows_deleted = db_session.query(Candidates).filter(Candidates.phone == phone_number).delete(synchronize_session=False)
+        db_session.commit()
 
-        # Now delete the corresponding JSON file(s) in the applicants_in_progress folder
+        if rows_deleted == 0:
+            logging.warning(f"No candidates found with phone number {phone_number}.")
+            return jsonify({"error": f"No candidates found with phone number {phone_number}."}), 404
+
         json_file_path = os.path.join("Stored_context/applicants_in_progress", f"{phone_number}.json")
         if os.path.exists(json_file_path):
             os.remove(json_file_path)
+            logging.info(f"Deleted JSON file for phone number {phone_number}.")
             return jsonify({"message": f"All candidate data for phone number {phone_number} successfully deleted."}), 200
         else:
+            logging.warning(f"No JSON file found for phone number {phone_number}.")
             return jsonify({"error": f"No screening data found for phone number {phone_number}."}), 404
-            
+
     except SQLAlchemyError as e:
         db_session.rollback()
-        return jsonify({"error": f"Failed to delete candidate screening data from the database: {str(e)}"}), 500
+        logging.error(f"Database error while deleting candidates with phone number {phone_number}: {e}")
+        return jsonify({"error": f"Failed to delete candidate data from the database: {str(e)}"}), 500
+
+    except OSError as e:
+        logging.error(f"File system error while deleting JSON for phone number {phone_number}: {e}")
+        return jsonify({"error": f"Failed to delete JSON file: {str(e)}"}), 500
+
     except Exception as e:
-        return jsonify({"error": f"Failed to delete candidate screening data: {str(e)}"}), 500
+        logging.error(f"Unexpected error while deleting data for phone number {phone_number}: {e}")
+        return jsonify({"error": f"Unexpected error: {str(e)}"}), 500
+
+    finally:
+        db_session.remove()
 
 
 def load_candidates_json(phone_number):
