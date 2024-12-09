@@ -293,4 +293,4 @@ def update_location_context():
 
 
 # Generate the dynamic JSON for locations
-locations_json = update_location_context()
+#locations_json = update_location_context()

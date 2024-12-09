@@ -225,23 +225,23 @@ def create_user(user_data):
         return None
 
 # 5. Update user by ID
+# 5. Update user by ID
 def update_user(user_id, update_data):
     try:
         user = db_session.query(Users).filter(Users.id == user_id).first()
         if not user:
             return None
         
-        # Update user fields (except for location_ids)
         for key, value in update_data.items():
-            if key != "location_ids":  # Skip location_ids here
+            if key == "password" and value == "": 
+                print("found empty pwd") 
+                continue
+            if key != "location_ids": 
                 setattr(user, key, value)
         
-        # If location_ids are provided in the update_data, modify the user's locations
         if "location_ids" in update_data:
-            # Remove the existing user_location associations
             db_session.query(UserLocation).filter(UserLocation.user_id == user_id).delete()
 
-            # Add new user_location associations
             location_ids = update_data["location_ids"]
             for location_id in location_ids:
                 user_location = UserLocation(user_id=user.id, location_id=location_id)
@@ -249,7 +249,6 @@ def update_user(user_id, update_data):
 
         db_session.commit()
 
-        # Fetch the updated locations of the user
         user_locations = db_session.query(
             UserLocation.location_id,
             Locations.name

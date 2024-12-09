@@ -18,7 +18,7 @@ from sqlalchemy.orm import sessionmaker
 from sqlalchemy import create_engine
 from DataAccessLayer.models.candidates import Candidates
 from DataAccessLayer.services.positionServices import get_positions_by_location
-from DataAccessLayer.services.candidateServices import (find_or_create_candidate_json, update_conversation, save_to_database)
+from DataAccessLayer.services.candidateServices import (find_or_create_candidate_json, update_conversation, save_to_database, get_corresponding_assistant, upgrade_candidate)
 
 from AI.openai_utils import OpenAIUtility
 
@@ -163,7 +163,7 @@ def assistant_get_positions(thread_id, text):
         )
         print("Queried positions!")
         query = (
-            "Here are all the positions for the location, please present these to the user and remember the position ID of their choice: " + positions_json
+            "Here are all the positions for the location, please present each with a short summary to the user and remember the position ID of their choice: " + positions_json
         )
         
         response = openAiUtils.send_to_ai(query, thread_id, interviewer_id)
@@ -184,26 +184,32 @@ def detect_trigger_string(text, thread_id, phoneNumber):
     if ending_trigger in text.lower():
         print("ending string TRIGGERED")
         print(text)
-        json_data = assistant_generate_json(thread_id)  
-        json_data["phone"] = phoneNumber
-        json_data["thread_id"] = thread_id
-        print(json_data)
-        save_to_database(json_data)
+        candidate_json_data = assistant_generate_json(thread_id)  
+        candidate_json_data["phone"] = phoneNumber
+        candidate_json_data["thread_id"] = thread_id
+
+        save_to_database(candidate_json_data)
+
+#upgrading the candidate will update the JSON with the status and a new thread ID for detailed screening
+        upgrade_candidate(phoneNumber)
         text_without_trigger = text.lower().replace(ending_trigger, "").strip()
         return text_without_trigger
     return text
 
 
 
+#I should probably update this so it only queries for the candidate/phone number once instead of multiple times per message
 
 def recieve_message(query, phoneNumber):
-    candidate = find_or_create_candidate_json(phoneNumber)
-    
+    candidate_json = find_or_create_candidate_json(phoneNumber)
+    assistant_id = get_corresponding_assistant(phoneNumber)
+
+    print(assistant_id)
     response = ""
-    response = openAiUtils.send_to_ai(query, candidate["thread_id"], interviewer_id)
+    response = openAiUtils.send_to_ai(query, candidate_json["thread_id"], assistant_id)
 
     #if positions are queried they will be returned here for the user to see
-    triggerResponse = detect_trigger_string(response, candidate["thread_id"], phoneNumber)
+    triggerResponse = detect_trigger_string(response, candidate_json["thread_id"], phoneNumber)
     
     combined_response = f"{response}\n{triggerResponse}" if triggerResponse else response
 

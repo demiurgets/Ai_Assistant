@@ -243,7 +243,7 @@
         {
           "name": "email",
           "type": "VARCHAR(255)",
-          "not_null": true
+          "not_null": false
         },
         {
           "name": "experience",

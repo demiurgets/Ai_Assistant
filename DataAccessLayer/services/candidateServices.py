@@ -1,5 +1,6 @@
 from sqlalchemy.orm import Session
 from sqlalchemy.exc import SQLAlchemyError
+from DataAccessLayer.models.assistants import Assistants
 from DataAccessLayer.models.candidates import Candidates
 from DataAccessLayer.models.positions import Positions
 from DataAccessLayer.models.locations import Locations
@@ -303,7 +304,75 @@ def update_candidate_status(candidate_id, new_status):
         db_session.rollback()
         return None
 
-#Searches db for phone and deletes, then deletes jsons
+def get_corresponding_assistant(phone_number):
+    """
+    Determines the assistant ID based on the candidate's status.
+    If the status is 0, it queries for an assistant with 'greeter' in the name.
+    If the status is 1, it queries for an assistant with 'detailed' in the name.
+    """
+    try:
+        # Load JSON data for the candidate
+        data = load_candidates_json(phone_number)
+        candidate = next((c for c in data if c["phone_number"] == phone_number), None)
+        
+        if not candidate:
+            print(f"No candidate found for phone number {phone_number}.")
+            return None
+        
+        # Get the candidate's status
+        status = candidate.get("status", 0)
+        
+        # Query the database based on status
+        if status == 0:
+            assistant = db_session.query(Assistants).filter(Assistants.name.like('%greeter%')).first()
+        elif status == 1:
+            assistant = db_session.query(Assistants).filter(Assistants.name.like('%detailed%')).first()
+        else:
+            print(f"Unhandled status: {status} for phone number {phone_number}.")
+            return None
+        
+        if assistant:
+            print(f"Assistant ID found: {assistant.assistant_id} for status: {status}")
+            return assistant.assistant_id
+        else:
+            print(f"No assistant found matching the criteria for status: {status}.")
+            return None
+            
+    except SQLAlchemyError as e:
+        print(f"Error retrieving assistant: {e}")
+        return None
+
+
+def upgrade_candidate(phone_number):
+    # Load existing JSON data for the given phone number
+    data = load_candidates_json(phone_number)
+    
+    # Find the candidate in the JSON file
+    for candidate in data:
+        if candidate["phone_number"] == phone_number:
+            # Increment the status field or initialize it if not present
+            candidate["status"] = candidate.get("status", 0) + 1
+            
+            # Create a new thread
+            openAiUtils = OpenAIUtility()
+            new_thread_id = openAiUtils.create_thread()
+            
+            # Update the candidate's thread ID
+            candidate["thread_id"] = new_thread_id
+            
+            print(f"Candidate upgraded. New status: {candidate['status']}, New thread ID: {new_thread_id}")
+            
+            # Save the updated JSON data
+            save_candidates_json(data, phone_number)
+            return candidate  # Return updated candidate for reference
+    
+    # If no candidate is found, create a new one
+    print(f"No candidate found for phone number {phone_number}. Creating a new candidate.")
+    new_candidate = find_or_create_candidate_json(phone_number)
+    new_candidate["status"] = 1  # Initialize status for a new candidate
+    save_candidates_json(data, phone_number)
+    return new_candidate
+
 def delete_by_phone(phone_number):
     try:
         candidates_to_delete = db_session.query(Candidates).filter(Candidates.phone == phone_number).all()
@@ -393,6 +462,7 @@ def find_or_create_candidate_json(phone_number):
     new_entry = {
         "phone_number": phone_number,
         "thread_id": thread_id,
+        "status": 0,
         "first_contact_timestamp": datetime.now().isoformat(),
         "conversation": []  
     }
