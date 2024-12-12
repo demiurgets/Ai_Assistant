@@ -170,18 +170,16 @@ def get_candidate_by_id(candidate_id):
              LocationsPositions.location_id == candidate.location_id
          ).first()
 
-        # if not location_position:
-        #     return None  # No matching position found for the candidate's location and position ID
         
-        # Create a dictionary with the required fields
+        
         position_data = {
-            "position_id": location_position.position_id,
-            "name": location_position.name,
-            "description": location_position.description,
-            "location_id": location_position.location_id,
-            "max_openings": location_position.max_openings,
-            "filled_openings": location_position.filled_openings
-        }
+            "position_id": location_position.position_id if location_position else None,
+            "name": location_position.name if location_position else None,
+            "description": location_position.description if location_position else None,
+            "location_id": location_position.location_id if location_position else None,
+            "max_openings": location_position.max_openings if location_position else None,
+            "filled_openings": location_position.filled_openings if location_position else None
+}
         
         location = db_session.query(Locations).filter(Locations.id == candidate.location_id).first()
         position = db_session.query(Positions).filter(Positions.id == candidate.position_id).first()
