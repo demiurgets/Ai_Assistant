@@ -69,7 +69,7 @@ def candidate_to_dict(candidate):
         "conversation": candidate.conversation,
     }
     
-def candidate_position_location_to_dict(candidate, position_data, location):
+def candidate_position_location_to_dict(candidate, position_data, location,position):
     return {
         "id": candidate.id,
         "first_name": candidate.first_name,
@@ -96,18 +96,17 @@ def candidate_position_location_to_dict(candidate, position_data, location):
         "conversation": candidate.conversation,
         "location_id": candidate.location_id,
         "position_id": candidate.position_id,
-        "position": position_data,
-            
-        # {  
-        #    "id": position.id,
-        #    "name": position.name,
-        #    "description": position.description,
-        #    "location_id": position.location_id,
-        #    "filled_openings": position.filled_openings,
-        #    "max_openings": position.max_openings,
-        #    "created_date": position.date_created,
-        #    "updated_date": position.date_updated,
-        # }
+        "position": {
+            **position_data,
+            "key_responsibilities": position.key_responsibilities,
+            "qualifications": position.qualifications,
+            "benefits": position.benefits,
+            "salary_range": position.salary_range,
+            "salary_currency": position.salary_currency,
+            "salary_period": position.salary_period,
+            "job_type": position.job_type,
+            "location_type": position.location_type,
+        },
         
         "location": {
             "id": location.id,
@@ -148,6 +147,8 @@ def replace_nulls_with_empty_string(data):
 
 
 # 2. Get candidate by ID
+
+
 def get_candidate_by_id(candidate_id):
     try:
         # Retrieve the candidate
@@ -169,43 +170,28 @@ def get_candidate_by_id(candidate_id):
              LocationsPositions.location_id == candidate.location_id
          ).first()
 
-        if not location_position:
-            logging.warning(f"No position found for candidate ID: {candidate_id}")
-            return None
-
-        # Create a dictionary with the required fields
+        
+        
         position_data = {
-            "position_id": location_position.position_id,
-            "name": location_position.name,
-            "description": location_position.description,
-            "location_id": location_position.location_id,
-            "max_openings": location_position.max_openings,
-            "filled_openings": location_position.filled_openings
-        }
-
-        # Retrieve location details
+            "position_id": location_position.position_id if location_position else None,
+            "name": location_position.name if location_position else None,
+            "description": location_position.description if location_position else None,
+            "location_id": location_position.location_id if location_position else None,
+            "max_openings": location_position.max_openings if location_position else None,
+            "filled_openings": location_position.filled_openings if location_position else None
+}
+        
         location = db_session.query(Locations).filter(Locations.id == candidate.location_id).first()
-
-        if not location:
-            logging.warning(f"No location found for candidate ID: {candidate_id}")
-            return None
-
-        # Combine data into the final dictionary
-        candidate_dict_with_position_location = candidate_position_location_to_dict(candidate, position_data, location)
-
-        # Replace null values with empty strings
+        position = db_session.query(Positions).filter(Positions.id == candidate.position_id).first()
+        candidate_dict_with_position_location = candidate_position_location_to_dict(candidate, position_data, location, position)
         return replace_nulls_with_empty_string(candidate_dict_with_position_location)
-
+    
     except SQLAlchemyError as e:
-        # Log the error and rollback the session
         db_session.rollback()
-        logging.error(f"Error fetching candidate by ID {candidate_id}: {e}")
+        logging.error(f"Error fetching candidate by ID: {e}")
         return None
-
     finally:
-        # Always remove the session
         db_session.remove()
-
 
 
 
@@ -397,8 +383,11 @@ def get_corresponding_assistant(phone_number):
             return None
             
     except SQLAlchemyError as e:
-        print(f"Error retrieving assistant: {e}")
+        db_session.rollback()
+        logging.error(f"Error retrieving assistant: {e}")
         return None
+    finally:
+        db_session.remove()
 
 
 def upgrade_candidate(phone_number):
@@ -432,6 +421,8 @@ def upgrade_candidate(phone_number):
     return new_candidate
 
 #Searches db for phone and deletes, then deletes jsons
+
+
 def delete_by_phone(phone_number):
     try:
         candidates_to_delete = db_session.query(Candidates).filter(Candidates.phone == phone_number).all()
@@ -455,6 +446,8 @@ def delete_by_phone(phone_number):
         return jsonify({"error": f"Failed to delete candidate screening data from the database: {str(e)}"}), 500
     except Exception as e:
         return jsonify({"error": f"Failed to delete candidate screening data: {str(e)}"}), 500
+    finally:
+        db_session.remove()
 
 
 def load_issues():
@@ -497,6 +490,10 @@ def save_new_issue(data):
         json.dump({'issues': issues}, file, indent=4)  # Save as a dictionary
 
     return new_issue
+    
+
+
+
 def load_candidates_json(phone_number):
     # Load JSON data from file or create an empty list if the file doesn't exist
     json_file_path = "Stored_context/applicants_in_progress/" + phone_number + ".json"
