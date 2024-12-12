@@ -43,7 +43,8 @@ def location_to_dict(location):
         "city": location.city,
         "state": location.state,
         "zip": location.zip,
-        "phone": location.phone
+        "phone": location.phone,
+        "is_active": location.is_active
     }
     
 def location_with_positions_to_dict(location, position_data):
@@ -55,7 +56,9 @@ def location_with_positions_to_dict(location, position_data):
         "state": location.state,
         "zip": location.zip,
         "phone": location.phone,
-        "positions": position_data
+        "positions": position_data,
+        "is_active": location.is_active
+
     }
 
 # 1. Get all locations

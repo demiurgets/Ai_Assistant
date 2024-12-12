@@ -22,6 +22,7 @@ class Positions(Base):
     location_type = Column(String(225), nullable=True)
     date_created = Column(DateTime, nullable=True, default=func.current_timestamp())
     date_updated = Column(DateTime, nullable=True, default=func.current_timestamp())
+    is_active = Column(Boolean, nullable=True)
 
     locations = relationship("Locations", secondary='locations_positions', back_populates="positions")
 

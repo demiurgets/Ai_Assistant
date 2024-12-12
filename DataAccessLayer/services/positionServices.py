@@ -50,6 +50,7 @@ def position_to_dict(position):
         "location_type": position.location_type,
         "created_date": position.date_created,
         "updated_date": position.date_updated, 
+        "is_active": position.is_active
     }
     
 def position_with_locations_to_dict(position, location_data):
@@ -67,7 +68,9 @@ def position_with_locations_to_dict(position, location_data):
         "location_type": position.location_type,
         "created_date": position.date_created,
         "updated_date": position.date_updated,
-        "locations": location_data
+        "locations": location_data,
+        "is_active": position.is_active
+
     }
 
 
