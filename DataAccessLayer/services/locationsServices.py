@@ -174,7 +174,7 @@ def create_location(location_data):
             } 
             for lp in location_positions
         ]
-        
+        update_location_context()
         return location_with_positions_to_dict(new_location, position_data)
     
     except SQLAlchemyError as e:
@@ -249,7 +249,7 @@ def update_location(location_id, update_data):
         ).join(Positions, LocationsPositions.position_id == Positions.id).filter(LocationsPositions.location_id == location_id).all()
 
         position_data = [{"id": lp.position_id, "name": lp.name, "max_openings": lp.max_openings, "filled_openings": lp.filled_openings} for lp in updated_locations_positions]
-
+        update_location_context()
         return location_with_positions_to_dict(location, position_data)  # Return updated location with positions
 
     except SQLAlchemyError as e:

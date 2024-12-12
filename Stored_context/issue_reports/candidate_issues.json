@@ -1,0 +1,24 @@
+{
+    "issues": [
+        {
+            "phone_number": "19153528343",
+            "issue": "there is a giant bug",
+            "timestamp": null
+        },
+        {
+            "phone_number": "19153528343",
+            "issue": "the bot was rude",
+            "timestamp": null
+        },
+        {
+            "phone_number": "19153528343",
+            "issue": "hello testing",
+            "timestamp": null
+        },
+        {
+            "phone_number": "19153528343",
+            "issue": "the bot spoke unnaturally in the beginning",
+            "timestamp": null
+        }
+    ]
+}

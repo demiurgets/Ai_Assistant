@@ -18,7 +18,9 @@ from DataAccessLayer.services.candidateServices import (
     delete_candidate,
     update_candidate_status,
     delete_by_phone,
-    get_candidates_by_status
+    get_candidates_by_status,
+    load_issues,
+    save_new_issue
 )
 from DataAccessLayer.services.userServices import (
     get_all_users,
@@ -69,6 +71,20 @@ def validate_token():
 def index():
     return render_template('index.html')
 
+@app.route('/report_issue', methods=['POST'])
+def report_issue():
+    print("reporting in flask")
+    """Saves a new issue to the issues.json file."""
+    data = request.json
+    new_issue = save_new_issue(data)
+    return jsonify({'success': True, 'message': 'Issue reported successfully', 'issue': new_issue}), 201
+
+
+@app.route('/get_issues', methods=['GET'])
+def get_issues():
+    """Retrieves all the issue reports stored in the issues.json file."""
+    issues = load_issues()
+    return jsonify({'issues': issues}), 200
 
 
 @app.route('/ui_send_message', methods=['POST'])
@@ -97,6 +113,38 @@ def webhook_verification():
     else:
         return "Forbidden", 403
 
+
+
+@app.route('/hilos_webhook', methods=['POST'])
+def hilos_webhook_endpoint():
+    # Extract the incoming data
+    data = request.json
+
+    try:
+        # Check if this is a message or status update
+        print(f"Received data: {data}")
+
+        # Extract sender info        
+        # Check if the phone number starts with +52 (Mexico's country code)
+       
+
+        sender_number = data['event_data']['from_number']
+        message = data['event_data']['body']
+        print(f"Message from {sender_number}: {message}")
+        print(f"Received message: {message} from number: {sender_number}")
+
+        if sender_number.startswith("52"):
+           print("Received from Mexico")
+           return "", 200  # Do nothing and return
+
+        # Process the message using your application's logic
+        response_message = recieve_message(message, sender_number)
+
+
+        return jsonify({"processed_message": response_message}), 200
+    except KeyError as e:
+        print(f"Error extracting data: {e}")
+        return jsonify({"error": "Error processing incoming message"}), 500
 
 
 # handles incoming messages from WhatsApp

@@ -54,6 +54,23 @@
             background-color: #a71d2a; /* Darker red on hover */
         }
 
+
+        #report_button {
+            position: fixed;
+            bottom: 20px;
+            right: 20px;
+            padding: 10px;
+            background-color: #620000; 
+            color: white;
+            border-radius: 5px;
+            cursor: pointer;
+            border: none;
+        }
+
+        #report_button:hover {
+            background-color: #4f1212; 
+        }
+
         #chat_box {
             max-width: 400px;
             margin: 20px auto;
@@ -145,6 +162,14 @@
             background-color: #0056b3;
         }
 
+        #issue_text {
+            width: 100%;
+            height: 100px;
+            padding: 10px;
+            border: 1px solid #ccc;
+            border-radius: 5px;
+        }
+
         .chat-input {
             display: flex;
             border-top: 1px solid #ddd;
@@ -155,6 +180,9 @@
             background-color: #282828;
             color: #e0e0e0;
         }
+
+       
+
 
         body.dark-mode #chat_box {
             background: #1e1e1e;
@@ -195,11 +223,73 @@
         #dark_mode_toggle:hover {
             background-color: #0056b3;
         }
+
+        body.dark-mode .modal-content {
+            background-color: #1c1c1c;
+            margin: 15% auto;
+            padding: 20px;
+            border: 1px solid #888;
+            width: 80%;
+            max-width: 400px;
+            border-radius: 10px;
+        }
+
+        /* Report Issue Modal Styles */
+        .modal {
+            display: none; 
+            position: fixed; 
+            z-index: 1; 
+            left: 0;
+            top: 25;
+            width: 100%; 
+            height: 100%; 
+            background-color: rgba(0,0,0,0.5); 
+        }
+
+        .modal-content {
+            background-color: #ffffff;
+            margin: 15% auto;
+            padding: 20px;
+            border: 1px solid #888;
+            width: 80%;
+            max-width: 400px;
+            border-radius: 10px;
+        }
+
+        .close {
+            color: #aaa;
+            float: right;
+            font-size: 28px;
+            font-weight: bold;
+        }
+
+        .close:hover, 
+        .close:focus {
+            color: black;
+            text-decoration: none;
+            cursor: pointer;
+        }
+
+       
+
     </style>
 </head>
 <body>
+
     <!-- Dark Mode Toggle Button -->
     <button id="dark_mode_toggle" onclick="toggleDarkMode()">🌙</button>
+    <!-- Report Issue Button -->
+
+    <!-- Report Issue Modal -->
+    <div id="report_issue_modal" class="modal">
+        <div class="modal-content">
+            <span class="close" onclick="closeReportIssueModal()">&times;</span>
+            <h2>Report Strange Behavior</h2>
+            <textarea id="issue_text" placeholder="Describe the issue here..."></textarea>
+            <button onclick="submitIssueReport()">Submit</button>
+        </div>
+    </div>
+
 
     <div id="phone_number_form">
         <h2>Welcome! Please enter your phone number:</h2>
@@ -208,6 +298,8 @@
     </div>
 
     <div id="chat_box" style="display:none;">
+        <button id="report_button" onclick="openReportIssueModal()">Report Strange Behavior</button>
+
         <button id="reset_button" onclick="resetConversation()">Reset</button>
         <h2 style="text-align:center;">Chat</h2>
         <div id="conversation"></div>
@@ -273,6 +365,40 @@
             }
             chatBox.appendChild(msgDiv);
             chatBox.scrollTop = chatBox.scrollHeight;
+        }
+        function openReportIssueModal() {
+            document.getElementById('report_issue_modal').style.display = 'block';
+        }
+
+        function closeReportIssueModal() {
+            document.getElementById('report_issue_modal').style.display = 'none';
+        }
+
+        function submitIssueReport() {
+            const issueDescription = document.getElementById('issue_text').value;
+            if (!issueDescription) {
+                alert('Please enter a description of the issue.');
+                return;
+            }
+
+            fetch('/report_issue', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ 
+                    phone_number: phoneNumber, 
+                    issue: issueDescription 
+                })
+            })
+            .then(response => response.json())
+            .then(data => {
+                if (data.success) {
+                    alert('Thank you, your report was submitted succesfully.');
+                    closeReportIssueModal();
+                } else {
+                    alert('Failed to report the issue.');
+                }
+            })
+            .catch(error => console.error('Error reporting issue:', error));
         }
 
         function sendMessage() {

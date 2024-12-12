@@ -364,9 +364,9 @@ def update_candidate_status(candidate_id, new_status):
 
 def get_corresponding_assistant(phone_number):
     """
-    Determines the assistant ID based on the candidate's status.
-    If the status is 0, it queries for an assistant with 'greeter' in the name.
-    If the status is 1, it queries for an assistant with 'detailed' in the name.
+    Determines the assistant ID based on the candidate's assistant_stage.
+    If the assistant_stage is 0, it queries for an assistant with 'greeter' in the name.
+    If the assistant_stage is 1, it queries for an assistant with 'detailed' in the name.
     """
     try:
         # Load JSON data for the candidate
@@ -378,22 +378,22 @@ def get_corresponding_assistant(phone_number):
             return None
         
         # Get the candidate's status
-        status = candidate.get("status", 0)
+        assistant_stage = candidate.get("assistant_stage", 0)
         
         # Query the database based on status
-        if status == 0:
+        if assistant_stage == 0:
             assistant = db_session.query(Assistants).filter(Assistants.name.like('%greeter%')).first()
-        elif status == 1:
+        elif assistant_stage == 1:
             assistant = db_session.query(Assistants).filter(Assistants.name.like('%detailed%')).first()
         else:
-            print(f"Unhandled status: {status} for phone number {phone_number}.")
+            print(f"Unhandled assistant_stage: {assistant_stage} for phone number {phone_number}.")
             return None
         
         if assistant:
-            print(f"Assistant ID found: {assistant.assistant_id} for status: {status}")
+            print(f"Assistant ID found: {assistant.assistant_id} for assistant_stage: {assistant_stage}")
             return assistant.assistant_id
         else:
-            print(f"No assistant found matching the criteria for status: {status}.")
+            print(f"No assistant found matching the criteria for assistant_stage: {assistant_stage}.")
             return None
             
     except SQLAlchemyError as e:
@@ -409,7 +409,7 @@ def upgrade_candidate(phone_number):
     for candidate in data:
         if candidate["phone_number"] == phone_number:
             # Increment the status field or initialize it if not present
-            candidate["status"] = candidate.get("status", 0) + 1
+            candidate["assistant_stage"] = candidate.get("assistant_stage", 0) + 1
             
             # Create a new thread
             openAiUtils = OpenAIUtility()
@@ -418,7 +418,7 @@ def upgrade_candidate(phone_number):
             # Update the candidate's thread ID
             candidate["thread_id"] = new_thread_id
             
-            print(f"Candidate upgraded. New status: {candidate['status']}, New thread ID: {new_thread_id}")
+            print(f"Candidate upgraded. New assistant_stage: {candidate['assistant_stage']}, New thread ID: {new_thread_id}")
             
             # Save the updated JSON data
             save_candidates_json(data, phone_number)
@@ -431,41 +431,72 @@ def upgrade_candidate(phone_number):
     save_candidates_json(data, phone_number)
     return new_candidate
 
+#Searches db for phone and deletes, then deletes jsons
 def delete_by_phone(phone_number):
     try:
-        rows_deleted = db_session.query(Candidates).filter(Candidates.phone == phone_number).delete(synchronize_session=False)
-        db_session.commit()
+        candidates_to_delete = db_session.query(Candidates).filter(Candidates.phone == phone_number).all()
+        
+        # Check if there are any candidates to delete
+        if candidates_to_delete:
+            for candidate in candidates_to_delete:
+                db_session.delete(candidate)
+            db_session.commit()
 
-        if rows_deleted == 0:
-            logging.warning(f"No candidates found with phone number {phone_number}.")
-            return jsonify({"error": f"No candidates found with phone number {phone_number}."}), 404
-
+        # Now delete the corresponding JSON file(s) in the applicants_in_progress folder
         json_file_path = os.path.join("Stored_context/applicants_in_progress", f"{phone_number}.json")
         if os.path.exists(json_file_path):
             os.remove(json_file_path)
-            logging.info(f"Deleted JSON file for phone number {phone_number}.")
             return jsonify({"message": f"All candidate data for phone number {phone_number} successfully deleted."}), 200
         else:
-            logging.warning(f"No JSON file found for phone number {phone_number}.")
             return jsonify({"error": f"No screening data found for phone number {phone_number}."}), 404
-
+            
     except SQLAlchemyError as e:
         db_session.rollback()
-        logging.error(f"Database error while deleting candidates with phone number {phone_number}: {e}")
-        return jsonify({"error": f"Failed to delete candidate data from the database: {str(e)}"}), 500
-
-    except OSError as e:
-        logging.error(f"File system error while deleting JSON for phone number {phone_number}: {e}")
-        return jsonify({"error": f"Failed to delete JSON file: {str(e)}"}), 500
-
+        return jsonify({"error": f"Failed to delete candidate screening data from the database: {str(e)}"}), 500
     except Exception as e:
-        logging.error(f"Unexpected error while deleting data for phone number {phone_number}: {e}")
-        return jsonify({"error": f"Unexpected error: {str(e)}"}), 500
-
-    finally:
-        db_session.remove()
+        return jsonify({"error": f"Failed to delete candidate screening data: {str(e)}"}), 500
 
 
+def load_issues():
+    """Load candidate submitted issue report from the JSON file. If the file does not exist, return an empty list."""
+
+    ISSUE_FILE_PATH = "Stored_context/issue_reports/candidate_issues.json"
+
+    if not os.path.exists(ISSUE_FILE_PATH):
+        return []
+    with open(ISSUE_FILE_PATH, 'r') as file:
+        try:
+            return json.load(file)
+        except json.JSONDecodeError:
+            return []
+
+def save_new_issue(data):
+    ISSUE_FILE_PATH = "Stored_context/issue_reports/candidate_issues.json"
+
+    issue = data.get('issue')
+    phone_number = data.get('phone_number')
+
+    if not issue or not phone_number:
+        return jsonify({'error': 'Issue and phone number are required'}), 400
+
+    new_issue = {
+        'phone_number': phone_number,
+        'issue': issue,
+        'timestamp': request.args.get('timestamp', None)  # Optional timestamp
+    }
+
+    # Load existing issues, add the new issue, and save back to the file
+    issues_data = load_issues()
+
+    # Extract the issues list from the JSON structure
+    issues = issues_data.get('issues', []) if isinstance(issues_data, dict) else issues_data
+
+    issues.append(new_issue)
+
+    with open(ISSUE_FILE_PATH, 'w') as file:
+        json.dump({'issues': issues}, file, indent=4)  # Save as a dictionary
+
+    return new_issue
 def load_candidates_json(phone_number):
     # Load JSON data from file or create an empty list if the file doesn't exist
     json_file_path = "Stored_context/applicants_in_progress/" + phone_number + ".json"
@@ -530,7 +561,7 @@ def find_or_create_candidate_json(phone_number):
     new_entry = {
         "phone_number": phone_number,
         "thread_id": thread_id,
-        "status": 0,
+        "assistant_stage": 0,
         "first_contact_timestamp": datetime.now().isoformat(),
         "conversation": []  
     }
