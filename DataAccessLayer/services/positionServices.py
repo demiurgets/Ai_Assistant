@@ -315,13 +315,57 @@ def delete_position(position_id):
     finally:
         db_session.remove()  # Cleanup del session
 
+# def get_positions_by_location(location_id):
+#     try:
+#         # Query positions by joining LocationsPositions and Positions tables
+#         positions = (
+#             db_session.query(Positions)
+#             .join(LocationsPositions, Positions.id == LocationsPositions.position_id)
+#             .filter(LocationsPositions.location_id == location_id)
+#             .all()
+#         )
+        
+#         # Convert each position to a dictionary using the existing position_to_dict function
+#         return [position_to_dict(position) for position in positions]
+    
+#     except SQLAlchemyError as e:
+#         print(f"Error fetching positions by location ID {location_id}: {e}")
+#         db_session.rollback()
+#         return []
+#     finally:
+#         db_session.remove()
+
+# def get_positions_by_location(location_id):
+#     try:
+#         # Query positions by joining LocationsPositions and Positions tables, filtering active positions
+#         positions = (
+#             db_session.query(Positions)
+#             .join(LocationsPositions, Positions.id == LocationsPositions.position_id)
+#             .filter(LocationsPositions.location_id == location_id)
+#             .filter(Positions.is_active == True)  # Filtrar solo posiciones activas
+#             .all()
+#         )
+        
+#         # Convert each position to a dictionary using the existing position_to_dict function
+#         return [position_to_dict(position) for position in positions]
+    
+#     except SQLAlchemyError as e:
+#         print(f"Error fetching positions by location ID {location_id}: {e}")
+#         db_session.rollback()
+#         return []
+#     finally:
+#         db_session.remove()
+
 def get_positions_by_location(location_id):
     try:
-        # Query positions by joining LocationsPositions and Positions tables
+        # Query positions by joining LocationsPositions and Positions tables, filtering active positions
         positions = (
             db_session.query(Positions)
             .join(LocationsPositions, Positions.id == LocationsPositions.position_id)
             .filter(LocationsPositions.location_id == location_id)
+            .filter(Positions.is_active == True)  # Filtrar solo posiciones activas
+            .filter(LocationsPositions.max_openings > 0)  # Filtrar por max_openings > 0
+            .filter(LocationsPositions.filled_openings < LocationsPositions.max_openings)  # Filtrar por filled_openings < max_openings
             .all()
         )
         
@@ -337,9 +381,67 @@ def get_positions_by_location(location_id):
 
 
 
+
+
+
+# def update_position_context():
+#     try:
+#         positions = db_session.query(Positions).all()
+#         positions_data = [
+#             {
+#                 "id": position.id,
+#                 "name": position.name,
+#                 "description": position.description,
+#                 "filled_openings": position.filled_openings,
+#                 "max_openings": position.max_openings,
+#             }
+#             for position in positions
+#         ]
+        
+#         positions_json = json.dumps(positions_data, indent=4).replace("\\", "\\\\")
+        
+#         client = OpenAI(api_key=api_key)
+
+#         my_assistant = client.beta.assistants.retrieve(assistant_id)
+
+#         current_instructions = getattr(my_assistant, "instructions", None)
+
+#         print(current_instructions)
+#         print("current above, updated instructions below: ")
+#         positions_pattern = r"(Here are the different positions:\s*\[.*?\])"
+
+#         escaped_positions_json = positions_json.replace("\\", "\\\\")
+
+#         updated_instructions = re.sub(
+#             positions_pattern, 
+#             f"Here are the different positions: {escaped_positions_json}", 
+#             current_instructions, 
+#             flags=re.DOTALL
+#         )
+
+#         updated_instructions = re.sub(positions_pattern, f"Here are the different positions: {positions_json}", current_instructions, flags=re.DOTALL)
+#         print(updated_instructions)
+#         my_updated_assistant = client.beta.assistants.update(
+#             assistant_id,
+#             instructions=updated_instructions,
+#             )
+
+#         # Dynamically generate the updated positions JSON
+#         return positions_json
+
+#     except SQLAlchemyError as e:
+#         print(f"Error generating positions JSON: {e}")
+#         db_session.rollback()
+#         return None
+#     finally:
+#         db_session.remove()
+
 def update_position_context():
     try:
-        positions = db_session.query(Positions).all()
+        # Filtrar solo posiciones activas
+        positions = db_session.query(Positions).filter(Positions.is_active == True).all()
+        
+        # Generar los datos de posiciones activas
         positions_data = [
             {
                 "id": position.id,
@@ -351,8 +453,10 @@ def update_position_context():
             for position in positions
         ]
         
+        # Convertir los datos a JSON con formato legible
         positions_json = json.dumps(positions_data, indent=4).replace("\\", "\\\\")
         
+        # Interactuar con la API de OpenAI
         client = OpenAI(api_key=api_key)
 
         my_assistant = client.beta.assistants.retrieve(assistant_id)
@@ -361,10 +465,11 @@ def update_position_context():
 
         print(current_instructions)
         print("current above, updated instructions below: ")
+        
+        # Patrón para reemplazar las posiciones en las instrucciones actuales
         positions_pattern = r"(Here are the different positions:\s*\[.*?\])"
 
         escaped_positions_json = positions_json.replace("\\", "\\\\")
-
         updated_instructions = re.sub(
             positions_pattern, 
             f"Here are the different positions: {escaped_positions_json}", 
@@ -372,14 +477,14 @@ def update_position_context():
             flags=re.DOTALL
         )
 
-        updated_instructions = re.sub(positions_pattern, f"Here are the different positions: {positions_json}", current_instructions, flags=re.DOTALL)
+        # Actualizar las instrucciones del asistente
         print(updated_instructions)
         my_updated_assistant = client.beta.assistants.update(
             assistant_id,
             instructions=updated_instructions,
-            )
+        )
 
-        # Dynamically generate the updated positions JSON
+        # Devolver el JSON actualizado para depuración/registro
         return positions_json
 
     except SQLAlchemyError as e:
@@ -388,6 +493,7 @@ def update_position_context():
         return None
     finally:
         db_session.remove()
+
 
 # Generate the dynamic JSON for job positions
 #positions_json = update_position_context()

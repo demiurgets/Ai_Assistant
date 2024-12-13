@@ -304,9 +304,72 @@ def delete_location(location_id):
         db_session.remove()  # Cleanup del session
 
 
+# def update_location_context():
+#     try:
+#         # Query locations with their position counts using the LocationsPositions table
+#         locations_with_positions = (
+#             db_session.query(
+#                 Locations,
+#                 func.count(LocationsPositions.position_id).label("position_count")
+#             )
+#             .join(LocationsPositions, Locations.id == LocationsPositions.location_id)  
+#             .join(Positions, Positions.id == LocationsPositions.position_id)  
+#             .group_by(Locations.id)
+#             .having(func.count(LocationsPositions.position_id) > 0)  # Only include locations with associated positions
+#             .all()
+#         )
+
+#         # Create the JSON structure
+#         locations_data = [
+#             {
+#                 "id": location.id,
+#                 "name": location.name,
+#                 "address": location.address,
+#                 "city": location.city,
+#                 "state": location.state,
+#                 "zip": location.zip,
+#                 "phone": location.phone,
+#                 "position_count": position_count,  # count of positions
+#             }
+#             for location, position_count in locations_with_positions
+#         ]
+
+#         locations_json = json.dumps(locations_data, indent=4).replace("\\", "\\\\")
+
+#         print(locations_json)
+#         # Interact with OpenAI API to update assistant context
+#         client = OpenAI(api_key=api_key)
+#         my_assistant = client.beta.assistants.retrieve(assistant_id)
+#         current_instructions = getattr(my_assistant, "instructions", None)
+
+       
+#         print(current_instructions)
+#         print("current above, updated instructions below: ")
+#         locations_pattern = r"(Here are the different locations:\s*\[.*?\])"
+#         updated_instructions = re.sub(locations_pattern, f"Here are the different locations: {locations_json}", current_instructions, flags=re.DOTALL)
+        
+
+#         # Print updated instructions for debugging
+#         print(updated_instructions)
+
+#         # Update the assistant (commented out for now)
+#         my_updated_assistant = client.beta.assistants.update(
+#             assistant_id,
+#             instructions=updated_instructions,
+#         )
+
+#         return locations_json  # Return the updated JSON for debugging/logging
+
+#     except SQLAlchemyError as e:
+#         print(f"Error updating location context: {e}")
+#         db_session.rollback()
+#         return None
+#     finally:
+#         db_session.remove()
+
 def update_location_context():
     try:
-        # Query locations with their position counts using the LocationsPositions table
+        # Query locations with their position counts using the LocationsPositions table, filtering by is_active
         locations_with_positions = (
             db_session.query(
                 Locations,
@@ -314,12 +377,13 @@ def update_location_context():
             )
             .join(LocationsPositions, Locations.id == LocationsPositions.location_id)  
             .join(Positions, Positions.id == LocationsPositions.position_id)  
+            .filter(Locations.is_active == True)  # just include active locations
             .group_by(Locations.id)
             .having(func.count(LocationsPositions.position_id) > 0)  # Only include locations with associated positions
             .all()
         )
 
-        # Create the JSON structure
+        # create the JSON structure
         locations_data = [
             {
                 "id": location.id,
@@ -334,22 +398,27 @@ def update_location_context():
             for location, position_count in locations_with_positions
         ]
 
+        # Convert the JSON to a string and escape backslashes
         locations_json = json.dumps(locations_data, indent=4).replace("\\", "\\\\")
 
         print(locations_json)
-        # Interact with OpenAI API to update assistant context
+
+        # Interact with the OpenAI API to update the assistant context
         client = OpenAI(api_key=api_key)
         my_assistant = client.beta.assistants.retrieve(assistant_id)
         current_instructions = getattr(my_assistant, "instructions", None)
 
-       
         print(current_instructions)
         print("current above, updated instructions below: ")
         locations_pattern = r"(Here are the different locations:\s*\[.*?\])"
-        updated_instructions = re.sub(locations_pattern, f"Here are the different locations: {locations_json}", current_instructions, flags=re.DOTALL)
-        
+        updated_instructions = re.sub(
+            locations_pattern, 
+            f"Here are the different locations: {locations_json}", 
+            current_instructions, 
+            flags=re.DOTALL
+        )
 
-        # Print updated instructions for debugging
+        # print updated instructions for debugging
         print(updated_instructions)
 
         # Update the assistant (commented out for now)
@@ -366,6 +435,7 @@ def update_location_context():
         return None
     finally:
         db_session.remove()
+
 
 
 # Generate the dynamic JSON for locations
