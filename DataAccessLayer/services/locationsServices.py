@@ -64,7 +64,7 @@ def location_with_positions_to_dict(location, position_data):
 # 1. Get all locations
 def get_all_locations():
     try:
-        locations = db_session.query(Locations).all()
+        locations = db_session.query(Locations).filter(Locations.is_active == True).all()
         
         locations_data = []
         for location in locations:

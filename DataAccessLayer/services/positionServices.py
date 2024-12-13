@@ -77,7 +77,7 @@ def position_with_locations_to_dict(position, location_data):
 # 1. Get all job positions
 def get_all_positions():
     try:
-        positions = db_session.query(Positions).all()
+        positions = db_session.query(Positions).filter(Positions.is_active == True).all()
         
         positions_data = []
         for position in positions:
