@@ -112,6 +112,9 @@ def get_all_positions():
         db_session.remove()
 
 
+    
+   
+
 
 # 2. Get job position by ID
 def get_position_by_id(position_id):
@@ -275,20 +278,37 @@ def update_position(position_id, update_data):
 
 
 # 5. Delete job position by ID
+# def delete_position(position_id):
+#     try:
+#         position = db_session.query(Positions).filter(Positions.id == position_id).first()
+#         if not position:
+#             return False
+#         db_session.delete(position)
+#         db_session.commit()
+#         return True
+#     except SQLAlchemyError as e:
+#         print(f"Error deleting position: {e}")
+#         db_session.rollback()
+#         return False
+#     finally:
+#         db_session.remove()
+
 def delete_position(position_id):
     try:
+        # Buscar la posición en la base de datos
         position = db_session.query(Positions).filter(Positions.id == position_id).first()
         if not position:
             return False
-        db_session.delete(position)
+        
+        position.is_active = False
         db_session.commit()
         return True
     except SQLAlchemyError as e:
-        print(f"Error deleting position: {e}")
+        print(f"Error updating is_active for position: {e}")
         db_session.rollback()
         return False
     finally:
-        db_session.remove()
+        db_session.remove()  # Cleanup del session
 
 def get_positions_by_location(location_id):
     try:

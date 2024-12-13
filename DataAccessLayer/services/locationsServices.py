@@ -101,6 +101,7 @@ def get_all_locations():
 
 
 
+
 # 2. Get location by ID
 def get_location_by_id(location_id):
     try:
@@ -264,21 +265,39 @@ def update_location(location_id, update_data):
 
 
 # 5. Delete location by ID
+# def delete_location(location_id):
+#     try:
+#         location = db_session.query(Locations).filter(Locations.id == location_id).first()
+#         if not location:
+#             return False
+#         db_session.delete(location)
+#         db_session.commit()
+#         update_location_context()
+#         return True
+#     except SQLAlchemyError as e:
+#         print(f"Error deleting location: {e}")
+#         db_session.rollback()
+#         return False
+#     finally:
+#         db_session.remove()  # Ensure session cleanup
+
 def delete_location(location_id):
     try:
         location = db_session.query(Locations).filter(Locations.id == location_id).first()
         if not location:
             return False
-        db_session.delete(location)
+        
+        location.is_active = False
         db_session.commit()
+        
         update_location_context()
         return True
     except SQLAlchemyError as e:
-        print(f"Error deleting location: {e}")
+        print(f"Error updating is_active for location: {e}")
         db_session.rollback()
         return False
     finally:
-        db_session.remove()  # Ensure session cleanup
+        db_session.remove()  # Cleanup del session
 
 
 def update_location_context():
@@ -346,4 +365,4 @@ def update_location_context():
 
 
 # Generate the dynamic JSON for locations
-#locations_json = update_location_context()
+locations_json = update_location_context()

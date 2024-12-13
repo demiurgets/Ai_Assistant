@@ -106,6 +106,7 @@ def candidate_position_location_to_dict(candidate, position_data, location,posit
             "salary_period": position.salary_period,
             "job_type": position.job_type,
             "location_type": position.location_type,
+            "is_active": position.is_active,
         },
         
         "location": {
@@ -116,6 +117,7 @@ def candidate_position_location_to_dict(candidate, position_data, location,posit
             "state": location.state,
             "zip": location.zip,
             "phone": location.phone,
+            "is_active": location.is_active,
         }
     }
 
