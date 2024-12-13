@@ -147,6 +147,7 @@ def create_location(location_data):
             state=location_data.get("state"),
             zip=location_data.get("zip"),
             phone=location_data.get("phone"),
+            is_active=True
         )
         db_session.add(new_location)
         db_session.commit()  
