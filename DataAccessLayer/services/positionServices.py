@@ -11,6 +11,7 @@ from dotenv import load_dotenv
 from sqlalchemy.orm import sessionmaker,scoped_session
 from sqlalchemy import create_engine
 from openai import OpenAI
+from sqlalchemy import desc
 
 
 # Load environment variables
@@ -77,7 +78,7 @@ def position_with_locations_to_dict(position, location_data):
 # 1. Get all job positions
 def get_all_positions():
     try:
-        positions = db_session.query(Positions).filter(Positions.is_active == True).all()
+        positions = db_session.query(Positions).filter(Positions.is_active == True).order_by(desc(Positions.date_created)).all()
         
         positions_data = []
         for position in positions:
@@ -158,7 +159,8 @@ def create_position(position_data):
             salary_currency = position_data.get("salary_currency"),
             salary_period = position_data.get("salary_period"),
             job_type = position_data.get("job_type"),
-            location_type = position_data.get("location_type")
+            location_type = position_data.get("location_type"),
+            is_active=True 
             
         )
         db_session.add(new_position)

@@ -15,7 +15,7 @@ from flask import Flask, request, jsonify
 from AI.openai_utils import OpenAIUtility
 from datetime import datetime
 import logging
-
+from sqlalchemy import desc
 
 
 
@@ -124,7 +124,7 @@ def candidate_position_location_to_dict(candidate, position_data, location,posit
 # 1. Get all candidates
 def get_all_candidates():
     try:
-        candidates = db_session.query(Candidates).all()
+        candidates = db_session.query(Candidates).order_by(desc(Candidates.created_date)).all()
         return [candidate_to_dict(candidate) for candidate in candidates]
     except SQLAlchemyError as e:
         db_session.rollback()

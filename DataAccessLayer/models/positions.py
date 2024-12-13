@@ -1,6 +1,7 @@
 from sqlalchemy import Column, Integer, String, Float, Text, Boolean, Date, DateTime, ForeignKey
 from sqlalchemy.ext.declarative import declarative_base
 from sqlalchemy.orm import relationship
+from sqlalchemy.dialects.postgresql import ARRAY
 
 from DataAccessLayer.models import Base
 
@@ -12,9 +13,9 @@ class Positions(Base):
     id = Column(Integer, primary_key=True, nullable=True)
     name = Column(String(225), nullable=True)
     description = Column(String(225), nullable=True)
-    key_responsibilities = Column(String(225), nullable=True)
-    qualifications = Column(String(225), nullable=True)
-    benefits = Column(String(225), nullable=True)
+    key_responsibilities = Column(ARRAY(Text), nullable=True)
+    qualifications = Column(ARRAY(Text), nullable=True)
+    benefits = Column(ARRAY(Text), nullable=True)
     salary_range = Column(String(225), nullable=True)
     salary_currency = Column(String(225), nullable=True)
     salary_period = Column(String(225), nullable=True)
