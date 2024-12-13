@@ -85,6 +85,7 @@ def get_all_positions():
             locations_positions = db_session.query(
                 LocationsPositions.location_id,
                 Locations.name,
+                Locations.is_active,
                 LocationsPositions.max_openings,
                 LocationsPositions.filled_openings
             ).join(Locations, LocationsPositions.location_id == Locations.id).filter(
@@ -96,7 +97,8 @@ def get_all_positions():
                     "id": lp.location_id,
                     "name": lp.name,
                     "max_openings": lp.max_openings,
-                    "filled_openings": lp.filled_openings
+                    "filled_openings": lp.filled_openings,
+                    "is_active": lp.is_active
                 } for lp in locations_positions
             ]
             
@@ -126,11 +128,12 @@ def get_position_by_id(position_id):
         locations_positions = db_session.query(
             LocationsPositions.location_id,
             Locations.name,
+            Locations.is_active,
             LocationsPositions.max_openings,
             LocationsPositions.filled_openings
         ).join(Locations, LocationsPositions.location_id == Locations.id).filter(LocationsPositions.position_id == position.id).all()
         
-        location_data = [{"id": lp.location_id, "name": lp.name, "max_openings": lp.max_openings, "filled_openings": lp.filled_openings} for lp in locations_positions]
+        location_data = [{"id": lp.location_id, "name": lp.name, "max_openings": lp.max_openings, "filled_openings": lp.filled_openings, "is_active": lp.is_active} for lp in locations_positions]
 
         return position_with_locations_to_dict(position, location_data)
     

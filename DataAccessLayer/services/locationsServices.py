@@ -72,6 +72,7 @@ def get_all_locations():
             positions_locations = db_session.query(
                 LocationsPositions.position_id,
                 Positions.name,
+                Positions.is_active,
                 LocationsPositions.max_openings,
                 LocationsPositions.filled_openings
             ).join(Positions, LocationsPositions.position_id == Positions.id).filter(
@@ -83,7 +84,8 @@ def get_all_locations():
                     "id": pl.position_id,
                     "name": pl.name,
                     "max_openings": pl.max_openings,
-                    "filled_openings": pl.filled_openings
+                    "filled_openings": pl.filled_openings,
+                    "is_active": pl.is_active
                 } for pl in positions_locations
             ]
             
@@ -114,12 +116,13 @@ def get_location_by_id(location_id):
         location_positions = db_session.query(
             LocationsPositions.position_id,
             Positions.name,
+            Positions.is_active,
             LocationsPositions.max_openings,
             LocationsPositions.filled_openings
         ).join(Positions, LocationsPositions.position_id == Positions.id).filter(LocationsPositions.location_id == location_id).all()
         
         # Structure position data into a list of dictionaries
-        position_data = [{"id": lp.position_id, "name": lp.name, "max_openings": lp.max_openings, "filled_openings": lp.filled_openings} for lp in location_positions]
+        position_data = [{"id": lp.position_id, "name": lp.name, "max_openings": lp.max_openings, "filled_openings": lp.filled_openings, "is_active": lp.is_active} for lp in location_positions]
 
         # Combine location and position data into the final dictionary
         return location_with_positions_to_dict(location, position_data)
