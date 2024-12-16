@@ -390,7 +390,7 @@ def get_corresponding_assistant(phone_number):
         db_session.remove()
 
 
-def upgrade_candidate(phone_number):
+def upgrade_candidate(phone_number, candidate_data):
     # Load existing JSON data for the given phone number
     data = load_candidates_json(phone_number)
     
@@ -403,6 +403,21 @@ def upgrade_candidate(phone_number):
             # Create a new thread
             openAiUtils = OpenAIUtility()
             new_thread_id = openAiUtils.create_thread()
+            
+            candidate_data_str = json.dumps(candidate_data, indent=4)
+
+            # Compose the message
+            message = (
+                "The candidate has just finished the first part of the interview. "
+                "Please seamlessly continue into the document check without saying hello. "
+                "Here is the candidate's info for your reference:\n\n"
+                f"{candidate_data_str}"
+            )
+            assistant_response = openAiUtils.send_to_ai(
+                message, 
+                new_thread_id, 
+                get_corresponding_assistant(phone_number)
+            )
             
             # Update the candidate's thread ID
             candidate["thread_id"] = new_thread_id

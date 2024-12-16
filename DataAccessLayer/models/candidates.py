@@ -13,7 +13,7 @@ class Candidates(Base):
     last_name = Column(String(255), nullable=False)
     thread_id = Column(String(255), nullable=False)
     age = Column(Integer, nullable=True)
-    email = Column(String(255), nullable=False)
+    email = Column(String(255), nullable=True)
     experience = Column(String(255), nullable=False)
     lead_source = Column(String(255), nullable=False)
     availability = Column(String(255), nullable=False)
@@ -33,4 +33,5 @@ class Candidates(Base):
     profile_img_url = Column(String(255), nullable=True)
     files_id = Column(Integer, ForeignKey('files.id'), nullable=True)
     conversation = Column(Text, nullable=True)
+    lead_source_id = Column(Integer, nullable="True")
 

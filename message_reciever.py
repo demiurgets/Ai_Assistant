@@ -100,7 +100,7 @@ def embeddings_search(query, response_length):
 def assistant_generate_json(thread_id):
     client = OpenAI(api_key=api_key)
     query = (
-        "using all the information you just received, generate ONLY a JSON object with the following fields: first_name, last_name, email, location_id, position_id, age, city, state, zip, experience, lead_source, availability. Please write the ID integer for the position."
+        "using all the information you just received, generate ONLY a JSON object with the following fields: language, first_name, last_name, email, location_id, position_id, age, city, state, zip, experience, lead_source, availability, lead_source_id. Please write the ID integer for the position, location, and lead_source_id. To get lead source ID follow this mapping: 1: linkedin, 2 - facebook, 3-  instagram, 4- indeed, 5- google, 6- referral, 7- website, 8- other"
     )
     # Send the user query
     message = client.beta.threads.messages.create(thread_id=thread_id, role="user", content=query)
@@ -191,7 +191,7 @@ def detect_trigger_string(text, thread_id, phoneNumber):
         save_to_database(candidate_json_data)
 
 #upgrading the candidate will update the JSON with the status and a new thread ID for detailed screening
-        upgrade_candidate(phoneNumber)
+        upgrade_candidate(phoneNumber, candidate_json_data)
         text_without_trigger = text.lower().replace(ending_trigger, "").strip()
         return text_without_trigger
     return text
@@ -211,8 +211,6 @@ def recieve_message(query, phoneNumber):
     #if positions are queried they will be returned here for the user to see
     triggerResponse = detect_trigger_string(response, candidate_json["thread_id"], phoneNumber)
     
-    combined_response = f"{response}\n{triggerResponse}" if triggerResponse else response
-
     # Update the conversation with the combined response
     update_conversation(phoneNumber, query, triggerResponse)
     

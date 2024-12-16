@@ -56,6 +56,7 @@ app = Flask(__name__)
 SECURITY_TOKEN = os.getenv('FLASK_API_TOKEN')
 
 GRAPH_API_TOKEN  = os.getenv('WHATSAPP_GRAPH_API_TOKEN')
+HILOS_API_KEY = os.getenv('HILOS_API_TOKEN')
 WEBHOOK_VERIFY_TOKEN = os.getenv("WHATSAPP_WEBHOOK_VERIFY")
 
 MESSENGER_WEBHOOK_VERIFY_TOKEN = os.getenv('MESSENGER_WEBHOOK_VERIFY_TOKEN')
@@ -114,37 +115,71 @@ def webhook_verification():
         return "Forbidden", 403
 
 
-
 @app.route('/hilos_webhook', methods=['POST'])
 def hilos_webhook_endpoint():
     # Extract the incoming data
     data = request.json
-
+    if data['event_data']['direction'] != "INBOUND":
+        print("not inbound. skipping...")
+        
+        return jsonify({"processed_message": "message not inbound"}), 200
     try:
-        # Check if this is a message or status update
         print(f"Received data: {data}")
 
-        # Extract sender info        
-        # Check if the phone number starts with +52 (Mexico's country code)
-       
-
+        # Extract sender info
         sender_number = data['event_data']['from_number']
         message = data['event_data']['body']
+        
+        # Extract the InboxContact ID
+        inbox_contact_id = data['event_data']['inbox_contact']  # Update this to match the actual key for inbox_contact_id
         print(f"Message from {sender_number}: {message}")
         print(f"Received message: {message} from number: {sender_number}")
 
         if sender_number.startswith("52"):
-           print("Received from Mexico")
-           return "", 200  # Do nothing and return
+            print("Received from Mexico. Ignoring message.")
+            return "", 200  # Ignore messages from Mexico
 
-        # Process the message using your application's logic
+        # Process the message and generate a response
         response_message = recieve_message(message, sender_number)
+        #response_message = f"Recieved message: {message}"
 
-
+        
+        # Send the response message to the candidate
+        send_hilos_message(inbox_contact_id, response_message)
+        
         return jsonify({"processed_message": response_message}), 200
     except KeyError as e:
         print(f"Error extracting data: {e}")
         return jsonify({"error": "Error processing incoming message"}), 500
+
+def send_hilos_message(inbox_contact_id, message):
+    """Send a message to Hilos using the contact's InboxContact ID."""
+    HILOS_API_URL = "https://api.hilos.io/api/inbox/contact"
+    url = f"{HILOS_API_URL}/{inbox_contact_id}/message"
+    headers = {
+        "Content-Type": "application/json",
+        "Authorization": f"Token {HILOS_API_KEY}"  # Bearer token for Hilos API
+    }
+    payload = {
+        'body': message, 
+        'msg_type': 'text', 
+        'is_deleted': False
+    }
+
+    print("\n--- REQUEST DATA ---")
+    print(f"URL: {url}")
+    print(f"Headers: {json.dumps(headers, indent=2)}")
+    print(f"Payload: {json.dumps(payload, indent=2)}")
+    print("--------------------\n")
+        
+    try:
+        response = requests.post(url, json=payload, headers=headers)
+        if response.status_code == 201:
+            print(f"Message successfully sent to inbox_contact_id {inbox_contact_id}")
+        else:
+            print(f"Failed to send message. Status code: {response.status_code}, Response: {response.text}")
+    except Exception as e:
+        print(f"Error sending message to Hilos: {e}")
 
 
 # handles incoming messages from WhatsApp
