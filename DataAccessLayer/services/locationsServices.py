@@ -43,7 +43,8 @@ def location_to_dict(location):
         "city": location.city,
         "state": location.state,
         "zip": location.zip,
-        "phone": location.phone
+        "phone": location.phone,
+        "is_active": location.is_active
     }
     
 def location_with_positions_to_dict(location, position_data):
@@ -55,13 +56,15 @@ def location_with_positions_to_dict(location, position_data):
         "state": location.state,
         "zip": location.zip,
         "phone": location.phone,
-        "positions": position_data
+        "positions": position_data,
+        "is_active": location.is_active
+
     }
 
 # 1. Get all locations
 def get_all_locations():
     try:
-        locations = db_session.query(Locations).all()
+        locations = db_session.query(Locations).filter(Locations.is_active == True).all()
         
         locations_data = []
         for location in locations:
@@ -69,6 +72,7 @@ def get_all_locations():
             positions_locations = db_session.query(
                 LocationsPositions.position_id,
                 Positions.name,
+                Positions.is_active,
                 LocationsPositions.max_openings,
                 LocationsPositions.filled_openings
             ).join(Positions, LocationsPositions.position_id == Positions.id).filter(
@@ -80,7 +84,8 @@ def get_all_locations():
                     "id": pl.position_id,
                     "name": pl.name,
                     "max_openings": pl.max_openings,
-                    "filled_openings": pl.filled_openings
+                    "filled_openings": pl.filled_openings,
+                    "is_active": pl.is_active
                 } for pl in positions_locations
             ]
             
@@ -98,6 +103,7 @@ def get_all_locations():
 
 
 
+
 # 2. Get location by ID
 def get_location_by_id(location_id):
     try:
@@ -110,12 +116,13 @@ def get_location_by_id(location_id):
         location_positions = db_session.query(
             LocationsPositions.position_id,
             Positions.name,
+            Positions.is_active,
             LocationsPositions.max_openings,
             LocationsPositions.filled_openings
         ).join(Positions, LocationsPositions.position_id == Positions.id).filter(LocationsPositions.location_id == location_id).all()
         
         # Structure position data into a list of dictionaries
-        position_data = [{"id": lp.position_id, "name": lp.name, "max_openings": lp.max_openings, "filled_openings": lp.filled_openings} for lp in location_positions]
+        position_data = [{"id": lp.position_id, "name": lp.name, "max_openings": lp.max_openings, "filled_openings": lp.filled_openings, "is_active": lp.is_active} for lp in location_positions]
 
         # Combine location and position data into the final dictionary
         return location_with_positions_to_dict(location, position_data)
@@ -140,6 +147,7 @@ def create_location(location_data):
             state=location_data.get("state"),
             zip=location_data.get("zip"),
             phone=location_data.get("phone"),
+            is_active=True
         )
         db_session.add(new_location)
         db_session.commit()  
@@ -261,26 +269,107 @@ def update_location(location_id, update_data):
 
 
 # 5. Delete location by ID
+# def delete_location(location_id):
+#     try:
+#         location = db_session.query(Locations).filter(Locations.id == location_id).first()
+#         if not location:
+#             return False
+#         db_session.delete(location)
+#         db_session.commit()
+#         update_location_context()
+#         return True
+#     except SQLAlchemyError as e:
+#         print(f"Error deleting location: {e}")
+#         db_session.rollback()
+#         return False
+#     finally:
+#         db_session.remove()  # Ensure session cleanup
+
 def delete_location(location_id):
     try:
         location = db_session.query(Locations).filter(Locations.id == location_id).first()
         if not location:
             return False
-        db_session.delete(location)
+        
+        location.is_active = False
         db_session.commit()
+        
         update_location_context()
         return True
     except SQLAlchemyError as e:
-        print(f"Error deleting location: {e}")
+        print(f"Error updating is_active for location: {e}")
         db_session.rollback()
         return False
     finally:
-        db_session.remove()  # Ensure session cleanup
+        db_session.remove()  # Cleanup del session
 
+
+# def update_location_context():
+#     try:
+#         # Query locations with their position counts using the LocationsPositions table
+#         locations_with_positions = (
+#             db_session.query(
+#                 Locations,
+#                 func.count(LocationsPositions.position_id).label("position_count")
+#             )
+#             .join(LocationsPositions, Locations.id == LocationsPositions.location_id)  
+#             .join(Positions, Positions.id == LocationsPositions.position_id)  
+#             .group_by(Locations.id)
+#             .having(func.count(LocationsPositions.position_id) > 0)  # Only include locations with associated positions
+#             .all()
+#         )
+
+#         # Create the JSON structure
+#         locations_data = [
+#             {
+#                 "id": location.id,
+#                 "name": location.name,
+#                 "address": location.address,
+#                 "city": location.city,
+#                 "state": location.state,
+#                 "zip": location.zip,
+#                 "phone": location.phone,
+#                 "position_count": position_count,  # count of positions
+#             }
+#             for location, position_count in locations_with_positions
+#         ]
+
+#         locations_json = json.dumps(locations_data, indent=4).replace("\\", "\\\\")
+
+#         print(locations_json)
+#         # Interact with OpenAI API to update assistant context
+#         client = OpenAI(api_key=api_key)
+#         my_assistant = client.beta.assistants.retrieve(assistant_id)
+#         current_instructions = getattr(my_assistant, "instructions", None)
+
+       
+#         print(current_instructions)
+#         print("current above, updated instructions below: ")
+#         locations_pattern = r"(Here are the different locations:\s*\[.*?\])"
+#         updated_instructions = re.sub(locations_pattern, f"Here are the different locations: {locations_json}", current_instructions, flags=re.DOTALL)
+        
+
+#         # Print updated instructions for debugging
+#         print(updated_instructions)
+
+#         # Update the assistant (commented out for now)
+#         my_updated_assistant = client.beta.assistants.update(
+#             assistant_id,
+#             instructions=updated_instructions,
+#         )
+
+#         return locations_json  # Return the updated JSON for debugging/logging
+
+#     except SQLAlchemyError as e:
+#         print(f"Error updating location context: {e}")
+#         db_session.rollback()
+#         return None
+#     finally:
+#         db_session.remove()
 
 def update_location_context():
     try:
-        # Query locations with their position counts using the LocationsPositions table
+        # Query locations with their position counts using the LocationsPositions table, filtering by is_active
         locations_with_positions = (
             db_session.query(
                 Locations,
@@ -288,12 +377,13 @@ def update_location_context():
             )
             .join(LocationsPositions, Locations.id == LocationsPositions.location_id)  
             .join(Positions, Positions.id == LocationsPositions.position_id)  
+            .filter(Locations.is_active == True)  # just include active locations
             .group_by(Locations.id)
             .having(func.count(LocationsPositions.position_id) > 0)  # Only include locations with associated positions
             .all()
         )
 
-        # Create the JSON structure
+        # create the JSON structure
         locations_data = [
             {
                 "id": location.id,
@@ -308,22 +398,27 @@ def update_location_context():
             for location, position_count in locations_with_positions
         ]
 
+        # Convert the JSON to a string and escape backslashes
         locations_json = json.dumps(locations_data, indent=4).replace("\\", "\\\\")
 
         print(locations_json)
-        # Interact with OpenAI API to update assistant context
+
+        # Interact with the OpenAI API to update the assistant context
         client = OpenAI(api_key=api_key)
         my_assistant = client.beta.assistants.retrieve(assistant_id)
         current_instructions = getattr(my_assistant, "instructions", None)
 
-       
         print(current_instructions)
         print("current above, updated instructions below: ")
         locations_pattern = r"(Here are the different locations:\s*\[.*?\])"
-        updated_instructions = re.sub(locations_pattern, f"Here are the different locations: {locations_json}", current_instructions, flags=re.DOTALL)
-        
+        updated_instructions = re.sub(
+            locations_pattern, 
+            f"Here are the different locations: {locations_json}", 
+            current_instructions, 
+            flags=re.DOTALL
+        )
 
-        # Print updated instructions for debugging
+        # print updated instructions for debugging
         print(updated_instructions)
 
         # Update the assistant (commented out for now)
@@ -342,5 +437,6 @@ def update_location_context():
         db_session.remove()
 
 
+
 # Generate the dynamic JSON for locations
-#locations_json = update_location_context()
+locations_json = update_location_context()

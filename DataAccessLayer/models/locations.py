@@ -16,6 +16,7 @@ class Locations(Base):
     state = Column(String(100), nullable=True)
     zip = Column(String(20), nullable=True)
     phone = Column(String(20), nullable=True)
+    is_active = Column(Boolean, nullable=True)
 
     users = relationship("Users", secondary='user_location', back_populates="locations")
     positions = relationship("Positions", secondary="locations_positions", back_populates="locations")
