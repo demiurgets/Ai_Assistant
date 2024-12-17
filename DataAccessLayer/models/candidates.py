@@ -33,5 +33,5 @@ class Candidates(Base):
     profile_img_url = Column(String(255), nullable=True)
     files_id = Column(Integer, ForeignKey('files.id'), nullable=True)
     conversation = Column(Text, nullable=True)
-    lead_source_id = Column(Integer, nullable="True")
+    lead_source_id = Column(Integer, nullable=True)
 

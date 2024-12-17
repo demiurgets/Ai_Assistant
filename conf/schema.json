@@ -322,6 +322,12 @@
           "type": "VARCHAR(255)",
           "not_null": true
         },
+        
+        {
+          "name": "lead_source_id",
+          "type": "INT"          
+        }
+        ,
         {
           "name": "availability",
           "type": "VARCHAR(255)",
@@ -395,6 +401,7 @@
           "name": "conversation",
           "type": "TEXT"
         }
+
       ]
     },
     {
