@@ -119,12 +119,12 @@ def webhook_verification():
 def hilos_webhook_endpoint():
     # Extract the incoming data
     if request.method == 'GET':
-            # Extract the raw data from the GET request body
-            raw_data = request.get_data(as_text=True)
-            data = json.loads(raw_data) if raw_data else {}
-        else:
-            # For POST requests, continue to use the request.json
-            data = request.json
+        # Extract the raw data from the GET request body
+        raw_data = request.get_data(as_text=True)
+        data = json.loads(raw_data) if raw_data else {}
+    else:
+        # For POST requests, continue to use the request.json
+        data = request.json
         
     if data['event_data']['direction'] != "INBOUND":
         print("not inbound. skipping...")
