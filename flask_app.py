@@ -115,8 +115,11 @@ def webhook_verification():
         return "Forbidden", 403
 
 
-@app.route('/hilos_webhook', methods=['POST'])
+@app.route('/hilos_webhook', methods=['POST', 'GET'])
 def hilos_webhook_endpoint():
+    if request.method == 'GET':
+        return jsonify({"message": "GET request received, but only POST requests are processed"}), 200
+
     # Extract the incoming data
     data = request.json
     if data['event_data']['direction'] != "INBOUND":
