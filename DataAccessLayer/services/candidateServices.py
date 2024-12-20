@@ -557,7 +557,38 @@ def update_conversation(phone_number, user_message, assistant_response):
             break
     save_candidates_json(data, phone_number)
 
+def add_cv_analysis(phone_number, cv_analysis_data):
+    data = load_candidates_json(phone_number)
+    
+    for candidate in data:
+        if candidate["phone_number"] == phone_number:
+            candidate["cv_analysis"] = cv_analysis_data
+            break
+    else:
+        print("Candidate not found. Cannot add CV analysis.")
+        return
+    save_candidates_json(data, phone_number)
 
+def match_cv_to_positions(phone_number):
+    data = load_candidates_json(phone_number)
+    for candidate in data:
+        if candidate["phone_number"] == phone_number:
+            if "cv_analysis" in candidate:
+                analysis = candidate["cv_analysis"]
+                ai_utils = OpenAIUtility()
+                thread_id = ai_utils.create_thread()
+                match_response = ai_utils.send_to_ai(
+                    analysis, 
+                    thread_id, 
+                    "asst_XwJ6fSbLM9bjw4MrguIQIXF8" #TODO
+                )
+                return match_response
+            else:
+                print("Candidate must upload/analyze CV first")
+                return "Candidate must upload/analyze CV first"
+    return "candidate not found"
+
+                
 def find_or_create_candidate_json(phone_number):
     data = load_candidates_json(phone_number)
     
@@ -573,8 +604,6 @@ def find_or_create_candidate_json(phone_number):
     openAiUtils = OpenAIUtility()
 
     thread_id = openAiUtils.create_thread()
-    
-    
     new_entry = {
         "phone_number": phone_number,
         "thread_id": thread_id,

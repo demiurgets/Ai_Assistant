@@ -380,62 +380,7 @@ def get_positions_by_location(location_id):
         db_session.remove()
 
 
-
-
-
-
-# def update_position_context():
-#     try:
-#         positions = db_session.query(Positions).all()
-#         positions_data = [
-#             {
-#                 "id": position.id,
-#                 "name": position.name,
-#                 "description": position.description,
-#                 "filled_openings": position.filled_openings,
-#                 "max_openings": position.max_openings,
-#             }
-#             for position in positions
-#         ]
-        
-#         positions_json = json.dumps(positions_data, indent=4).replace("\\", "\\\\")
-        
-#         client = OpenAI(api_key=api_key)
-
-#         my_assistant = client.beta.assistants.retrieve(assistant_id)
-
-#         current_instructions = getattr(my_assistant, "instructions", None)
-
-#         print(current_instructions)
-#         print("current above, updated instructions below: ")
-#         positions_pattern = r"(Here are the different positions:\s*\[.*?\])"
-
-#         escaped_positions_json = positions_json.replace("\\", "\\\\")
-
-#         updated_instructions = re.sub(
-#             positions_pattern, 
-#             f"Here are the different positions: {escaped_positions_json}", 
-#             current_instructions, 
-#             flags=re.DOTALL
-#         )
-
-#         updated_instructions = re.sub(positions_pattern, f"Here are the different positions: {positions_json}", current_instructions, flags=re.DOTALL)
-#         print(updated_instructions)
-#         my_updated_assistant = client.beta.assistants.update(
-#             assistant_id,
-#             instructions=updated_instructions,
-#             )
-
-#         # Dynamically generate the updated positions JSON
-#         return positions_json
-
-#     except SQLAlchemyError as e:
-#         print(f"Error generating positions JSON: {e}")
-#         db_session.rollback()
-#         return None
-#     finally:
-#         db_session.remove()
-
+#Updates the assistant that matches CV data with positions' instructions with current position info
 def update_position_context():
     try:
         # Filtrar solo posiciones activas
@@ -447,19 +392,15 @@ def update_position_context():
                 "id": position.id,
                 "name": position.name,
                 "description": position.description,
-                "filled_openings": position.filled_openings,
-                "max_openings": position.max_openings,
             }
             for position in positions
         ]
-        
-        # Convertir los datos a JSON con formato legible
         positions_json = json.dumps(positions_data, indent=4).replace("\\", "\\\\")
         
         # Interactuar con la API de OpenAI
         client = OpenAI(api_key=api_key)
 
-        my_assistant = client.beta.assistants.retrieve(assistant_id)
+        my_assistant = client.beta.assistants.retrieve("asst_XwJ6fSbLM9bjw4MrguIQIXF8")
 
         current_instructions = getattr(my_assistant, "instructions", None)
 
@@ -480,7 +421,7 @@ def update_position_context():
         # Actualizar las instrucciones del asistente
         print(updated_instructions)
         my_updated_assistant = client.beta.assistants.update(
-            assistant_id,
+            "asst_XwJ6fSbLM9bjw4MrguIQIXF8",
             instructions=updated_instructions,
         )
 

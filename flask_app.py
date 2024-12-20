@@ -8,6 +8,7 @@ from sqlalchemy.exc import SQLAlchemyError
 import json
 from DataAccessLayer.createModels import createModelsMain
 from DataAccessLayer.createDatabaseORM import createDbMain
+from Injestor.pdf_reader import analyze_CV
 
 
 from DataAccessLayer.services.candidateServices import (
@@ -20,7 +21,8 @@ from DataAccessLayer.services.candidateServices import (
     delete_by_phone,
     get_candidates_by_status,
     load_issues,
-    save_new_issue
+    save_new_issue,
+    match_cv_to_positions
 )
 from DataAccessLayer.services.userServices import (
     get_all_users,
@@ -380,6 +382,44 @@ def delete_by_phone_endpoint(phone_number):
         
     except Exception as e:
         return jsonify({"error": f"Failed to delete candidate screening data: {str(e)}"}), 500
+
+
+@app.route('/candidates/in_progress', methods=['GET'])
+def get_applicants_in_progress_endpoint():
+    # Call the function to find the candidate by phone number
+    candidate_data = get_applicants_in_progress()
+    #print(candidate_data)
+    return jsonify(candidate_data)
+
+from flask import request, jsonify
+
+@app.route('/documents/analyze_cv/<phone_number>', methods=['POST'])
+def analyze_cv_endpoint(phone_number):
+    if 'cv' not in request.files:
+        return jsonify({'error': 'No file part'}), 400
+
+    file = request.files['cv']
+    if file.filename == '':
+        return jsonify({'error': 'No selected file'}), 400
+
+    if file and file.filename.endswith('.pdf'):
+        # Save the file if needed or process it directly
+        file_path = f"Stored_context/uploaded_CVs/{file.filename}"
+        file.save(file_path)
+
+        # Call the analyze_CV function with the file path and phone number
+        analysis = analyze_CV(file_path, phone_number)
+        print(analysis)
+        return jsonify({'analysis': analysis})
+
+    return jsonify({'error': 'Invalid file type'}), 400
+
+
+@app.route('/documents/match_cv/<phone_number>', methods=['GET'])
+def match_cv_endpoint(phone_number):
+    match_response = match_cv_to_positions(phone_number)
+    print(match_response)
+    return jsonify({"matchingPositions": match_response})
 
 
 @app.route('/validate-password', methods=['POST'])

@@ -233,6 +233,49 @@
             max-width: 400px;
             border-radius: 10px;
         }
+        /* Add these styles to your existing CSS */
+
+        /* Dark Mode Styles for CV Analysis Section */
+        body.dark-mode #cv_analysis_section {
+            background-color: #1e1e1e;
+            color: #e0e0e0;
+        }
+
+        body.dark-mode #cv_analysis_section h3 {
+            color: #e0e0e0;
+            background-color: black;
+        }
+
+        body.dark-mode #cv_analysis_content {
+            color: #e0e0e0;
+        }
+
+        body.dark-mode #cv_analysis_content ul {
+            list-style-type: none; /* Remove default list styling */
+            padding-left: 0; /* Remove default padding */
+        }
+
+        body.dark-mode #cv_analysis_content li {
+            margin-bottom: 5px;
+        }
+
+        body.dark-mode #cv_analysis_content strong {
+            color: #c8a0f9; /* Highlighted color for strong text */
+        }
+
+        body.dark-mode #cv_analysis_content button {
+            background-color: #6200ea;
+            color: white;
+            border: none;
+            border-radius: 5px;
+            cursor: pointer;
+            padding: 10px;
+            margin-top: 10px;
+        }
+
+        body.dark-mode #cv_analysis_content button:hover {
+            background-color: #3700b3;
+        }
 
         /* Report Issue Modal Styles */
         .modal {
@@ -269,6 +312,29 @@
             text-decoration: none;
             cursor: pointer;
         }
+        #cv_upload_section {
+            text-align: center;
+            margin: 50px auto;
+        }
+
+        #drop_area {
+            width: 300px;
+            height: 150px;
+            border: 2px dashed #007bff;
+            border-radius: 10px;
+            margin: 20px auto;
+            padding: 20px;
+            color: #aaa;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            cursor: pointer;
+        }
+
+        #drop_area.dragover {
+            border-color: #0056b3;
+            color: #0056b3;
+        }
 
        
 
@@ -289,6 +355,20 @@
             <button onclick="submitIssueReport()">Submit</button>
         </div>
     </div>
+    <div id="cv_modal" class="modal">
+        <div class="modal-content">
+            <span class="close" onclick="closeCvModal()">&times;</span>
+            <h2>Upload Your CV</h2>
+            <input type="file" id="cv_input" accept=".pdf" style="display:none;" onchange="handleFileSelect(event)">
+            <button onclick="document.getElementById('cv_input').click()">Select CV</button>
+            <div id="drop_area" ondrop="handleDrop(event)" ondragover="handleDragOver(event)">
+                Drag and drop your CV here
+            </div>
+            <p id="upload_feedback" style="display:none; color: #007bff;">Reading your Document...</p>
+        </div>
+        
+    </div>
+    
 
 
     <div id="phone_number_form">
@@ -298,7 +378,8 @@
     </div>
 
     <div id="chat_box" style="display:none;">
-        <button id="report_button" onclick="openReportIssueModal()">Report Strange Behavior</button>
+        
+        <button onclick="openCvModal()">Upload Your CV</button>
 
         <button id="reset_button" onclick="resetConversation()">Reset</button>
         <h2 style="text-align:center;">Chat</h2>
@@ -308,6 +389,13 @@
             <button id="send_button" onclick="sendMessage()">Send</button>
         </div>
     </div>
+    <button id="report_button" onclick="openReportIssueModal()">Report Strange Behavior</button>
+
+    <div id="cv_analysis_section" style="display:none; max-width: 400px; margin: 20px auto; box-shadow: 0px 0px 10px rgba(0, 0, 0, 0.1); border-radius: 10px; padding: 15px;">
+        <h3>CV Analysis</h3>
+        <div id="cv_analysis_content"></div>
+    </div>
+   
 
     <!-- Reset Button -->
 
@@ -338,10 +426,95 @@
                     let conversation = data.conversation;
                     let chatBox = document.getElementById('conversation');
                     chatBox.innerHTML = '';
+                    if (data.cv_analysis) {
+                        console.log("analysis found")
+                        displayCvAnalysis(data.cv_analysis);
+                    }
                     conversation.forEach(msg => appendMessage(msg.role, msg.message));
                     document.getElementById('chat_box').style.display = 'block';
                 })
                 .catch(error => console.error('Error fetching conversation:', error));
+        }
+
+        function displayCvAnalysis(cvAnalysisJson) {
+            let cvAnalysis = JSON.parse(cvAnalysisJson); // Parse the JSON string
+            let analysisContent = '<ul>';
+
+            // Recursively iterate over the JSON object
+            function iterateObject(obj, indent = 0) {
+                for (let key in obj) {
+                    if (typeof obj[key] === 'object' && !Array.isArray(obj[key])) {
+                        analysisContent += `<li style="margin-left: ${indent}px;"><strong>${key}:</strong></li>`;
+                        iterateObject(obj[key], indent + 20);
+                    } else if (Array.isArray(obj[key])) {
+                        analysisContent += `<li style="margin-left: ${indent}px;"><strong>${key}:</strong><ul>`;
+                        obj[key].forEach(item => {
+                            if (typeof item === 'object') {
+                                iterateObject(item, indent + 20);
+                            } else {
+                                analysisContent += `<li style="margin-left: ${indent + 20}px;">${item}</li>`;
+                            }
+                        });
+                        analysisContent += '</ul></li>';
+                    } else {
+                        analysisContent += `<li style="margin-left: ${indent}px;"><strong>${key}:</strong> ${obj[key]}</li>`;
+                    }
+                }
+            }
+
+            iterateObject(cvAnalysis);
+            analysisContent += '</ul>';
+
+            // Display the analysis in the new section
+            const cvAnalysisSection = document.getElementById('cv_analysis_section');
+            const cvAnalysisContent = document.getElementById('cv_analysis_content');
+            cvAnalysisContent.innerHTML = analysisContent;
+
+            // Add the "Find Matching Positions" button
+            const matchButton = document.createElement('button');
+            matchButton.textContent = 'Find Matching Positions';
+            matchButton.onclick = () => findMatchingPositions();
+            cvAnalysisContent.appendChild(matchButton);
+
+            cvAnalysisSection.style.display = 'block';
+        }
+
+        function findMatchingPositions() {
+            const matchButton = document.querySelector('#cv_analysis_content button');
+            const matchingLabel = document.querySelector('#cv_analysis_content strong');
+
+            // Change the button text to "Matching..."
+            matchButton.textContent = 'Matching...';
+            matchButton.disabled = true; // Optionally disable the button to prevent multiple clicks
+
+            fetch(`/documents/match_cv/${phoneNumber}`)
+                .then(response => response.json())
+                .then(data => {
+                    if (data.matchingPositions) {
+                        // Parse the matching positions from Markdown to HTML
+                        const parsedHTML = parseMarkdownToHTML(data.matchingPositions);
+
+                        // Display the matching positions string
+                        const matchingPositionsDiv = document.createElement('div');
+                        matchingPositionsDiv.style.marginTop = '20px';
+                        matchingPositionsDiv.innerHTML = `<strong>Matching Positions:</strong> ${parsedHTML}`;
+                        
+                        const cvAnalysisContent = document.getElementById('cv_analysis_content');
+                        cvAnalysisContent.appendChild(matchingPositionsDiv);
+                    } else {
+                        alert('No matching positions found.');
+                    }
+                })
+                .catch(error => console.error('Error finding matching positions:', error))
+                .finally(() => {
+                    // Remove the button and the label after the response is handled
+                    if (matchButton) {
+                        matchButton.remove();
+                    }
+                    if (matchingLabel) {
+                        matchingLabel.remove();
+                    }
+                });
         }
 
         function parseMarkdownToHTML(message) {
@@ -436,8 +609,90 @@
             .catch(error => console.error('Error resetting conversation:', error));
         }
 
+        document.addEventListener('DOMContentLoaded', () => {
+            // Check for saved theme preference in localStorage
+            const savedTheme = localStorage.getItem('theme');
+            if (savedTheme) {
+                document.body.classList.add(savedTheme);
+            }
+        });
+
         function toggleDarkMode() {
             document.body.classList.toggle('dark-mode');
+            
+            // Save the current theme preference in localStorage
+            if (document.body.classList.contains('dark-mode')) {
+                localStorage.setItem('theme', 'dark-mode');
+            } else {
+                localStorage.removeItem('theme');
+            }
+        }
+
+        function openCvModal() {
+            document.getElementById('cv_modal').style.display = 'block';
+        }
+
+        function closeCvModal() {
+            document.getElementById('cv_modal').style.display = 'none';
+        }
+        function handleFileSelect(event) {
+            const file = event.target.files[0];
+            if (file && file.type === 'application/pdf') {
+                uploadCV(file);
+            } else {
+                alert('Please upload a PDF file.');
+            }
+        }
+
+        function handleDrop(event) {
+            event.preventDefault();
+            const file = event.dataTransfer.files[0];
+            if (file && file.type === 'application/pdf') {
+                uploadCV(file);
+            } else {
+                alert('Please upload a PDF file.');
+            }
+        }
+
+        function handleDragOver(event) {
+            event.preventDefault();
+            event.currentTarget.classList.add('dragover');
+        }
+
+        function uploadCV(file) {
+            const formData = new FormData();
+            formData.append('cv', file);
+            formData.append('phone_number', phoneNumber);
+
+            // Show the feedback message and hide the button and drop area
+            const feedbackElement = document.getElementById('upload_feedback');
+            const selectButton = document.querySelector('#cv_modal button');
+            const dropArea = document.getElementById('drop_area');
+            
+            feedbackElement.style.display = 'block';
+            selectButton.style.display = 'none';
+            dropArea.style.display = 'none';
+
+            fetch(`/documents/analyze_cv/${phoneNumber}`, {
+                method: 'POST',
+                body: formData
+            })
+            .then(response => response.json())
+            .then(data => {
+                if (data.analysis) {
+                    alert('CV analyzed successfully.');
+                    console.log('Analysis:', data.analysis);
+                    closeCvModal(); // Close the modal on success
+                    location.reload(); // Refresh the page
+                } else {
+                    alert('Failed to analyze CV.');
+                }
+            })
+            .catch(error => console.error('Error uploading CV:', error))
+            .finally(() => {
+                // Hide the feedback message regardless of success or failure
+                feedbackElement.style.display = 'none';
+            });
         }
     </script>
 </body>
