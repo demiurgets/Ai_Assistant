@@ -56,6 +56,6 @@ class OpenAIUtility:
             response = response_page.data[0].content[0].text.value
             
         else:
-            response = "Error processing request with OpenAI. Please Try again."
+            response = send_to_ai(query, thread_id, asstId)
         return response
 

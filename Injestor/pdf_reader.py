@@ -1,6 +1,10 @@
 import os
 import json
 import PyPDF2
+from AI.openai_utils import OpenAIUtility
+from DataAccessLayer.services.candidateServices import add_cv_analysis
+
+
 
 folder_path = 'Stored_context'
 json_file_path = os.path.join(folder_path, 'document_chunks.json')
@@ -43,5 +47,20 @@ for pdf_filename in os.listdir(folder_path):
 
 with open(json_file_path, 'w') as json_file:
     json.dump(chunks_data, json_file, indent=4)
+
+def analyze_CV(pdf_path, phone_number):
+    with open(pdf_path, 'rb') as file:
+        reader = PyPDF2.PdfReader(file)
+        text = ''
+        for page in reader.pages:
+            text += page.extract_text()
+    asstId = "asst_QSfX0KbXHgUcyjErouQM45HA"
+
+    openAiUtils = OpenAIUtility()
+
+    thread_id = openAiUtils.create_thread()
+    analysis = openAiUtils.send_to_ai(text, thread_id, "asst_QSfX0KbXHgUcyjErouQM45HA")
+    add_cv_analysis(phone_number, analysis)
+    return analysis
 
 print(f"Processed {len(chunks_data)} chunks and saved to {json_file_path}")
