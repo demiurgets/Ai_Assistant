@@ -125,10 +125,10 @@ def run_similarity_search(query, k=5, filter=None, threshold=1.0):
     """
     This function tests similarity search by querying the vector store and returning the top k most similar documents.
 
-    :param vector_store: The vector store (PGVector, FAISS, etc.)
     :param query: The query string for similarity search.
     :param k: The number of similar documents to retrieve (default is 5).
     :param filter: An optional filter for metadata (e.g., by source).
+    :param threshold: A threshold to filter documents by their similarity score (0-2, lower means similar)
     :return: List of similar documents with their metadata.
     """
     try:
