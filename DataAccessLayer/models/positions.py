@@ -2,6 +2,8 @@ from sqlalchemy import Column, Integer, String, Float, Text, Boolean, Date, Date
 from sqlalchemy.ext.declarative import declarative_base
 from sqlalchemy.orm import relationship
 from sqlalchemy.dialects.postgresql import ARRAY
+from pgvector.sqlalchemy import Vector
+
 
 from DataAccessLayer.models import Base
 
@@ -24,6 +26,7 @@ class Positions(Base):
     date_created = Column(DateTime, nullable=True, default=func.current_timestamp())
     date_updated = Column(DateTime, nullable=True, default=func.current_timestamp())
     is_active = Column(Boolean, nullable=True)
+    position_embedding = Column(Vector(1536))
 
     locations = relationship("Locations", secondary='locations_positions', back_populates="positions")
 

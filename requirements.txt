@@ -23,3 +23,7 @@ requests==2.32.3
 appinsights==0.13.0
 gunicorn
 bcrypt
+tiktoken==0.8.0
+pgvector==0.3.6
+langchain-community==0.3.13
+langchain-openai==0.2.14
