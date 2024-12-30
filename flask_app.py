@@ -11,6 +11,7 @@ from DataAccessLayer.createDatabaseORM import createDbMain
 from Injestor.pdf_reader import analyze_CV
 
 
+
 from DataAccessLayer.services.candidateServices import (
     get_all_candidates,
     get_candidate_by_id,
@@ -391,7 +392,6 @@ def get_applicants_in_progress_endpoint():
     #print(candidate_data)
     return jsonify(candidate_data)
 
-from flask import request, jsonify
 
 @app.route('/documents/analyze_cv/<phone_number>', methods=['POST'])
 def analyze_cv_endpoint(phone_number):
@@ -409,7 +409,7 @@ def analyze_cv_endpoint(phone_number):
 
         # Call the analyze_CV function with the file path and phone number
         analysis = analyze_CV(file_path, phone_number)
-        print(analysis)
+        #print(analysis)
         return jsonify({'analysis': analysis})
 
     return jsonify({'error': 'Invalid file type'}), 400

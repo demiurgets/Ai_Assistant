@@ -14,6 +14,8 @@ from langchain_openai import OpenAIEmbeddings
 from langchain_community.vectorstores import FAISS
 import faiss
 from langchain_community.docstore.in_memory import InMemoryDocstore
+import json
+
 
 
 load_dotenv(override=True)
@@ -121,7 +123,7 @@ def add_documents_to_vector_store(vector_store):
         print(f"Error adding documents to vector store: {e}")
 
 
-def run_similarity_search(query, k=5, filter=None, threshold=1.0):
+def run_similarity_search(query, k=5, filter=None, threshold=1.5):
     """
     This function tests similarity search by querying the vector store and returning the top k most similar documents.
 
@@ -175,30 +177,36 @@ def clear_faiss_vector_store(vector_store):
     print("FAISS vector store cleared.")
 
 
-# query = "Job experience in software development or software engineering with great responsibilities, develop solutions with software technologies."
-# query = "Experience in eating pies, working hard and being funny "
-# query = "Job experience in sales, driving sales iniciatives in business and working along different customers and providers"
-# query = "Experience in finance, accounting, financial risk management, working along customers and tracking trading operations "
-query = "Experience eating, engaging with hamburger business owners and give feedback about their products"
-filter_metadata = {"source": dbname}  # Example filter (optional)
 
-similar_documents = run_similarity_search(query, k=5, filter=filter_metadata)
-similar_documents_results = [
-    (res.metadata.get("id"), (res.page_content), score)
-    for res, score in similar_documents
-]
+# Parse JSON data
+# data = json.loads(json_data_sale)
+# # Construct query string
+# filter_metadata = {"source": dbname}  # Example filter (optional)
 
-# Sort the list of tuples by score in descending order
-id_and_score_tuples = [(tuple[0], tuple[2]) for tuple in similar_documents_results]
+# # Construct a more comprehensive query string
+# query = (
+#     f"{data['name']} {data['summary']} "
+#     + " ".join(data['skills'])
+#     + " ".join([edu['qualification'] for edu in data['education']])
+#     + " ".join([exp['role'] for exp in data['work_experience']])
+#     + " ".join(data['interests'])
+# )
 
-print(f"Top similar documents for the query: '{query}':\n")
+# # Use the constructed query in the similarity search
+# similar_documents = run_similarity_search(query, k=5, filter=filter_metadata)
 
-for tuple in similar_documents_results:
-    print(tuple)
+# # Process the results as before
+# similar_documents_results = [
+#     (res.metadata.get("id"), (res.page_content), score)
+#     for res, score in similar_documents
+# ]
 
+# id_and_score_tuples = [(tuple[0], tuple[2]) for tuple in similar_documents_results]
 
-for tuple in id_and_score_tuples:
-    print(tuple)
+# print(f"Top similar documents for the query: '{query}':\n")
 
+# for tuple in similar_documents_results:
+#     print(tuple)
 
-# clear_faiss_vector_store(vector_store)
+# for tuple in id_and_score_tuples:
+#     print(tuple)

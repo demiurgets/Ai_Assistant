@@ -3,7 +3,6 @@ import re
 import numpy as np
 import json
 import faiss
-import torch
 from transformers import AutoTokenizer, AutoModel
 from openai import OpenAI
 import os
@@ -66,11 +65,7 @@ openAiUtils = OpenAIUtility()
 
 
 def get_embedding(text):
-    inputs = tokenizer(text, return_tensors='pt', padding=True, truncation=True)
-    with torch.no_grad():
-        outputs = model(**inputs)
-    return outputs.last_hidden_state.mean(dim=1).squeeze().numpy()
-
+    print("empty func")
 def search(query, result_length=5):
     query_embedding = get_embedding(query).reshape(1, -1)
     D, I = index.search(query_embedding, k=result_length)
@@ -175,12 +170,18 @@ def assistant_get_positions(thread_id, text):
 def detect_trigger_string(text, thread_id, phoneNumber):
     ending_trigger = "ending_phrase_trigger"
     location_trigger = "location_phrase_trigger"
+    position_trigger = "position_phrase_trigger"
+
     if location_trigger in text.lower():
         print("Location string triggered")
         positions = assistant_get_positions(thread_id, text)
         
         return positions
 
+    if position_trigger in text.lower():
+        print("Location string triggered")
+        positions = assistant_get_positions(thread_id, text)
+        return positions
     if ending_trigger in text.lower():
         print("ending string TRIGGERED")
         print(text)
@@ -189,7 +190,6 @@ def detect_trigger_string(text, thread_id, phoneNumber):
         candidate_json_data["thread_id"] = thread_id
 
         save_to_database(candidate_json_data)
-
 #upgrading the candidate will update the JSON with the status and a new thread ID for detailed screening
         upgrade_candidate(phoneNumber, candidate_json_data)
         text_without_trigger = text.lower().replace(ending_trigger, "").strip()

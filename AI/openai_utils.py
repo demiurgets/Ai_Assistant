@@ -1,14 +1,12 @@
 import os
 import json
 import numpy as np
-import torch
 from datetime import datetime
 from openai import OpenAI
 from dotenv import load_dotenv
 from sqlalchemy import create_engine
 from sqlalchemy.orm import sessionmaker
 from sqlalchemy.exc import SQLAlchemyError
-from transformers import AutoTokenizer, AutoModel
 import psycopg2
 from DataAccessLayer.models.candidates import Candidates
 
@@ -22,11 +20,7 @@ class OpenAIUtility:
         self.reader_id = os.getenv('ASST_ID_READER')
         self.interviewer_id = os.getenv('ASST_INTERVIEWER')
 
-        # Load transformer model
-        self.model_name = "sentence-transformers/all-MiniLM-L6-v2"
-        self.tokenizer = AutoTokenizer.from_pretrained(self.model_name)
-        self.model = AutoModel.from_pretrained(self.model_name)
-
+        
     def create_thread(self):
         client = OpenAI(api_key=self.api_key)
         thread = client.beta.threads.create()

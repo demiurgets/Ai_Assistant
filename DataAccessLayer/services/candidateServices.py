@@ -5,6 +5,7 @@ from DataAccessLayer.models.candidates import Candidates
 from DataAccessLayer.models.positions import Positions
 from DataAccessLayer.models.locations import Locations
 from DataAccessLayer.models.locations_positions import LocationsPositions
+from DataAccessLayer.services.match_positions_with_cv import run_similarity_search
 import os
 from dotenv import load_dotenv
 from sqlalchemy.orm import sessionmaker, scoped_session
@@ -16,6 +17,9 @@ from AI.openai_utils import OpenAIUtility
 from datetime import datetime
 import logging
 from sqlalchemy import desc
+
+
+
 
 
 
@@ -569,26 +573,69 @@ def add_cv_analysis(phone_number, cv_analysis_data):
         return
     save_candidates_json(data, phone_number)
 
+def extract_text_from_json(data):
+    """
+    Recursively extracts string values from the JSON structure
+    to build a query string. This method handles nested structures.
+    """
+    query_parts = []
+
+    if isinstance(data, dict):
+        for key, value in data.items():
+            if isinstance(value, str):
+                query_parts.append(value)
+            elif isinstance(value, (list, dict)):
+                query_parts.append(extract_text_from_json(value))
+
+    elif isinstance(data, list):
+        for item in data:
+            query_parts.append(extract_text_from_json(item))
+
+    # Filter out None and join the results
+    return " ".join(filter(None, query_parts))
+
 def match_cv_to_positions(phone_number):
     data = load_candidates_json(phone_number)
     for candidate in data:
         if candidate["phone_number"] == phone_number:
             if "cv_analysis" in candidate:
-                analysis = candidate["cv_analysis"]
-                ai_utils = OpenAIUtility()
-                thread_id = ai_utils.create_thread()
-                match_response = ai_utils.send_to_ai(
-                    analysis, 
-                    thread_id, 
-                    "asst_XwJ6fSbLM9bjw4MrguIQIXF8" #TODO
-                )
-                return match_response
-            else:
-                print("Candidate must upload/analyze CV first")
-                return "Candidate must upload/analyze CV first"
-    return "candidate not found"
-
+                try:
+                    analysis = json.loads(candidate["cv_analysis"])
+                except json.JSONDecodeError:
+                    print("Error decoding cv_analysis JSON")
+                    return "**Error**: Invalid CV analysis data format."
                 
+                # Extract all text-based fields from the analysis dynamically
+                query = extract_text_from_json(analysis)
+
+                if not query:
+                    return "**Error**: No valid information to generate query."
+                
+                print("running positions query...")
+
+                # Assuming `run_similarity_search` takes the query as an input
+                filter_metadata = {"source": dbname}
+                similar_documents = run_similarity_search(query, k=5, filter=filter_metadata)
+                
+                if not similar_documents:
+                    return "**Error**: No similar documents found."
+
+                # Format the results into a Markdown string
+                formatted_results = "**Top Similar Documents**\n\n"
+                for res, score in similar_documents:
+                    doc_id = res.metadata.get("id")
+                    content = res.page_content
+                    # Markdown formatting for each result
+                    formatted_results += f" **Position ID**: {doc_id}\n"
+                    formatted_results += f"- **Score**: {score:.2f}\n"
+                    formatted_results += f"- **Content**: {content}\n\n"
+
+
+                return formatted_results
+            else:
+                return "**Error**: Candidate must upload/analyze CV first."
+    return "**Error**: Candidate not found."
+
 def find_or_create_candidate_json(phone_number):
     data = load_candidates_json(phone_number)
     
