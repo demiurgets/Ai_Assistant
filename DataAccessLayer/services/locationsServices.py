@@ -6,6 +6,8 @@ from sqlalchemy.exc import SQLAlchemyError
 from DataAccessLayer.models.locations import Locations  # Importing the Locations model
 from DataAccessLayer.models.positions import Positions  # Importing the Positions model
 from DataAccessLayer.models.locations_positions import LocationsPositions
+from DataAccessLayer.models.assistants import Assistants
+
 
 
 import os
@@ -24,15 +26,16 @@ password = os.getenv('password')
 host = os.getenv('host')
 port = os.getenv('pg_port')
 
-assistant_id = os.getenv('ASST_INTERVIEWER')
-api_key = os.getenv('API_KEY')
+api_key = os.getenv('OPENAI_KEY')
 
 # Database URL
 database_url = f"postgresql+psycopg2://{user}:{password}@{host}:{port}/{dbname}"
 engine = create_engine(database_url)
-
 SessionFactory = sessionmaker(bind=engine)
 db_session = scoped_session(SessionFactory)
+
+assistant = db_session.query(Assistants).filter(Assistants.name.like('%greeter%')).first()
+assistant_id = assistant.assistant_id
 
 # Function to convert location model to dictionary
 def location_to_dict(location):
@@ -367,8 +370,39 @@ def delete_location(location_id):
 #     finally:
 #         db_session.remove()
 
+def get_locations_by_position(position_id):
+    try:
+        locations = (
+            db_session.query(Locations)
+            .join(LocationsPositions, Locations.id == LocationsPositions.location_id)
+            .join(Positions, Positions.id == LocationsPositions.position_id)
+            .filter(Positions.id == position_id)
+            .filter(Positions.is_active == True)
+            .filter(LocationsPositions.max_openings > 0)
+            .filter(LocationsPositions.filled_openings < LocationsPositions.max_openings)
+            .all()
+        )
+
+        # Convert each location to a dictionary (implement location_to_dict accordingly)
+        return [location_to_dict(location) for location in locations]
+
+    except SQLAlchemyError as e:
+        print(f"Error fetching locations by position ID {position_id}: {e}")
+        db_session.rollback()
+        return []
+    finally:
+        db_session.remove()
+
 def update_location_context():
     try:
+        # Interact with the OpenAI API to update the assistant context
+        client = OpenAI(api_key=api_key)
+        my_assistant = client.beta.assistants.retrieve(assistant_id)
+        current_instructions = getattr(my_assistant, "instructions", None)
+        if "Here are the different locations:" not in current_instructions:
+            print("locations not in context, not updating...")
+            return None
+
         # Query locations with their position counts using the LocationsPositions table, filtering by is_active
         locations_with_positions = (
             db_session.query(
@@ -401,26 +435,23 @@ def update_location_context():
         # Convert the JSON to a string and escape backslashes
         locations_json = json.dumps(locations_data, indent=4).replace("\\", "\\\\")
 
-        print(locations_json)
-
-        # Interact with the OpenAI API to update the assistant context
-        client = OpenAI(api_key=api_key)
-        my_assistant = client.beta.assistants.retrieve(assistant_id)
-        current_instructions = getattr(my_assistant, "instructions", None)
-
-        print(current_instructions)
         print("current above, updated instructions below: ")
-        locations_pattern = r"(Here are the different locations:\s*\[.*?\])"
+        locations_pattern = r"(Here are the different locations:\s*).*"
         updated_instructions = re.sub(
-            locations_pattern, 
-            f"Here are the different locations: {locations_json}", 
-            current_instructions, 
+            locations_pattern,
+            f"Here are the different locations: {locations_json}",
+            current_instructions,
             flags=re.DOTALL
         )
+        # locations_pattern = r"(Here are the different locations:\s*\[.*?\])"
+        # updated_instructions = re.sub(
+        #     locations_pattern, 
+        #     f"Here are the different locations: {locations_json}", 
+        #     current_instructions, 
+        #     flags=re.DOTALL
+        # )
 
-        # print updated instructions for debugging
-        print(updated_instructions)
-
+        
         # Update the assistant (commented out for now)
         my_updated_assistant = client.beta.assistants.update(
             assistant_id,

@@ -18,11 +18,6 @@ from datetime import datetime
 import logging
 from sqlalchemy import desc
 
-
-
-
-
-
 # Load environment variables
 load_dotenv()
 
@@ -379,7 +374,7 @@ def get_corresponding_assistant(phone_number):
         if assistant_stage == 0:
             assistant = db_session.query(Assistants).filter(Assistants.name.like('%greeter%')).first()
         elif assistant_stage == 1:
-            assistant = db_session.query(Assistants).filter(Assistants.name.like('%detailed%')).first()
+            assistant = db_session.query(Assistants).filter(Assistants.name.like('%documents%')).first()
         else:
             print(f"Unhandled assistant_stage: {assistant_stage} for phone number {phone_number}.")
             return None
@@ -541,6 +536,7 @@ def save_candidates_json(data, phone_number):
 
 def update_conversation(phone_number, user_message, assistant_response):
     data = load_candidates_json(phone_number)
+    print("adding new info for cv")
     for candidate in data:
         if candidate["phone_number"] == phone_number:
             # Get the current message count and increment for each new message
@@ -563,15 +559,26 @@ def update_conversation(phone_number, user_message, assistant_response):
 
 def add_cv_analysis(phone_number, cv_analysis_data):
     data = load_candidates_json(phone_number)
-    
+    message = (
+                "The candidate has uploaded their CV, if it has all the information needed for the candidate such as: name, brief experience (1-3 sentences), email, etc. skip these questions and only ask whatever is left to find out."
+                f"{cv_analysis_data}"
+            )
     for candidate in data:
         if candidate["phone_number"] == phone_number:
+            openAiUtils = OpenAIUtility()
+            assistant_response = openAiUtils.send_to_ai(
+                            message, 
+                            candidate["thread_id"], 
+                            get_corresponding_assistant(phone_number)
+                        )
             candidate["cv_analysis"] = cv_analysis_data
             break
     else:
         print("Candidate not found. Cannot add CV analysis.")
         return
     save_candidates_json(data, phone_number)
+    update_conversation(phone_number, "CV Upload", assistant_response)
+
 
 def extract_text_from_json(data):
     """
@@ -600,7 +607,7 @@ def match_cv_to_positions(phone_number):
         if candidate["phone_number"] == phone_number:
             if "cv_analysis" in candidate:
                 try:
-                    analysis = json.loads(candidate["cv_analysis"])
+                    analysis = candidate["cv_analysis"]
                 except json.JSONDecodeError:
                     print("Error decoding cv_analysis JSON")
                     return "**Error**: Invalid CV analysis data format."

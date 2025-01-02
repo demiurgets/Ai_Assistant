@@ -16,37 +16,36 @@ load_dotenv()
 class OpenAIUtility:
     def __init__(self):
         # OpenAI API configuration
-        self.api_key = os.getenv('API_KEY')
+        self.api_key = os.getenv('OPENAI_KEY')
         self.reader_id = os.getenv('ASST_ID_READER')
         self.interviewer_id = os.getenv('ASST_INTERVIEWER')
+        self.client = OpenAI(api_key=self.api_key)
 
         
     def create_thread(self):
-        client = OpenAI(api_key=self.api_key)
-        thread = client.beta.threads.create()
+        thread = self.client.beta.threads.create()
         thread_id = thread.id
         return thread_id
     
     
     def send_to_ai(self, query, thread_id, asstId):
         print("messaging from class")
-        client = OpenAI(api_key=self.api_key)
 
-        message = client.beta.threads.messages.create(
+        message = self.client.beta.threads.messages.create(
             thread_id=thread_id,
             role="user",
             content=query
         )
         print("Ai run started...")
 
-        run = client.beta.threads.runs.create_and_poll(
+        run = self.client.beta.threads.runs.create_and_poll(
             thread_id=thread_id,
             assistant_id=asstId,
         )
         response = "Error with AI API"
         if run.status == 'completed':
             print("AI Run completed")
-            response_page = client.beta.threads.messages.list(thread_id=thread_id)
+            response_page = self.client.beta.threads.messages.list(thread_id=thread_id)
             response = response_page.data[0].content[0].text.value
             
         else:

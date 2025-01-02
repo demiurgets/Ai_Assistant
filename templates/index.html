@@ -364,7 +364,7 @@
             <div id="drop_area" ondrop="handleDrop(event)" ondragover="handleDragOver(event)">
                 Drag and drop your CV here
             </div>
-            <p id="upload_feedback" style="display:none; color: #007bff;">Reading your Document...</p>
+            <p id="upload_feedback" style="display:none; color: #007bff;">Analyzing your Document, please wait...</p>
         </div>
         
     </div>
@@ -437,7 +437,7 @@
         }
 
         function displayCvAnalysis(cvAnalysisJson) {
-            let cvAnalysis = JSON.parse(cvAnalysisJson); // Parse the JSON string
+            let cvAnalysis = cvAnalysisJson; // Parse the JSON string
             let analysisContent = '<ul>';
 
             // Recursively iterate over the JSON object
@@ -680,7 +680,6 @@
             .then(response => response.json())
             .then(data => {
                 if (data.analysis) {
-                    alert('CV analyzed successfully.');
                     console.log('Analysis:', data.analysis);
                     closeCvModal(); // Close the modal on success
                     location.reload(); // Refresh the page

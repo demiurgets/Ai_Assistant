@@ -1,11 +1,14 @@
 import json
 import re
 
+from sqlalchemy import func
 from sqlalchemy.orm import Session
 from sqlalchemy.exc import SQLAlchemyError
 from DataAccessLayer.models.positions import Positions
 from DataAccessLayer.models.locations_positions import LocationsPositions
 from DataAccessLayer.models.locations import Locations
+from DataAccessLayer.models.assistants import Assistants
+
 import os
 from dotenv import load_dotenv
 from sqlalchemy.orm import sessionmaker, scoped_session
@@ -28,8 +31,7 @@ password = os.getenv("password")
 host = os.getenv("host")
 port = os.getenv("pg_port")
 
-assistant_id = os.getenv("ASST_INTERVIEWER")
-api_key = os.getenv("API_KEY")
+api_key = os.getenv("OPENAI_KEY")
 
 # Database URL
 database_url = f"postgresql+psycopg2://{user}:{password}@{host}:{port}/{dbname}"
@@ -37,6 +39,9 @@ engine = create_engine(database_url)
 SessionFactory = sessionmaker(bind=engine)
 db_session = scoped_session(SessionFactory)
 
+
+assistant = db_session.query(Assistants).filter(Assistants.name.like('%greeter%')).first()
+assistant_id = assistant.assistant_id
 
 # Function to convert job position model to dictionary
 def position_to_dict(position):
@@ -477,81 +482,82 @@ def get_positions_by_location(location_id):
 
 
 
-
 def update_position_context():
     try:
-        # Query locations with their position counts using the LocationsPositions table, filtering by is_active
-        locations_with_positions = (
-            db_session.query(
-                Positions,
-                func.count(LocationsPositions.position_id).label("position_count")
-            )
-            .join(LocationsPositions, Locations.id == LocationsPositions.location_id)  
-            .join(Positions, Positions.id == LocationsPositions.position_id)  
-            .filter(Locations.is_active == True)  # just include active locations
-            .group_by(Locations.id)
-            .having(func.count(LocationsPositions.position_id) > 0)  # Only include locations with associated positions
-            .all()
-        )
-
-        # create the JSON structure
-        locations_data = [
-            {
-                "id": location.id,
-                "name": location.name,
-                "address": location.address,
-                "city": location.city,
-                "state": location.state,
-                "zip": location.zip,
-                "phone": location.phone,
-                "position_count": position_count,  # count of positions
-            }
-            for location, position_count in locations_with_positions
-        ]
-
-        # Convert the JSON to a string and escape backslashes
-        locations_json = json.dumps(locations_data, indent=4).replace("\\", "\\\\")
-
-        print(locations_json)
-
-        # Interact with the OpenAI API to update the assistant context
+        # Retrieve current assistant instructions
         client = OpenAI(api_key=api_key)
         my_assistant = client.beta.assistants.retrieve(assistant_id)
         current_instructions = getattr(my_assistant, "instructions", None)
+        
+        # Check if the phrase exists
+        if "Here are the different positions:" not in current_instructions:
+            print("Positions not in context, not updating...")
+            return None
 
-        print(current_instructions)
-        print("current above, updated instructions below: ")
-        locations_pattern = r"(Here are the different locations:\s*\[.*?\])"
+        # Query positions with their associated location counts
+        positions_with_locations = (
+            db_session.query(
+                Positions,
+                func.count(LocationsPositions.location_id).label("location_count")
+            )
+            .join(LocationsPositions, Positions.id == LocationsPositions.position_id)
+            .join(Locations, Locations.id == LocationsPositions.location_id)
+            .filter(Positions.is_active == True)  # Include only active positions
+            .group_by(Positions.id)
+            .having(func.count(LocationsPositions.location_id) > 0)  # Only include positions with associated locations
+            .all()
+        )
+
+        # Create the JSON structure
+        positions_data = [
+            {
+                "id": position.id,
+                "title": position.name,
+                "department": position.description,
+                "qualifications": position.qualifications,
+                "job_type": position.job_type,
+                "location_count": location_count,  # Count of locations
+            }
+            for position, location_count in positions_with_locations
+        ]
+
+        # Convert the JSON to a string and escape backslashes
+        positions_json = json.dumps(positions_data, indent=4).replace("\\", "\\\\")
+        print("Generated positions JSON:", positions_json)
+
+        # Update only the relevant part of the instructions
+        positions_pattern = r"(Here are the different positions:\s*).*"
         updated_instructions = re.sub(
-            locations_pattern, 
-            f"Here are the different locations: {locations_json}", 
-            current_instructions, 
+            positions_pattern,
+            f"Here are the different positions: {positions_json}",
+            current_instructions,
             flags=re.DOTALL
         )
 
-        # print updated instructions for debugging
-        print(updated_instructions)
+        # Log updated instructions for debugging
+        print("Updated instructions:", updated_instructions)
 
-        # Update the assistant (commented out for now)
+        # Update the assistant with the new instructions
         my_updated_assistant = client.beta.assistants.update(
             assistant_id,
             instructions=updated_instructions,
         )
 
-        return locations_json  # Return the updated JSON for debugging/logging
+        return positions_json  # Return the updated JSON for debugging/logging
 
     except SQLAlchemyError as e:
-        print(f"Error updating location context: {e}")
+        print(f"Database error: {e}")
         db_session.rollback()
+        return None
+    except Exception as e:
+        print(f"Error updating position context: {e}")
         return None
     finally:
         db_session.remove()
 
- 
-
 ##### Logic for position embeddings #####
 
-openai.api_key = os.getenv("API_KEY")
+openai.api_key = os.getenv("OPENAI_KEY")
 
 tokenizer = tiktoken.encoding_for_model("text-embedding-3-small")
 

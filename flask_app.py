@@ -10,8 +10,6 @@ from DataAccessLayer.createModels import createModelsMain
 from DataAccessLayer.createDatabaseORM import createDbMain
 from Injestor.pdf_reader import analyze_CV
 
-
-
 from DataAccessLayer.services.candidateServices import (
     get_all_candidates,
     get_candidate_by_id,
@@ -50,6 +48,9 @@ from DataAccessLayer.services.positionServices import (
     create_position,
     update_position,
     delete_position
+)
+from DataAccessLayer.services.assistantServices import (
+    toggle_greeter_direction
 )
 
 
@@ -423,6 +424,7 @@ def match_cv_endpoint(phone_number):
 
 
 @app.route('/validate-password', methods=['POST'])
+#for sign in if validation is to be done in backend
 def validate_password_endpoint():
     auth_error = validate_token()
     if auth_error:
@@ -439,6 +441,16 @@ def validate_password_endpoint():
     else:
         return jsonify({"success": False, "message": "Invalid credentials"}), 401
 
+@app.route('/toggle_greeter_direction', methods=['POST'])
+def toggleDirection():
+    auth_error = validate_token()
+    if auth_error:
+        return auth_error
+    try:
+        updated_instructions = toggle_greeter_direction()
+        return jsonify({"Updated Successfully": updated_instructions}), 200
+    except SQLAlchemyError as e:
+        return jsonify({"error": f"Error fetching users: {e}"}), 500
 # 1. Get all users
 @app.route('/users', methods=['GET'])
 def users():

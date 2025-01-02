@@ -13,11 +13,13 @@ import psycopg2
 from datetime import datetime
 from sqlalchemy.exc import SQLAlchemyError
 
-from sqlalchemy.orm import sessionmaker
+from sqlalchemy.orm import sessionmaker, scoped_session
 from sqlalchemy import create_engine
 from DataAccessLayer.models.candidates import Candidates
-from DataAccessLayer.services.positionServices import get_positions_by_location
+from DataAccessLayer.models.assistants import Assistants
+
 from DataAccessLayer.services.candidateServices import (find_or_create_candidate_json, update_conversation, save_to_database, get_corresponding_assistant, upgrade_candidate)
+from DataAccessLayer.services.assistantServices import (assistant_get_positions, assistant_get_locations)
 
 from AI.openai_utils import OpenAIUtility
 
@@ -35,16 +37,15 @@ password = os.getenv('password')
 host = os.getenv('host')
 port = os.getenv('pg_port')
 
-api_key = os.getenv('API_KEY')
+api_key = os.getenv('OPENAI_KEY')
 reader_id = os.getenv('ASST_ID_READER')
 interviewer_id = os.getenv('ASST_INTERVIEWER')
 admin_assistant_id = os.getenv('ASST_ADMIN')
 
 database_url = f"postgresql+psycopg2://{user}:{password}@{host}:{port}/{dbname}"
-
 engine = create_engine(database_url)
-Session = sessionmaker(bind=engine)
-db_session = Session()
+SessionFactory = sessionmaker(bind=engine)
+db_session = scoped_session(SessionFactory)
 
 openAiUtils = OpenAIUtility()
 
@@ -92,7 +93,7 @@ def embeddings_search(query, response_length):
 
 
 
-def assistant_generate_json(thread_id):
+def assistant_generate_json(thread_id, assistant_id):
     client = OpenAI(api_key=api_key)
     query = (
         "using all the information you just received, generate ONLY a JSON object with the following fields: language, first_name, last_name, email, location_id, position_id, age, city, state, zip, experience, lead_source, availability, lead_source_id. Please write the ID integer for the position, location, and lead_source_id. To get lead source ID follow this mapping: 1: linkedin, 2 - facebook, 3-  instagram, 4- indeed, 5- google, 6- referral, 7- website, 8- other"
@@ -100,7 +101,7 @@ def assistant_generate_json(thread_id):
     # Send the user query
     message = client.beta.threads.messages.create(thread_id=thread_id, role="user", content=query)
     # Poll until the run is completed
-    run = client.beta.threads.runs.create_and_poll(thread_id=thread_id, assistant_id=interviewer_id)
+    run = client.beta.threads.runs.create_and_poll(thread_id=thread_id, assistant_id=assistant_id)
     
     # Default response in case of failure
     response = "Error with AI API"
@@ -145,47 +146,27 @@ def assistant_generate_json(thread_id):
 
     return json_data
 
-def assistant_get_positions(thread_id, text):
-    numbers = re.findall(r'\d+', text)
-    location_id = int(numbers[0]) if numbers else None
-      # If a valid location_id is found, retrieve positions for that location
-    response = ""
-    if location_id is not None:
-        positions = get_positions_by_location(location_id)
-        positions_json = json.dumps(
-            positions,
-            default=lambda obj: obj.isoformat() if isinstance(obj, datetime) else str(obj)  # Handle datetime serialization
-        )
-        print("Queried positions!")
-        query = (
-            "Here are all the positions for the location, please present each with a short summary to the user and remember the position ID of their choice: " + positions_json
-        )
-        
-        response = openAiUtils.send_to_ai(query, thread_id, interviewer_id)
-        return response
-    else:
-        return response
 
-    
-def detect_trigger_string(text, thread_id, phoneNumber):
+def detect_trigger_string(text, thread_id, phoneNumber, asstId):
     ending_trigger = "ending_phrase_trigger"
     location_trigger = "location_phrase_trigger"
     position_trigger = "position_phrase_trigger"
 
     if location_trigger in text.lower():
         print("Location string triggered")
-        positions = assistant_get_positions(thread_id, text)
+        positions = assistant_get_positions(thread_id, text, asstId)
         
         return positions
 
     if position_trigger in text.lower():
-        print("Location string triggered")
-        positions = assistant_get_positions(thread_id, text)
-        return positions
+        print("Position string triggered")
+        locations = assistant_get_locations(thread_id, text, asstId)
+        return locations
+
     if ending_trigger in text.lower():
         print("ending string TRIGGERED")
         print(text)
-        candidate_json_data = assistant_generate_json(thread_id)  
+        candidate_json_data = assistant_generate_json(thread_id, asstId)  
         candidate_json_data["phone"] = phoneNumber
         candidate_json_data["thread_id"] = thread_id
 
@@ -209,7 +190,7 @@ def recieve_message(query, phoneNumber):
     response = openAiUtils.send_to_ai(query, candidate_json["thread_id"], assistant_id)
 
     #if positions are queried they will be returned here for the user to see
-    triggerResponse = detect_trigger_string(response, candidate_json["thread_id"], phoneNumber)
+    triggerResponse = detect_trigger_string(response, candidate_json["thread_id"], phoneNumber, assistant_id)
     
     # Update the conversation with the combined response
     update_conversation(phoneNumber, query, triggerResponse)

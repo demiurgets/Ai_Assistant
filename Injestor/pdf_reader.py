@@ -3,6 +3,10 @@ import json
 import PyPDF2
 from AI.openai_utils import OpenAIUtility
 from DataAccessLayer.services.candidateServices import add_cv_analysis
+from DataAccessLayer.services.assistantServices import getCvAnalyzer
+import json
+
+
 
 
 
@@ -48,6 +52,18 @@ def extract_text_from_pdf(pdf_path):
 # with open(json_file_path, 'w') as json_file:
 #     json.dump(chunks_data, json_file, indent=4)
 
+def extract_json_from_response(response_text: str):
+    start_index = response_text.find("{")
+    end_index = response_text.rfind("}")
+    if start_index == -1 or end_index == -1 or end_index < start_index:
+        return None  # No curly braces found or invalid range
+
+    potential_json = response_text[start_index:end_index + 1]
+    try:
+        return json.loads(potential_json)
+    except json.JSONDecodeError:
+        return None
+
 def analyze_CV(pdf_path, phone_number):
     with open(pdf_path, 'rb') as file:
         reader = PyPDF2.PdfReader(file)
@@ -59,8 +75,9 @@ def analyze_CV(pdf_path, phone_number):
     openAiUtils = OpenAIUtility()
 
     thread_id = openAiUtils.create_thread()
-    analysis = openAiUtils.send_to_ai(text, thread_id, "asst_QSfX0KbXHgUcyjErouQM45HA")#TODO get id from db
-    add_cv_analysis(phone_number, analysis)
-    return analysis
+    analysis = openAiUtils.send_to_ai(text, thread_id, getCvAnalyzer())#TODO get id from db
+    extracted_json = extract_json_from_response(analysis)
+    add_cv_analysis(phone_number, extracted_json)
+    return extracted_json
 
 # print(f"Processed {len(chunks_data)} chunks and saved to {json_file_path}")

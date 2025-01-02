@@ -32,7 +32,7 @@ engine = create_engine(database_url)
 SessionFactory = sessionmaker(bind=engine)
 db_session = scoped_session(SessionFactory)
 
-openai.api_key = os.getenv("API_KEY")
+openai.api_key = os.getenv("OPENAI_KEY")
 
 
 def formatted_text_for_position_embedding(position):
