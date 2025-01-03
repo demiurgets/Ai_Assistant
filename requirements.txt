@@ -10,7 +10,6 @@ moviepy==1.0.3
 openai
 pip-chill==1.0.3
 platformdirs==4.2.2
-psycopg2-binary==2.9.10
 pypdf2==3.0.1
 python-dotenv==1.0.1
 sqlalchemy==2.0.36
@@ -22,6 +21,7 @@ requests==2.32.3
 appinsights==0.13.0
 gunicorn
 bcrypt
+psycopg2-binary==2.9.10
 tiktoken==0.8.0
 pgvector==0.3.6
 langchain-community==0.3.13
