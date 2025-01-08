@@ -71,7 +71,6 @@ def analyze_CV(pdf_path, phone_number):
         text = ''
         for page in reader.pages:
             text += page.extract_text()
-    asstId = "asst_QSfX0KbXHgUcyjErouQM45HA"
 
     openAiUtils = OpenAIUtility()
 
