@@ -240,6 +240,7 @@ def create_position(position_data):
             for lp in locations_positions
         ]
 
+        positions_json = update_position_context()
         return position_with_locations_to_dict(new_position, location_data)
 
     except SQLAlchemyError as e:
@@ -363,6 +364,7 @@ def update_position(position_id, update_data):
             }
             for lp in updated_locations_positions
         ]
+        positions_json = update_position_context()
 
         return position_with_locations_to_dict(
             position, location_data
@@ -404,6 +406,7 @@ def delete_position(position_id):
 
         position.is_active = False
         db_session.commit()
+        positions_json = update_position_context()
         return True
     except SQLAlchemyError as e:
         print(f"Error updating is_active for position: {e}")
@@ -626,4 +629,4 @@ def initialize_position_embeddings():
 
 
 # Generate the dynamic JSON for job positions
-# positions_json = update_position_context()
+#positions_json = update_position_context()

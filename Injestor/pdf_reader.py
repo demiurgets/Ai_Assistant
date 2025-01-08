@@ -64,6 +64,7 @@ def extract_json_from_response(response_text: str):
     except json.JSONDecodeError:
         return None
 
+#Here we use openai cv_analyzer to read the cv text 
 def analyze_CV(pdf_path, phone_number):
     with open(pdf_path, 'rb') as file:
         reader = PyPDF2.PdfReader(file)

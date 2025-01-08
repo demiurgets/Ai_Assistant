@@ -559,24 +559,28 @@ def update_conversation(phone_number, user_message, assistant_response):
 
 def add_cv_analysis(phone_number, cv_analysis_data):
     data = load_candidates_json(phone_number)
-    message = (
-                "The candidate has uploaded their CV, if it has all the information needed for the candidate such as: name, brief experience (1-3 sentences), email, etc. skip these questions and only ask whatever is left to find out."
-                f"{cv_analysis_data}"
-            )
+    
     for candidate in data:
         if candidate["phone_number"] == phone_number:
+            candidate["cv_analysis"] = cv_analysis_data
+            save_candidates_json(data, phone_number)
+            matched_positions = match_cv_to_positions(phone_number)
+            message = (
+                "The candidate has uploaded their CV, if it has all the information needed for the candidate such as: name, brief experience (1-3 sentences), email, etc. skip these questions and only ask for age, lead source and availability if not asked already."
+                f"CV Analysis:\n{cv_analysis_data}\n\n"
+                f"Similarity Search Results:\n{matched_positions}"
+            )
+
             openAiUtils = OpenAIUtility()
             assistant_response = openAiUtils.send_to_ai(
                             message, 
                             candidate["thread_id"], 
                             get_corresponding_assistant(phone_number)
                         )
-            candidate["cv_analysis"] = cv_analysis_data
             break
     else:
         print("Candidate not found. Cannot add CV analysis.")
         return
-    save_candidates_json(data, phone_number)
     update_conversation(phone_number, "CV Upload", assistant_response)
 
 
@@ -625,19 +629,36 @@ def match_cv_to_positions(phone_number):
                 similar_documents = run_similarity_search(query, k=5, filter=filter_metadata)
                 
                 if not similar_documents:
-                    return "**Error**: No similar documents found."
+                    return "No similar positions found."
 
                 # Format the results into a Markdown string
-                formatted_results = "**Top Similar Documents**\n\n"
+                formatted_results = "**Top Similar Positions**\n\n"
+                matched_positions = []  # We'll store structured data here
+
                 for res, score in similar_documents:
                     doc_id = res.metadata.get("id")
                     content = res.page_content
+                    percent_match = (2.0 - score) / 2.0 * 100
+
+                    score_rounded = round(score, 2)
+                    percent_match_rounded = round(percent_match, 2)
+
                     # Markdown formatting for each result
                     formatted_results += f" **Position ID**: {doc_id}\n"
-                    formatted_results += f"- **Score**: {score:.2f}\n"
+                    formatted_results += f"- **Score**: {score_rounded:.2f}\n"
+                    formatted_results += f"- **Match**: {percent_match_rounded:.2f}%\n"
                     formatted_results += f"- **Content**: {content}\n\n"
 
+                    # Store the two-decimal values
+                    matched_positions.append({
+                        "position_id": doc_id,
+                        "score": float(score_rounded),  
+                        "percent_match": float(percent_match_rounded),
+                        "content": content
+                    })
 
+                candidate["matched_positions"] = matched_positions
+                save_candidates_json(data, phone_number)
                 return formatted_results
             else:
                 return "**Error**: Candidate must upload/analyze CV first."

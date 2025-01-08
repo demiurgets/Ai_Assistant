@@ -428,7 +428,7 @@
                     chatBox.innerHTML = '';
                     if (data.cv_analysis) {
                         console.log("analysis found")
-                        displayCvAnalysis(data.cv_analysis);
+                        displayCvAnalysis(data);
                     }
                     conversation.forEach(msg => appendMessage(msg.role, msg.message));
                     document.getElementById('chat_box').style.display = 'block';
@@ -436,47 +436,57 @@
                 .catch(error => console.error('Error fetching conversation:', error));
         }
 
-        function displayCvAnalysis(cvAnalysisJson) {
-            let cvAnalysis = cvAnalysisJson; // Parse the JSON string
-            let analysisContent = '<ul>';
+        function displayCvAnalysis(data) {
+            let cvAnalysis = data.cv_analysis;
+            let similarPositions = data.matched_positions;
 
-            // Recursively iterate over the JSON object
+            let analysisContent = '';
+
+            // We'll build the HTML using one shared function.
+            // This function appends list items for both cvAnalysis and matchedPositions.
             function iterateObject(obj, indent = 0) {
+                let html = '';
                 for (let key in obj) {
                     if (typeof obj[key] === 'object' && !Array.isArray(obj[key])) {
-                        analysisContent += `<li style="margin-left: ${indent}px;"><strong>${key}:</strong></li>`;
-                        iterateObject(obj[key], indent + 20);
+                        // If the value is another nested object, show its key, then recurse
+                        html += `<li style="margin-left:${indent}px;"><strong>${key}:</strong></li>`;
+                        html += iterateObject(obj[key], indent + 20);
                     } else if (Array.isArray(obj[key])) {
-                        analysisContent += `<li style="margin-left: ${indent}px;"><strong>${key}:</strong><ul>`;
+                        // If the value is an array, list each item
+                        html += `<li style="margin-left:${indent}px;"><strong>${key}:</strong><ul>`;
                         obj[key].forEach(item => {
                             if (typeof item === 'object') {
-                                iterateObject(item, indent + 20);
+                                html += iterateObject(item, indent + 20);
                             } else {
-                                analysisContent += `<li style="margin-left: ${indent + 20}px;">${item}</li>`;
+                                html += `<li style="margin-left:${indent + 20}px;">${item}</li>`;
                             }
                         });
-                        analysisContent += '</ul></li>';
+                        html += '</ul></li>';
                     } else {
-                        analysisContent += `<li style="margin-left: ${indent}px;"><strong>${key}:</strong> ${obj[key]}</li>`;
+                        // For simple key-value pairs, just show them as a list item
+                        html += `<li style="margin-left:${indent}px;"><strong>${key}:</strong> ${obj[key]}</li>`;
                     }
                 }
+                return html;
             }
 
-            iterateObject(cvAnalysis);
+            // 1) Build the HTML for CV Analysis
+            analysisContent += '<h4>CV Analysis</h4><ul>';
+            analysisContent += iterateObject(cvAnalysis);
             analysisContent += '</ul>';
 
-            // Display the analysis in the new section
+            // 2) Build the HTML for Matched Positions
+            analysisContent += '<h4>Matched Positions</h4><ul>';
+            analysisContent += iterateObject(similarPositions);
+            analysisContent += '</ul>';
+
+            // Finally, place everything into the CV Analysis section on the page
             const cvAnalysisSection = document.getElementById('cv_analysis_section');
             const cvAnalysisContent = document.getElementById('cv_analysis_content');
             cvAnalysisContent.innerHTML = analysisContent;
 
-            // Add the "Find Matching Positions" button
-            const matchButton = document.createElement('button');
-            matchButton.textContent = 'Find Matching Positions';
-            matchButton.onclick = () => findMatchingPositions();
-            cvAnalysisContent.appendChild(matchButton);
-
             cvAnalysisSection.style.display = 'block';
+
         }
 
         function findMatchingPositions() {
