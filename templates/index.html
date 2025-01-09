@@ -335,6 +335,22 @@
             border-color: #0056b3;
             color: #0056b3;
         }
+        /* Spinner Styles */
+        .spinner {
+            border: 6px solid #f3f3f3;
+            border-top: 6px solid #007bff;
+            border-radius: 50%;
+            width: 40px;
+            height: 40px;
+            animation: spin 1s linear infinite;
+            margin: 0 auto;
+            display: none; /* hidden by default */
+        }
+
+        @keyframes spin {
+            0% { transform: rotate(0deg); }
+            100% { transform: rotate(360deg); }
+        }
 
        
 
@@ -364,6 +380,7 @@
             <div id="drop_area" ondrop="handleDrop(event)" ondragover="handleDragOver(event)">
                 Drag and drop your CV here
             </div>
+            <div id="upload_spinner" class="spinner"></div>
             <p id="upload_feedback" style="display:none; color: #007bff;">Analyzing your Document, please wait...</p>
         </div>
         
@@ -670,39 +687,42 @@
         }
 
         function uploadCV(file) {
-            const formData = new FormData();
-            formData.append('cv', file);
-            formData.append('phone_number', phoneNumber);
+        const formData = new FormData();
+        formData.append('cv', file);
+        formData.append('phone_number', phoneNumber);
 
-            // Show the feedback message and hide the button and drop area
-            const feedbackElement = document.getElementById('upload_feedback');
-            const selectButton = document.querySelector('#cv_modal button');
-            const dropArea = document.getElementById('drop_area');
-            
-            feedbackElement.style.display = 'block';
-            selectButton.style.display = 'none';
-            dropArea.style.display = 'none';
+        // Show the feedback text and spinner; hide the button and drop area
+        const feedbackElement = document.getElementById('upload_feedback');
+        const uploadSpinner = document.getElementById('upload_spinner');
+        const selectButton = document.querySelector('#cv_modal button');
+        const dropArea = document.getElementById('drop_area');
 
-            fetch(`/documents/analyze_cv/${phoneNumber}`, {
-                method: 'POST',
-                body: formData
-            })
-            .then(response => response.json())
-            .then(data => {
-                if (data.analysis) {
-                    console.log('Analysis:', data.analysis);
-                    closeCvModal(); // Close the modal on success
-                    location.reload(); // Refresh the page
-                } else {
-                    alert('Failed to analyze CV.');
-                }
-            })
-            .catch(error => console.error('Error uploading CV:', error))
-            .finally(() => {
-                // Hide the feedback message regardless of success or failure
-                feedbackElement.style.display = 'none';
-            });
-        }
+        feedbackElement.style.display = 'block';
+        uploadSpinner.style.display = 'block';
+        selectButton.style.display = 'none';
+        dropArea.style.display = 'none';
+
+        fetch(`/documents/analyze_cv/${phoneNumber}`, {
+            method: 'POST',
+            body: formData
+        })
+        .then(response => response.json())
+        .then(data => {
+            if (data.analysis) {
+                console.log('Analysis:', data.analysis);
+                closeCvModal();
+                location.reload(); 
+            } else {
+                alert('Failed to analyze CV.');
+            }
+        })
+        .catch(error => console.error('Error uploading CV:', error))
+        .finally(() => {
+            // Hide the feedback text and spinner once finished
+            feedbackElement.style.display = 'none';
+            uploadSpinner.style.display = 'none';
+        });
+    }
     </script>
 </body>
 </html>

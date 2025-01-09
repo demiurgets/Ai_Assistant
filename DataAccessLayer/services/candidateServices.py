@@ -638,7 +638,7 @@ def match_cv_to_positions(phone_number):
                 for res, score in similar_documents:
                     doc_id = res.metadata.get("id")
                     content = res.page_content
-                    percent_match = (2.0 - score) / 2.0 * 100
+                    percent_match = ((2.0 - score) / 2.0 * 100)*2
 
                     score_rounded = round(score, 2)
                     percent_match_rounded = round(percent_match, 2)
