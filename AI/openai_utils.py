@@ -49,6 +49,6 @@ class OpenAIUtility:
             response = response_page.data[0].content[0].text.value
             
         else:
-            response = send_to_ai(query, thread_id, asstId)
+            response = self.send_to_ai(query, thread_id, asstId)
         return response
 
