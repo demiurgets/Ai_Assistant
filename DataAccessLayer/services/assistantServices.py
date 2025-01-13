@@ -48,56 +48,76 @@ db_session = scoped_session(SessionFactory)
 logging.basicConfig(level=logging.INFO)
 
 def assistant_get_positions(thread_id, text, asstId):
-    numbers = re.findall(r'\d+', text)
-    location_id = int(numbers[0]) if numbers else None
-      # If a valid location_id is found, retrieve positions for that location
-    response = ""
-    if location_id is not None:
-        positions = get_positions_by_location(location_id)
-        positions_json = json.dumps(
-            positions,
-            default=lambda obj: obj.isoformat() if isinstance(obj, datetime) else str(obj)  # Handle datetime serialization
-        )
-        print("Queried positions!")
-        query = (
-            "Here are all the positions for the location, please present each with a short summary to the user and remember the position ID of their choice: " + positions_json
-        )
-        openAiUtils = OpenAIUtility()
+    try:
+        numbers = re.findall(r'\d+', text)
+        location_id = int(numbers[0]) if numbers else None
+        # If a valid location_id is found, retrieve positions for that location
+        response = ""
+        if location_id is not None:
+            positions = get_positions_by_location(location_id)
+            positions_json = json.dumps(
+                positions,
+                default=lambda obj: obj.isoformat() if isinstance(obj, datetime) else str(obj)  # Handle datetime serialization
+            )
+            print("Queried positions!")
+            query = (
+                "Here are all the positions for the location, please present each with a short summary to the user and remember the position ID of their choice: " + positions_json
+            )
+            openAiUtils = OpenAIUtility()
 
-        
-        response = openAiUtils.send_to_ai(query, thread_id, asstId)
-        return response
-    else:
-        return response
+            
+            response = openAiUtils.send_to_ai(query, thread_id, asstId)
+            return response
+        else:
+            return response
+    except SQLAlchemyError as e:
+        db_session.rollback()
+        logging.error(f"Error retrieving positions from db: {e}")
+        return None
+    finally:
+        db_session.remove()
 
 
 def assistant_get_locations(thread_id, text, asstId):
-    numbers = re.findall(r'\d+', text)
-    position_id = int(numbers[0]) if numbers else None
-      # If a valid location_id is found, retrieve positions for that location
-    response = ""
-    if position_id is not None:
-        locations = get_locations_by_position(position_id)
-        locations_json = json.dumps(
-            locations,
-            default=lambda obj: obj.isoformat() if isinstance(obj, datetime) else str(obj)  # Handle datetime serialization
-        )
-        print("Queried locations!")
-        query = (
-            "Here are all the locations for the position, please ask the user where they live and send a short summary of near by locations and remember the location ID of their choice. if they want to browse different positions just resend the trigger: " + locations_json
-        )
-        openAiUtils = OpenAIUtility()
+    try:
+        numbers = re.findall(r'\d+', text)
+        position_id = int(numbers[0]) if numbers else None
+        # If a valid location_id is found, retrieve positions for that location
+        response = ""
+        if position_id is not None:
+            locations = get_locations_by_position(position_id)
+            locations_json = json.dumps(
+                locations,
+                default=lambda obj: obj.isoformat() if isinstance(obj, datetime) else str(obj)  # Handle datetime serialization
+            )
+            print("Queried locations!")
+            query = (
+                "Here are all the locations for the position, please ask the user where they live and send a short summary of nearby locations. remember the location ID of their choice. if they want to browse different positions just resend the trigger: " + locations_json
+            )
+            openAiUtils = OpenAIUtility()
 
-        
-        response = openAiUtils.send_to_ai(query, thread_id, asstId)
-        return response
-    else:
-        return response
+            response = openAiUtils.send_to_ai(query, thread_id, asstId)
+            return response
+        else:
+            return response
+    except SQLAlchemyError as e:
+        db_session.rollback()
+        logging.error(f"Error retrieving locations from db: {e}")
+        return None
+    finally:
+        db_session.remove()
 
     
 
 def getCvAnalyzer():
-    return db_session.query(Assistants).filter(Assistants.name.like('%Cv_analyzer%')).first().assistant_id
+    try:
+        return db_session.query(Assistants).filter(Assistants.name.like('%Cv_analyzer%')).first().assistant_id
+    except SQLAlchemyError as e:
+        db_session.rollback()
+        logging.error(f"Error cv analyzer from db: {e}")
+        return None
+    finally:
+        db_session.remove()
 
 #will change whether the greeter convo starts with locations and queries position, or vice versa
 def toggle_instructions(text: str) -> str:
@@ -138,3 +158,5 @@ def toggle_greeter_direction():
     except Exception as e:
         print(f"Error toggling greeter direction: {e}")
         return None
+    finally:
+        db_session.remove()
