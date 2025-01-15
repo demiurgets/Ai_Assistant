@@ -60,6 +60,7 @@ def position_to_dict(position):
         "created_date": position.date_created,
         "updated_date": position.date_updated,
         "is_active": position.is_active,
+        "working_hours": position.working_hours
     }
 
 
@@ -80,6 +81,8 @@ def position_with_locations_to_dict(position, location_data):
         "updated_date": position.date_updated,
         "locations": location_data,
         "is_active": position.is_active,
+        "working_hours": position.working_hours
+
     }
 
 
@@ -198,6 +201,7 @@ def create_position(position_data):
             location_type=position_data.get("location_type"),
             is_active=True,
             position_embedding=position_embedding,
+            working_hours = position_data.get("working_hours")
         )
 
         db_session.add(new_position)

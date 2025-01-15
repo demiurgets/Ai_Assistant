@@ -108,6 +108,7 @@ def candidate_position_location_to_dict(candidate, position_data, location,posit
             "job_type": position.job_type,
             "location_type": position.location_type,
             "is_active": position.is_active,
+            "working_hours": position.working_hours
         },
         
         "location": {
