@@ -6,6 +6,8 @@ from dotenv import load_dotenv
 import requests
 from sqlalchemy.exc import SQLAlchemyError
 import json
+from uuid import UUID
+import uuid
 from DataAccessLayer.createModels import createModelsMain
 from DataAccessLayer.createDatabaseORM import createDbMain
 from Injestor.pdf_reader import analyze_CV
@@ -52,7 +54,12 @@ from DataAccessLayer.services.positionServices import (
 from DataAccessLayer.services.assistantServices import (
     toggle_greeter_direction
 )
-
+from DataAccessLayer.services.customerServices import ( 
+    get_customer_settings, 
+    get_all_customers, 
+    create_customer, 
+    update_customer_setting, 
+    delete_customer )
 
 
 app = Flask(__name__)
@@ -392,6 +399,87 @@ def get_applicants_in_progress_endpoint():
     candidate_data = get_applicants_in_progress()
     #print(candidate_data)
     return jsonify(candidate_data)
+
+# 1. Get All Customers
+@app.route('/customers', methods=['GET'])
+def get_customers():
+    auth_error = validate_token()
+    if auth_error:
+        return auth_error
+    try:
+        customers = get_all_customers()
+        return jsonify({"data": customers}), 200
+    except SQLAlchemyError as e:
+        return jsonify({"error": f"Error fetching customers: {e}"}), 500
+
+# 2. Get Customer Settings by Customer ID
+@app.route('/customers/<uuid:customer_id>/settings', methods=['GET'])
+def get_customer_settings_by_id(customer_id: UUID):
+    auth_error = validate_token()
+    if auth_error:
+        return auth_error
+    try:
+        settings = get_customer_settings(customer_id)
+        if settings:
+            return jsonify({"data": settings}), 200
+        return jsonify({"error": "Customer settings not found"}), 404
+    except SQLAlchemyError as e:
+        return jsonify({"error": f"Error fetching settings: {e}"}), 500
+
+# 3. Create a New Customer with Settings
+@app.route('/customers', methods=['POST'])
+def add_customer():
+    auth_error = validate_token()
+    if auth_error:
+        return auth_error
+    try:
+        customer_data = request.json.get("customer")
+        settings_data = request.json.get("settings", {})
+
+        if not customer_data or "name" not in customer_data:
+            return jsonify({"error": "Customer data must include 'name'"}), 400
+
+        new_customer = create_customer(customer_data, settings_data)
+        if new_customer:
+            return jsonify({"message": "Customer created successfully", "data": new_customer}), 201
+        return jsonify({"error": "Failed to create customer"}), 500
+    except SQLAlchemyError as e:
+        return jsonify({"error": f"Error creating customer: {e}"}), 500
+
+# 4. Update a Customer's Setting
+@app.route('/customers/<uuid:customer_id>/settings', methods=['PUT'])
+def update_customer_setting_by_id(customer_id: UUID):
+    auth_error = validate_token()
+    if auth_error:
+        return auth_error
+    try:
+        update_data = request.json
+        setting_name = update_data.get("setting_name")
+        new_value = update_data.get("new_value")
+
+        if not setting_name or new_value is None:
+            return jsonify({"error": "Both 'setting_name' and 'new_value' are required"}), 400
+
+        updated = update_customer_setting(customer_id, setting_name, new_value)
+        if updated:
+            return jsonify({"message": "Customer setting updated successfully"}), 200
+        return jsonify({"error": "Failed to update setting or setting not found"}), 404
+    except SQLAlchemyError as e:
+        return jsonify({"error": f"Error updating customer setting: {e}"}), 500
+
+# 5. Delete a Customer by ID
+@app.route('/customers/<uuid:customer_id>', methods=['DELETE'])
+def delete_customer_by_id(customer_id: UUID):
+    auth_error = validate_token()
+    if auth_error:
+        return auth_error
+    try:
+        deleted = delete_customer(customer_id)
+        if deleted:
+            return jsonify({"message": "Customer deleted successfully"}), 200
+        return jsonify({"error": "Failed to delete customer or customer not found"}), 404
+    except SQLAlchemyError as e:
+        return jsonify({"error": f"Error deleting customer: {e}"}), 500
 
 
 @app.route('/documents/analyze_cv/<phone_number>', methods=['POST'])
