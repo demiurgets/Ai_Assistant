@@ -7,7 +7,7 @@ importlib-metadata==8.0.0
 importlib-resources==6.4.0
 jaraco.collections==5.1.0
 moviepy==1.0.3
-openai
+openai==1.58.1
 pip-chill==1.0.3
 platformdirs==4.2.2
 pypdf2==3.0.1
@@ -20,9 +20,12 @@ whisper==1.1.10
 requests==2.32.3
 appinsights==0.13.0
 gunicorn
-bcrypt
+bcrypt==4.2.1
 psycopg2-binary==2.9.10
 tiktoken==0.8.0
 pgvector==0.3.6
 langchain-community==0.3.13
-langchain-openai
+langchain-openai==0.2.14
+openpyxl==3.1.5
+pandas==2.2.3
+numpy==1.26.4

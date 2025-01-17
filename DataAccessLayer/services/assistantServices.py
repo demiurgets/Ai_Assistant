@@ -84,7 +84,7 @@ def assistant_get_locations(thread_id, text, asstId):
         )
         print("Queried locations!")
         query = (
-            "Here are all the locations for the position, please present each with a short summary to the user and remember the location ID of their choice. if they want to browse different positions just resend the trigger: " + locations_json
+            "Here are all the locations for the position, please ask the user where they live and send a short summary of near by locations and remember the location ID of their choice. if they want to browse different positions just resend the trigger: " + locations_json
         )
         openAiUtils = OpenAIUtility()
 

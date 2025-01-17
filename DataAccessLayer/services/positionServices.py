@@ -60,6 +60,7 @@ def position_to_dict(position):
         "created_date": position.date_created,
         "updated_date": position.date_updated,
         "is_active": position.is_active,
+        "working_hours": position.working_hours
     }
 
 
@@ -80,6 +81,8 @@ def position_with_locations_to_dict(position, location_data):
         "updated_date": position.date_updated,
         "locations": location_data,
         "is_active": position.is_active,
+        "working_hours": position.working_hours
+
     }
 
 
@@ -198,6 +201,7 @@ def create_position(position_data):
             location_type=position_data.get("location_type"),
             is_active=True,
             position_embedding=position_embedding,
+            working_hours = position_data.get("working_hours")
         )
 
         db_session.add(new_position)
@@ -240,6 +244,7 @@ def create_position(position_data):
             for lp in locations_positions
         ]
 
+        positions_json = update_position_context()
         return position_with_locations_to_dict(new_position, location_data)
 
     except SQLAlchemyError as e:
@@ -363,6 +368,7 @@ def update_position(position_id, update_data):
             }
             for lp in updated_locations_positions
         ]
+        positions_json = update_position_context()
 
         return position_with_locations_to_dict(
             position, location_data
@@ -404,6 +410,7 @@ def delete_position(position_id):
 
         position.is_active = False
         db_session.commit()
+        positions_json = update_position_context()
         return True
     except SQLAlchemyError as e:
         print(f"Error updating is_active for position: {e}")
@@ -626,4 +633,4 @@ def initialize_position_embeddings():
 
 
 # Generate the dynamic JSON for job positions
-# positions_json = update_position_context()
+#positions_json = update_position_context()
