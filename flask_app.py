@@ -17,7 +17,7 @@ from DataAccessLayer.services.candidateServices import (
     update_candidate,
     delete_candidate,
     update_candidate_status,
-    delete_by_phone,
+    delete_by_candidate_identifier,
     get_candidates_by_status,
     load_issues,
     save_new_issue,
@@ -96,13 +96,13 @@ def get_issues():
 def send_message():
     data = request.json
     message = data.get('message')
-    phone_number = data.get('phone_number')
+    candidate_identifier = data.get('candidate_identifier')
 
-    if message and phone_number:
-        response = recieve_message(message, phone_number)
+    if message and candidate_identifier:
+        response = recieve_message(message, candidate_identifier)
         return jsonify({'response': response})
     else:
-        return jsonify({'error': 'Invalid message or phone number'}), 400
+        return jsonify({'error': 'Invalid message or candidate_identifier'}), 400
 
 
 # Endpoint for webhook verification
@@ -369,33 +369,33 @@ def update_existing_candidate_status(candidate_id, new_status):
     except SQLAlchemyError as e:
         return jsonify({"error": f"Error updating candidate: {e}"}), 500 
 
-@app.route('/conversation_by_phone/<phone_number>', methods=['GET'])
-def find_conversation_by_phone(phone_number):
-    # Call the function to find the candidate by phone number
-    candidate_data = find_or_create_candidate_json(phone_number)
+@app.route('/conversation_by_candidate_identifier/<candidate_identifier>', methods=['GET'])
+def find_conversation_by_candidate_identifier(candidate_identifier):
+    # Call the function to find the candidate by candidate identifier
+    candidate_data = find_or_create_candidate_json(candidate_identifier)
     #print(candidate_data)
     return jsonify(candidate_data)
 
-#  Delete candidate in screening by phone number
-@app.route('/candidates/phone/<phone_number>', methods=['DELETE'])
-def delete_by_phone_endpoint(phone_number):
+#  Delete candidate in screening by candidate identifier
+@app.route('/candidates/candidate_identifier/<candidate_identifier>', methods=['DELETE'])
+def delete_by_candidate_identifier_endpoint(candidate_identifier):
     try:
-        return delete_by_phone(phone_number)
+        return delete_by_candidate_identifier(candidate_identifier)
         
     except Exception as e:
         return jsonify({"error": f"Failed to delete candidate screening data: {str(e)}"}), 500
 
 
-@app.route('/candidates/in_progress', methods=['GET'])
-def get_applicants_in_progress_endpoint():
-    # Call the function to find the candidate by phone number
-    candidate_data = get_applicants_in_progress()
-    #print(candidate_data)
-    return jsonify(candidate_data)
+#@app.route('/candidates/in_progress', methods=['GET'])
+#def get_applicants_in_progress_endpoint():
+#    # Call the function to find the candidate by candidate_identifier
+#    candidate_data = get_applicants_in_progress()
+#    #print(candidate_data)
+#    return jsonify(candidate_data)
 
 
-@app.route('/documents/analyze_cv/<phone_number>', methods=['POST'])
-def analyze_cv_endpoint(phone_number):
+@app.route('/documents/analyze_cv/<candidate_identifier>', methods=['POST'])
+def analyze_cv_endpoint(candidate_identifier):
     if 'cv' not in request.files:
         return jsonify({'error': 'No file part'}), 400
 
@@ -408,17 +408,17 @@ def analyze_cv_endpoint(phone_number):
         file_path = f"Stored_context/uploaded_CVs/{file.filename}"
         file.save(file_path)
 
-        # Call the analyze_CV function with the file path and phone number
-        analysis = analyze_CV(file_path, phone_number)
+        # Call the analyze_CV function with the file path and candidate identifier
+        analysis = analyze_CV(file_path, candidate_identifier)
         #print(analysis)
         return jsonify({'analysis': analysis})
 
     return jsonify({'error': 'Invalid file type'}), 400
 
 
-@app.route('/documents/match_cv/<phone_number>', methods=['GET'])
-def match_cv_endpoint(phone_number):
-    match_response = match_cv_to_positions(phone_number)
+@app.route('/documents/match_cv/<candidate_identifier>', methods=['GET'])
+def match_cv_endpoint(candidate_identifier):
+    match_response = match_cv_to_positions(candidate_identifier)
     print(match_response)
     return jsonify({"matchingPositions": match_response})
 
@@ -753,7 +753,7 @@ def messenger_hook():
 
                     # Check if the received message contains text
                     if 'text' in receivedMessage:
-                        response = {"text": 'Deployed version. You just sent -> {}'.format(receivedMessage['text'])}
+                        response = {"text": '{}'.format(recieve_message(receivedMessage['text'], senderPsid))}
                     else:
                         response = {"text": 'This chatbot only accepts text messages'}
 

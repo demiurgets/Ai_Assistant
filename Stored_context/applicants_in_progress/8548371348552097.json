@@ -1,0 +1,94 @@
+[
+    {
+        "candidate_identifier": "8548371348552097",
+        "thread_id": "thread_eBwnHxCTDfo0Yx8uPXSB6JZx",
+        "assistant_stage": 0,
+        "first_contact_timestamp": "2025-01-22T17:03:31.833217",
+        "conversation": [
+            {
+                "message_id": 1,
+                "timestamp": "2025-01-22T17:03:39.674498",
+                "message": "Hola",
+                "role": "external_user"
+            },
+            {
+                "message_id": 2,
+                "timestamp": "2025-01-22T17:03:39.674498",
+                "message": "Hola bienvenid@ a Ai27, me encantar\u00e1 acompa\u00f1arte en tu proceso de aplicaci\u00f3n a nuestras vacantes.\n\nFavor de leer nuestro aviso de privacidad: \n\nhttps://www.ai27.com/Aviso.html\n\nAl continuar con la conversaci\u00f3n aceptas haber le\u00eddo y estar de acuerdo con nuestros t\u00e9rminos y condiciones.\n\n(Recuerda que para todas nuestras posiciones es INDISPENSABLE ser mayor de EDAD). \n\n\u00bfPodr\u00edas decirme si tienes m\u00e1s de 18 a\u00f1os?",
+                "role": "assistant"
+            },
+            {
+                "message_id": 3,
+                "timestamp": "2025-01-22T17:03:59.129557",
+                "message": "23 a\u00f1os",
+                "role": "external_user"
+            },
+            {
+                "message_id": 4,
+                "timestamp": "2025-01-22T17:03:59.129557",
+                "message": "\u00a1Perfecto! Gracias por confirmarlo. Ahora, \u00bfpodr\u00edas decirme en qu\u00e9 ciudad y estado te encuentras para mostrarte las ubicaciones cercanas donde podr\u00edas aplicar?",
+                "role": "assistant"
+            },
+            {
+                "message_id": 5,
+                "timestamp": "2025-01-22T17:04:13.261806",
+                "message": "vivo en gdl",
+                "role": "external_user"
+            },
+            {
+                "message_id": 6,
+                "timestamp": "2025-01-22T17:04:13.261806",
+                "message": "\u00a1Genial! En Guadalajara, Jalisco, tenemos las siguientes ubicaciones disponibles:\n\n1. TECHNICOLOR GUADALAJARA - Pich\u00f3n 1383, Morelos, 44910\n2. TEQUILA PATRON - Pich\u00f3n 1383, Morelos, 44910\n3. NADRO - Pich\u00f3n 1383, Morelos, 44910\n4. CENTRAL CARGO - Pich\u00f3n 1383, Morelos, 44910\n5. BASE GUADALAJARA - Pich\u00f3n 1383, Morelos, 44910\n\nPor favor, ind\u00edcame cu\u00e1l de estas ubicaciones te interesa para continuar con el proceso.",
+                "role": "assistant"
+            },
+            {
+                "message_id": 7,
+                "timestamp": "2025-01-22T17:04:42.137560",
+                "message": "technicolor",
+                "role": "external_user"
+            },
+            {
+                "message_id": 8,
+                "timestamp": "2025-01-22T17:04:42.137560",
+                "message": "technicolor",
+                "role": "assistant"
+            },
+            {
+                "message_id": 9,
+                "timestamp": "2025-01-22T17:04:48.756625",
+                "message": "technicolor",
+                "role": "external_user"
+            },
+            {
+                "message_id": 10,
+                "timestamp": "2025-01-22T17:04:48.756625",
+                "message": "\u00a1Excelente elecci\u00f3n! Ahora, para continuar con el proceso, por favor proporci\u00f3name tu nombre completo, experiencia laboral, el nivel m\u00e1s alto de educaci\u00f3n que has completado, c\u00f3mo te enteraste del trabajo, y cu\u00e1ndo te gustar\u00eda tener una entrevista (de lunes a viernes a las 9am, 10am, 11am o 12pm). Adem\u00e1s, necesitar\u00e9 tu direcci\u00f3n de correo electr\u00f3nico.",
+                "role": "assistant"
+            },
+            {
+                "message_id": 11,
+                "timestamp": "2025-01-22T17:05:39.921620",
+                "message": "fernando franco, chofer 2 anios, secundaria, linkedin lunes 9 am",
+                "role": "external_user"
+            },
+            {
+                "message_id": 12,
+                "timestamp": "2025-01-22T17:05:39.921620",
+                "message": "\u00a1Gracias, Fernando! Aqu\u00ed est\u00e1 la informaci\u00f3n que me proporcionaste:\n\n- **Nombre completo:** Fernando Franco\n- **Experiencia laboral:** 2 a\u00f1os como chofer\n- **Nivel de educaci\u00f3n:** Secundaria\n- **C\u00f3mo te enteraste del trabajo:** LinkedIn\n- **Fecha y hora de la entrevista:** Lunes a las 9 am\n\nAhora, por favor, proporci\u00f3name tu direcci\u00f3n de correo electr\u00f3nico para completar el proceso.",
+                "role": "assistant"
+            },
+            {
+                "message_id": 13,
+                "timestamp": "2025-01-22T17:05:56.396024",
+                "message": "example@example.com",
+                "role": "external_user"
+            },
+            {
+                "message_id": 14,
+                "timestamp": "2025-01-22T17:05:56.396024",
+                "message": "\u00a1Perfecto, Fernando! Aqu\u00ed tienes un resumen de la informaci\u00f3n que has proporcionado:\n\n- **Nombre completo:** Fernando Franco\n- **Experiencia laboral:** 2 a\u00f1os como chofer\n- **Nivel de educaci\u00f3n:** Secundaria\n- **C\u00f3mo te enteraste del trabajo:** LinkedIn\n- **Fecha y hora de la entrevista:** Lunes a las 9 am\n- **Correo electr\u00f3nico:** example@example.com\n\n\u00bfHay algo que te gustar\u00eda cambiar o est\u00e1 todo correcto?",
+                "role": "assistant"
+            }
+        ]
+    }
+]
