@@ -34,4 +34,5 @@ class Candidates(Base):
     files_id = Column(Integer, ForeignKey('files.id'), nullable=True)
     conversation = Column(Text, nullable=True)
     lead_source_id = Column(Integer, nullable=True)
+    candidate_identifier = Column(String(20), nullable=True)
 
