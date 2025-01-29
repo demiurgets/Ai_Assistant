@@ -1,0 +1,82 @@
+[
+    {
+        "candidate_identifier": "8548371348552097",
+        "thread_id": "thread_MkBtUs3zc2mmBd1y4mfzqhP5",
+        "assistant_stage": 1,
+        "first_contact_timestamp": "2025-01-24T13:49:08.396772",
+        "conversation": [
+            {
+                "message_id": 1,
+                "timestamp": "2025-01-24T13:49:16.204649",
+                "message": "Hola",
+                "role": "external_user"
+            },
+            {
+                "message_id": 2,
+                "timestamp": "2025-01-24T13:49:16.204649",
+                "message": "Hola bienvenid@ a Ai27, me encantar\u00e1 acompa\u00f1arte en tu proceso de aplicaci\u00f3n a nuestras vacantes.\n\nFavor de leer nuestro aviso de privacidad: \n\nhttps://www.ai27.com/Aviso.html\n\nAl continuar con la conversaci\u00f3n aceptas haber le\u00eddo y estar de acuerdo con nuestros t\u00e9rminos y condiciones.\n\n(Recuerda que para todas nuestras posiciones es INDISPENSABLE ser mayor de EDAD). \n\n\u00bfPodr\u00edas confirmarme si tienes m\u00e1s de 18 a\u00f1os?",
+                "role": "assistant"
+            },
+            {
+                "message_id": 3,
+                "timestamp": "2025-01-24T13:49:31.679750",
+                "message": "tengo 23 a\u00f1os, vivo en guadalajara",
+                "role": "external_user"
+            },
+            {
+                "message_id": 4,
+                "timestamp": "2025-01-24T13:49:31.679750",
+                "message": "\u00a1Perfecto! Gracias por confirmarlo. En Guadalajara, tenemos varias ubicaciones disponibles. Aqu\u00ed est\u00e1n las opciones:\n\n1. TECHNICOLOR GUADALAJARA\n   - Direcci\u00f3n: Pich\u00f3n 1383, Morelos\n   - C\u00f3digo Postal: 44910\n\n2. TEQUILA PATRON\n   - Direcci\u00f3n: Pich\u00f3n 1383, Morelos\n   - C\u00f3digo Postal: 44910\n\n3. NADRO\n   - Direcci\u00f3n: Pich\u00f3n 1383, Morelos\n   - C\u00f3digo Postal: 44910\n\n4. CENTRAL CARGO\n   - Direcci\u00f3n: Pich\u00f3n 1383, Morelos\n   - C\u00f3digo Postal: 44910\n\n5. BASE GUADALAJARA\n   - Direcci\u00f3n: Pich\u00f3n 1383, Morelos\n   - C\u00f3digo Postal: 44910\n   - Tel\u00e9fono: 789 890 9900\n\n\u00bfEn cu\u00e1l de estas ubicaciones te gustar\u00eda aplicar?",
+                "role": "assistant"
+            },
+            {
+                "message_id": 5,
+                "timestamp": "2025-01-24T13:49:55.438610",
+                "message": "Technicolor",
+                "role": "external_user"
+            },
+            {
+                "message_id": 6,
+                "timestamp": "2025-01-24T13:49:55.438610",
+                "message": "Aqu\u00ed tienes la posici\u00f3n disponible en TECHNICOLOR GUADALAJARA:\n\n1. **CHOFER Custodio 24X24**\n   - **Descripci\u00f3n:** En Ai27, somos pioneros en el uso de Inteligencia Artificial para el sector de seguridad log\u00edstica. Buscamos custodios responsables para proteger las unidades de carga durante su traslado en rutas asignadas. Es indispensable contar con secundaria concluida, licencia de conducir vigente, manejo de auto est\u00e1ndar, disponibilidad para viajar y disposici\u00f3n para ex\u00e1menes de control y confianza, incluido antidoping.\n   - **Responsabilidades Clave:** Mantener comunicaci\u00f3n con el Centro de Monitoreo y con clientes, respetar el protocolo de seguridad establecido, realizar validaciones de transporte, acompa\u00f1amiento de origen a destino, entre otras.\n   - **Calificaciones:** Secundaria concluida, licencia de conducir vigente, saber manejar auto est\u00e1ndar, disponibilidad para viajar.\n   - **Beneficios:** Vi\u00e1ticos de $180 x 24 hrs, IMSS, Infonavit, vacaciones, prima vacacional, utilidades y aguinaldo, seguro de vida, bonos por permanencia, entre otros.\n   - **Salario:** $9,054 MXN mensuales.\n   - **Tipo de Trabajo:** Tiempo completo, h\u00edbrido.\n   - **Horario de Trabajo:** 24 horas x 24 horas.\n\n\u00bfTe gustar\u00eda aplicar para esta posici\u00f3n? Si es as\u00ed, por favor confirma para continuar con el proceso.",
+                "role": "assistant"
+            },
+            {
+                "message_id": 7,
+                "timestamp": "2025-01-24T13:50:10.388135",
+                "message": "Me interesa",
+                "role": "external_user"
+            },
+            {
+                "message_id": 8,
+                "timestamp": "2025-01-24T13:50:10.388135",
+                "message": "\u00a1Excelente elecci\u00f3n! Ahora, para continuar con tu aplicaci\u00f3n, necesitar\u00e9 algunos datos adicionales:\n\n1. \u00bfCu\u00e1l es tu nombre completo?\n2. \u00bfTienes experiencia previa en un puesto similar?\n3. \u00bfCu\u00e1l es el nivel m\u00e1s alto de educaci\u00f3n que has completado?\n4. \u00bfC\u00f3mo te enteraste de esta oferta de trabajo?\n5. \u00bfCu\u00e1ndo te gustar\u00eda tener la entrevista? (Recuerda que puede ser de lunes a viernes a las 9am, 10am, 11am o 12pm).\n6. \u00bfCu\u00e1l es tu direcci\u00f3n de correo electr\u00f3nico?\n\nPor favor, proporci\u00f3name esta informaci\u00f3n para que podamos avanzar.",
+                "role": "assistant"
+            },
+            {
+                "message_id": 9,
+                "timestamp": "2025-01-24T13:50:58.195681",
+                "message": "Rocky balboa, chofer por 10 annios, secundaria, linkedin, lunes 9am, rocky.balboa@example.com",
+                "role": "external_user"
+            },
+            {
+                "message_id": 10,
+                "timestamp": "2025-01-24T13:50:58.195681",
+                "message": "\u00a1Gracias, Rocky! Aqu\u00ed est\u00e1 la informaci\u00f3n que tengo hasta ahora:\n\n- **Nombre Completo:** Rocky Balboa\n- **Experiencia:** Chofer por 10 a\u00f1os\n- **Educaci\u00f3n:** Secundaria\n- **Fuente de Informaci\u00f3n:** LinkedIn\n- **Entrevista Programada:** Lunes a las 9am\n- **Correo Electr\u00f3nico:** rocky.balboa@example.com\n\n\u00bfHay algo que te gustar\u00eda cambiar o est\u00e1 todo correcto? Una vez que confirmes, procederemos con la validaci\u00f3n de tus documentos.",
+                "role": "assistant"
+            },
+            {
+                "message_id": 11,
+                "timestamp": "2025-01-24T13:51:18.600891",
+                "message": "todo bien",
+                "role": "external_user"
+            },
+            {
+                "message_id": 12,
+                "timestamp": "2025-01-24T13:51:18.600891",
+                "message": "\u00a1perfecto, rocky! continuaremos con la validaci\u00f3n de tus documentos.",
+                "role": "assistant"
+            }
+        ]
+    }
+]

@@ -240,6 +240,8 @@ def create_candidate(candidate_data):
             profile_img_url=candidate_data.get("profile_img_url"),
             files_id=candidate_data.get("files_id"),
             conversation=candidate_data.get("conversation"),
+            candidate_identifier=candidate_data.get("candidate_identifier"),
+
         )
         db_session.add(new_candidate)
         db_session.commit()
@@ -310,17 +312,17 @@ def delete_candidate(candidate_id):
             logging.warning(f"Candidate with ID {candidate_id} not found.")
             return False
 
-        phone_number = candidate.phone
+        candidate_identifier = candidate.candidate_identifier
         
         db_session.delete(candidate)
         db_session.commit()
         logging.info(f"Candidate with ID {candidate_id} deleted successfully.")
 
         try:
-            delete_by_phone(phone_number)
-            logging.info(f"Associated data with phone number {phone_number} deleted successfully.")
+            delete_by_candidate_identifier(candidate_identifier)
+            logging.info(f"Associated data with candidate identifier {candidate_identifier} deleted successfully.")
         except Exception as e:
-            logging.warning(f"Failed to delete associated data for phone number {phone_number}: {e}")
+            logging.warning(f"Failed to delete associated data for candidate identifier {candidate_identifier}: {e}")
 
         return True
     except SQLAlchemyError as e:
@@ -353,7 +355,7 @@ def update_candidate_status(candidate_id, new_status):
         # Limpiar la sesión
         db_session.remove()
 
-def get_corresponding_assistant(phone_number):
+def get_corresponding_assistant(candidate_identifier):
     """
     Determines the assistant ID based on the candidate's assistant_stage.
     If the assistant_stage is 0, it queries for an assistant with 'greeter' in the name.
@@ -363,11 +365,11 @@ def get_corresponding_assistant(phone_number):
     """
     try:
         # Load JSON data for the candidate
-        data = load_candidates_json(phone_number)
-        candidate = next((c for c in data if c["phone_number"] == phone_number), None)
+        data = load_candidates_json(candidate_identifier)
+        candidate = next((c for c in data if c["candidate_identifier"] == candidate_identifier), None)
         
         if not candidate:
-            print(f"No candidate found for phone number {phone_number}.")
+            print(f"No candidate found for candidate identifier {candidate_identifier}.")
             return None
         
         # Get the candidate's status
@@ -381,7 +383,7 @@ def get_corresponding_assistant(phone_number):
         elif assistant_stage == 2:
             assistant = db_session.query(Assistants).filter(Assistants.name.like('%review%')).first()
         else:
-            print(f"Unhandled assistant_stage: {assistant_stage} for phone number {phone_number}.")
+            print(f"Unhandled assistant_stage: {assistant_stage} for candidate identifier {candidate_identifier}.")
             return None
         
         if assistant:
@@ -399,13 +401,13 @@ def get_corresponding_assistant(phone_number):
         db_session.remove()
 
 
-def upgrade_candidate(phone_number, candidate_data):
-    # Load existing JSON data for the given phone number
-    data = load_candidates_json(phone_number)
+def upgrade_candidate(candidate_identifier, candidate_data):
+    # Load existing JSON data for the given candidate identifier
+    data = load_candidates_json(candidate_identifier)
     
     # Find the candidate in the JSON file
     for candidate in data:
-        if candidate["phone_number"] == phone_number:
+        if candidate["candidate_identifier"] == candidate_identifier:
             # Increment the status field or initialize it if not present
             candidate["assistant_stage"] = candidate.get("assistant_stage", 0) + 1
             
@@ -425,7 +427,7 @@ def upgrade_candidate(phone_number, candidate_data):
             assistant_response = openAiUtils.send_to_ai(
                 message, 
                 new_thread_id, 
-                get_corresponding_assistant(phone_number)
+                get_corresponding_assistant(candidate_identifier)
             )
             
             # Update the candidate's thread ID
@@ -434,22 +436,22 @@ def upgrade_candidate(phone_number, candidate_data):
             print(f"Candidate upgraded. New assistant_stage: {candidate['assistant_stage']}, New thread ID: {new_thread_id}")
             
             # Save the updated JSON data
-            save_candidates_json(data, phone_number)
+            save_candidates_json(data, candidate_identifier)
             return candidate  # Return updated candidate for reference
     
     # If no candidate is found, create a new one
-    print(f"No candidate found for phone number {phone_number}. Creating a new candidate.")
-    new_candidate = find_or_create_candidate_json(phone_number)
+    print(f"No candidate found for candidate_identifier {candidate_identifier}. Creating a new candidate.")
+    new_candidate = find_or_create_candidate_json(candidate_identifier)
     new_candidate["status"] = 1  # Initialize status for a new candidate
-    save_candidates_json(data, phone_number)
+    save_candidates_json(data, candidate_identifier)
     return new_candidate
 
-#Searches db for phone and deletes, then deletes jsons
+#Searches db for candidate identifier and deletes, then deletes jsons
 
 
-def delete_by_phone(phone_number):
+def delete_by_candidate_identifier(candidate_identifier):
     try:
-        candidates_to_delete = db_session.query(Candidates).filter(Candidates.phone == phone_number).all()
+        candidates_to_delete = db_session.query(Candidates).filter(Candidates.candidate_identifier == candidate_identifier).all()
         
         # Check if there are any candidates to delete
         if candidates_to_delete:
@@ -458,12 +460,12 @@ def delete_by_phone(phone_number):
             db_session.commit()
 
         # Now delete the corresponding JSON file(s) in the applicants_in_progress folder
-        json_file_path = os.path.join("Stored_context/applicants_in_progress", f"{phone_number}.json")
+        json_file_path = os.path.join("Stored_context/applicants_in_progress", f"{candidate_identifier}.json")
         if os.path.exists(json_file_path):
             os.remove(json_file_path)
-            return jsonify({"message": f"All candidate data for phone number {phone_number} successfully deleted."}), 200
+            return jsonify({"message": f"All candidate data for candidate identifier {candidate_identifier} successfully deleted."}), 200
         else:
-            return jsonify({"error": f"No screening data found for phone number {phone_number}."}), 404
+            return jsonify({"error": f"No screening data found for candidate identifier {candidate_identifier}."}), 404
             
     except SQLAlchemyError as e:
         db_session.rollback()
@@ -491,13 +493,13 @@ def save_new_issue(data):
     ISSUE_FILE_PATH = "Stored_context/issue_reports/candidate_issues.json"
 
     issue = data.get('issue')
-    phone_number = data.get('phone_number')
+    candidate_identifier = data.get('candidate_identifier')
 
-    if not issue or not phone_number:
-        return jsonify({'error': 'Issue and phone number are required'}), 400
+    if not issue or not candidate_identifier:
+        return jsonify({'error': 'Issue and candidate identifier are required'}), 400
 
     new_issue = {
-        'phone_number': phone_number,
+        'candidate_identifier': candidate_identifier,
         'issue': issue,
         'timestamp': request.args.get('timestamp', None)  # Optional timestamp
     }
@@ -518,9 +520,9 @@ def save_new_issue(data):
 
 
 
-def load_candidates_json(phone_number):
+def load_candidates_json(candidate_identifier):
     # Load JSON data from file or create an empty list if the file doesn't exist
-    json_file_path = "Stored_context/applicants_in_progress/" + phone_number + ".json"
+    json_file_path = "Stored_context/applicants_in_progress/" + candidate_identifier + ".json"
 
     if os.path.exists(json_file_path):
         with open(json_file_path, 'r') as f:
@@ -532,18 +534,18 @@ def load_candidates_json(phone_number):
                 return []  # If the JSON is not a list, return an empty list
     return []
 
-def save_candidates_json(data, phone_number):
-    json_file_path = "Stored_context/applicants_in_progress/" + phone_number + ".json"
+def save_candidates_json(data, candidate_identifier):
+    json_file_path = "Stored_context/applicants_in_progress/" + candidate_identifier + ".json"
 
     # Save JSON data to file
     with open(json_file_path, 'w') as f:
         json.dump(data, f, indent=4)
 
-def update_conversation(phone_number, user_message, assistant_response):
-    data = load_candidates_json(phone_number)
+def update_conversation(candidate_identifier, user_message, assistant_response):
+    data = load_candidates_json(candidate_identifier)
     print("adding new info for cv")
     for candidate in data:
-        if candidate["phone_number"] == phone_number:
+        if candidate["candidate_identifier"] == candidate_identifier:
             # Get the current message count and increment for each new message
             message_id = len(candidate["conversation"]) + 1
             
@@ -560,16 +562,16 @@ def update_conversation(phone_number, user_message, assistant_response):
                 "role": "assistant"
             })
             break
-    save_candidates_json(data, phone_number)
+    save_candidates_json(data, candidate_identifier)
 
-def add_cv_analysis(phone_number, cv_analysis_data):
-    data = load_candidates_json(phone_number)
+def add_cv_analysis(candidate_identifier, cv_analysis_data):
+    data = load_candidates_json(candidate_identifier)
     
     for candidate in data:
-        if candidate["phone_number"] == phone_number:
+        if candidate["candidate_identifier"] == candidate_identifier:
             candidate["cv_analysis"] = cv_analysis_data
-            save_candidates_json(data, phone_number)
-            matched_positions = match_cv_to_positions(phone_number)
+            save_candidates_json(data, candidate_identifier)
+            matched_positions = match_cv_to_positions(candidate_identifier)
             message = (
                 "The candidate has uploaded their CV, if it has all the information needed for the candidate such as: name, brief experience (1-3 sentences), email, etc. skip these questions and only ask for age, lead source and availability if not asked already."
                 f"CV Analysis:\n{cv_analysis_data}\n\n"
@@ -580,13 +582,13 @@ def add_cv_analysis(phone_number, cv_analysis_data):
             assistant_response = openAiUtils.send_to_ai(
                             message, 
                             candidate["thread_id"], 
-                            get_corresponding_assistant(phone_number)
+                            get_corresponding_assistant(candidate_identifier)
                         )
             break
     else:
         print("Candidate not found. Cannot add CV analysis.")
         return
-    update_conversation(phone_number, "CV Upload", assistant_response)
+    update_conversation(candidate_identifier, "CV Upload", assistant_response)
 
 
 def extract_text_from_json(data):
@@ -610,10 +612,10 @@ def extract_text_from_json(data):
     # Filter out None and join the results
     return " ".join(filter(None, query_parts))
 
-def match_cv_to_positions(phone_number):
-    data = load_candidates_json(phone_number)
+def match_cv_to_positions(candidate_identifier):
+    data = load_candidates_json(candidate_identifier)
     for candidate in data:
-        if candidate["phone_number"] == phone_number:
+        if candidate["candidate_identifier"] == candidate_identifier:
             if "cv_analysis" in candidate:
                 try:
                     analysis = candidate["cv_analysis"]
@@ -663,18 +665,18 @@ def match_cv_to_positions(phone_number):
                     })
 
                 candidate["matched_positions"] = matched_positions
-                save_candidates_json(data, phone_number)
+                save_candidates_json(data, candidate_identifier)
                 return formatted_results
             else:
                 return "**Error**: Candidate must upload/analyze CV first."
     return "**Error**: Candidate not found."
 
-def find_or_create_candidate_json(phone_number):
-    data = load_candidates_json(phone_number)
+def find_or_create_candidate_json(candidate_identifier):
+    data = load_candidates_json(candidate_identifier)
     
-    # Look for the candidate with the matching phone number
+    # Look for the candidate with the matching candidate identifier
     for candidate in data:
-        if candidate["phone_number"] == phone_number:
+        if candidate["candidate_identifier"] == candidate_identifier:
             print("Candidate exists")
             return candidate
     
@@ -685,7 +687,7 @@ def find_or_create_candidate_json(phone_number):
 
     thread_id = openAiUtils.create_thread()
     new_entry = {
-        "phone_number": phone_number,
+        "candidate_identifier": candidate_identifier,
         "thread_id": thread_id,
         "assistant_stage": 0,
         "first_contact_timestamp": datetime.now().isoformat(),
@@ -693,6 +695,6 @@ def find_or_create_candidate_json(phone_number):
     }
     
     data.append(new_entry)
-    save_candidates_json(data, phone_number)
+    save_candidates_json(data, candidate_identifier)
     return new_entry
     

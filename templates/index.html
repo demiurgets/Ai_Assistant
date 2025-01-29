@@ -14,12 +14,12 @@
             transition: background-color 0.3s, color 0.3s;
         }
 
-        #phone_number_form {
+        #candidate_identifier_form {
             text-align: center;
             margin: 50px auto;
         }
 
-        #phone_number {
+        #candidate_identifier {
             padding: 10px;
             width: 250px;
             border: 1px solid #ccc;
@@ -388,10 +388,10 @@
     
 
 
-    <div id="phone_number_form">
+    <div id="candidate_identifier_form">
         <h2>Welcome! Please enter your phone number:</h2>
-        <input type="text" id="phone_number" placeholder="Enter phone number" />
-        <button onclick="savePhoneNumber()">Save</button>
+        <input type="text" id="candidate_identifier" placeholder="Enter phone number" />
+        <button onclick="saveCandidateIdentifier()">Save</button>
     </div>
 
     <div id="chat_box" style="display:none;">
@@ -401,7 +401,7 @@
         <button id="reset_button" onclick="resetConversation()">Reset</button>
         <h2 style="text-align:center;">Chat</h2>
         <div id="conversation"></div>
-        <div class="chat-input">
+        <div class="chat-input" id="chat-input">
             <textarea id="user_message" placeholder="Type your message..."></textarea>
             <button id="send_button" onclick="sendMessage()">Send</button>
         </div>
@@ -417,27 +417,27 @@
     <!-- Reset Button -->
 
     <script>
-        let phoneNumber = sessionStorage.getItem('phone_number');
+        let candidate_identifier = sessionStorage.getItem('candidate_identifier');
 
-        if (phoneNumber) {
-            document.getElementById('phone_number_form').style.display = 'none';
-            fetchConversation(phoneNumber);
+        if (candidate_identifier) {
+            document.getElementById('candidate_identifier_form').style.display = 'none';
+            fetchConversation(candidate_identifier);
         } else {
-            document.getElementById('phone_number_form').style.display = 'block';
+            document.getElementById('candidate_identifier_form').style.display = 'block';
             document.getElementById('chat_box').style.display = 'none';
         }
 
-        function savePhoneNumber() {
-            phoneNumber = document.getElementById('phone_number').value;
-            if (phoneNumber) {
-                sessionStorage.setItem('phone_number', phoneNumber);
-                document.getElementById('phone_number_form').style.display = 'none';
-                fetchConversation(phoneNumber);
+        function saveCandidateIdentifier() {
+            candidate_identifier = document.getElementById('candidate_identifier').value;
+            if (candidate_identifier) {
+                sessionStorage.setItem('candidate_identifier', candidate_identifier);
+                document.getElementById('candidate_identifier_form').style.display = 'none';
+                fetchConversation(candidate_identifier);
             }
         }
 
-        function fetchConversation(phoneNumber) {
-            fetch(`/conversation_by_phone/${phoneNumber}`)
+        function fetchConversation(candidate_identifier) {
+            fetch(`/conversation_by_candidate_identifier/${candidate_identifier}`)
                 .then(response => response.json())
                 .then(data => {
                     let conversation = data.conversation;
@@ -514,7 +514,7 @@
             matchButton.textContent = 'Matching...';
             matchButton.disabled = true; // Optionally disable the button to prevent multiple clicks
 
-            fetch(`/documents/match_cv/${phoneNumber}`)
+            fetch(`/documents/match_cv/${candidate_identifier}`)
                 .then(response => response.json())
                 .then(data => {
                     if (data.matchingPositions) {
@@ -585,7 +585,7 @@
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
                 body: JSON.stringify({ 
-                    phone_number: phoneNumber, 
+                    candidate_identifier: candidate_identifier, 
                     issue: issueDescription 
                 })
             })
@@ -603,7 +603,7 @@
 
         function sendMessage() {
             let message = document.getElementById('user_message').value;
-            if (!message || !phoneNumber) return;
+            if (!message || !candidate_identifier) return;
 
             appendMessage('user', message);
             document.getElementById('user_message').value = '';
@@ -611,7 +611,7 @@
             fetch('/ui_send_message', {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({ message, phone_number: phoneNumber })
+                body: JSON.stringify({ message, candidate_identifier: candidate_identifier })
             })
             .then(response => response.json())
             .then(data => {
@@ -622,12 +622,23 @@
             .catch(error => console.error('Error sending message:', error));
         }
 
+        var input = document.getElementById("chat-input");
+
+        input.addEventListener("keyup", function(event) {
+        // Number 13 is the "Enter" key on the keyboard
+        if (event.keyCode === 13) {
+            event.preventDefault();
+            document.getElementById("send_button").click();
+        }
+        });
+
+
         function resetConversation() {
-            fetch(`/candidates/phone/${phoneNumber}`, { method: 'DELETE' })
+            fetch(`/candidates/candidate_identifier/${candidate_identifier}`, { method: 'DELETE' })
             .then(response => {
                 if (response.ok) {
                     alert('Conversation reset successfully');
-                    sessionStorage.removeItem('phone_number');
+                    sessionStorage.removeItem('candidate_identifier');
                     window.location.reload();
                 } else {
                     alert('Failed to reset conversation');
@@ -689,7 +700,7 @@
         function uploadCV(file) {
         const formData = new FormData();
         formData.append('cv', file);
-        formData.append('phone_number', phoneNumber);
+        formData.append('candidate_identifier', candidate_identifier);
 
         // Show the feedback text and spinner; hide the button and drop area
         const feedbackElement = document.getElementById('upload_feedback');
@@ -702,7 +713,7 @@
         selectButton.style.display = 'none';
         dropArea.style.display = 'none';
 
-        fetch(`/documents/analyze_cv/${phoneNumber}`, {
+        fetch(`/documents/analyze_cv/${candidate_identifier}`, {
             method: 'POST',
             body: formData
         })

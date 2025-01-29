@@ -65,38 +65,38 @@ openAiUtils = OpenAIUtility()
 #model = AutoModel.from_pretrained(model_name)
 
 
-def get_embedding(text):
-    print("empty func")
-def search(query, result_length=5):
-    query_embedding = get_embedding(query).reshape(1, -1)
-    D, I = index.search(query_embedding, k=result_length)
-    
-    if all(i < len(document_metadata) for i in I[0]):
-        results = [document_metadata[i] for i in I[0]]
-    else:
-        results = []
-    
-    return results
+#def get_embedding(text):
+#    print("empty func")
+#def search(query, result_length=5):
+#    query_embedding = get_embedding(query).reshape(1, -1)
+#    D, I = index.search(query_embedding, k=result_length)
+#    
+#    if all(i < len(document_metadata) for i in I[0]):
+#        results = [document_metadata[i] for i in I[0]]
+#    else:
+#        results = []
+#    
+#    return results
 
 
-def embeddings_search(query, response_length):
-    client = OpenAI(api_key=api_key)
-    thread = client.beta.threads.create()
-    context_results = search(query)
-    context_str = "\n\n".join([f"Title: {result['title']}\nChunk ID: {result['chunk_id']}\nContent: {result['content']}" for result in context_results])
-    message = client.beta.threads.messages.create(thread_id=thread.id, role="user", content=f"Analyze: {context_str} to answer: {query} in {response_length}")
-    run = client.beta.threads.runs.create_and_poll(thread_id=thread.id, assistant_id=reader_id)
-    if run.status == 'completed':
-        response_page = client.beta.threads.messages.list(thread_id=thread.id)
-        return response_page.data[0].content[0].text.value
-    return "Error processing request with AI Assistant"
+#def embeddings_search(query, response_length):
+#    client = OpenAI(api_key=api_key)
+#    thread = client.beta.threads.create()
+#    context_results = search(query)
+#    context_str = "\n\n".join([f"Title: {result['title']}\nChunk ID: {result['chunk_id']}\nContent: {result['content']}" for result in context_results])
+#    message = client.beta.threads.messages.create(thread_id=thread.id, role="user", content=f"Analyze: {context_str} to answer: {query} in {response_length}")
+#    run = client.beta.threads.runs.create_and_poll(thread_id=thread.id, assistant_id=reader_id)
+#    if run.status == 'completed':
+#        response_page = client.beta.threads.messages.list(thread_id=thread.id)
+#        return response_page.data[0].content[0].text.value
+#    return "Error processing request with AI Assistant"
 
 
 
 def assistant_generate_json(thread_id, assistant_id):
     client = OpenAI(api_key=api_key)
     query = (
-        "using all the information you just received, generate ONLY a JSON object with the following fields: language, first_name, last_name, email, location_id, position_id, age, city, state, zip, experience, lead_source, availability, lead_source_id. Please write the ID integer for the position, location, and lead_source_id. To get lead source ID follow this mapping: 1: linkedin, 2 - facebook, 3-  instagram, 4- indeed, 5- google, 6- referral, 7- website, 8- other"
+        "using all the information you just received, generate ONLY a JSON object with the following fields: language, first_name, last_name, phone, email, location_id, position_id, age, city, state, zip, experience, lead_source, availability, lead_source_id. Please write the ID integer for the position, location, and lead_source_id. To get lead source ID follow this mapping: 1: linkedin, 2 - facebook, 3-  instagram, 4- indeed, 5- google, 6- referral, 7- website, 8- other"
     )
     # Send the user query
     message = client.beta.threads.messages.create(thread_id=thread_id, role="user", content=query)
@@ -147,17 +147,25 @@ def assistant_generate_json(thread_id, assistant_id):
     return json_data
 
 
-def detect_trigger_string(text, thread_id, phoneNumber, asstId):
+def detect_trigger_string(text, thread_id, candidate_identifier, asstId):
     ending_trigger = "ending_phrase_trigger"
     location_trigger = "location_phrase_trigger"
     position_trigger = "position_phrase_trigger"
     document_end_trigger = "document_ending_trigger"
     city_trigger = "city_phrase_trigger"
+    phone_trigger = "phone_phrase_trigger"
 
     if location_trigger in text.lower():
         print("Location string triggered")
         positions = assistant_get_positions(thread_id, text, asstId)
         return positions
+    
+    if phone_trigger in text.lower():
+        if len(candidate_identifier) < 16:
+            ask_for_phone = False
+        else:
+            ask_for_phone = True
+        return ask_for_phone
 
     if position_trigger in text.lower():
         print("Position string triggered")
@@ -178,12 +186,15 @@ def detect_trigger_string(text, thread_id, phoneNumber, asstId):
         print("ending string TRIGGERED")
         print(text)
         candidate_json_data = assistant_generate_json(thread_id, asstId)  
-        candidate_json_data["phone"] = phoneNumber
+        if len(candidate_identifier) < 16:
+            candidate_json_data["phone"] = candidate_identifier
+            
+        candidate_json_data["candidate_identifier"] = candidate_identifier
         candidate_json_data["thread_id"] = thread_id
 
         save_to_database(candidate_json_data)
 #upgrading the candidate will update the JSON with the status and a new thread ID for detailed screening
-        upgrade_candidate(phoneNumber, candidate_json_data)
+        upgrade_candidate(candidate_identifier, candidate_json_data)
         text_without_trigger = text.lower().replace(ending_trigger, "").strip()
         return text_without_trigger
     return text
@@ -192,9 +203,9 @@ def detect_trigger_string(text, thread_id, phoneNumber, asstId):
 
 #I should probably update this so it only queries for the candidate/phone number once instead of multiple times per message
 
-def recieve_message(query, phoneNumber):
-    candidate_json = find_or_create_candidate_json(phoneNumber)
-    assistant_id = get_corresponding_assistant(phoneNumber)
+def recieve_message(query, candidate_identifier):
+    candidate_json = find_or_create_candidate_json(candidate_identifier)
+    assistant_id = get_corresponding_assistant(candidate_identifier)
     if (assistant_id) is None:
         return "Please restart conversation, the assistant has left"
 
@@ -203,10 +214,10 @@ def recieve_message(query, phoneNumber):
     response = openAiUtils.send_to_ai(query, candidate_json["thread_id"], assistant_id)
 
     #if positions are queried they will be returned here for the user to see
-    triggerResponse = detect_trigger_string(response, candidate_json["thread_id"], phoneNumber, assistant_id)
+    triggerResponse = detect_trigger_string(response, candidate_json["thread_id"], candidate_identifier, assistant_id)
     
     # Update the conversation with the combined response
-    update_conversation(phoneNumber, query, triggerResponse)
+    update_conversation(candidate_identifier, query, triggerResponse)
     
     # Return the combined response
     return triggerResponse
