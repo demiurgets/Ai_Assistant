@@ -357,7 +357,9 @@ def get_corresponding_assistant(phone_number):
     """
     Determines the assistant ID based on the candidate's assistant_stage.
     If the assistant_stage is 0, it queries for an assistant with 'greeter' in the name.
-    If the assistant_stage is 1, it queries for an assistant with 'detailed' in the name.
+    If the assistant_stage is 1, it queries for an assistant with 'documents' in the name.
+    If the assistant_stage is 2, it queries for an assistant with 'review' in the name.
+    
     """
     try:
         # Load JSON data for the candidate
@@ -376,6 +378,8 @@ def get_corresponding_assistant(phone_number):
             assistant = db_session.query(Assistants).filter(Assistants.name.like('%greeter%')).first()
         elif assistant_stage == 1:
             assistant = db_session.query(Assistants).filter(Assistants.name.like('%documents%')).first()
+        elif assistant_stage == 2:
+            assistant = db_session.query(Assistants).filter(Assistants.name.like('%review%')).first()
         else:
             print(f"Unhandled assistant_stage: {assistant_stage} for phone number {phone_number}.")
             return None
@@ -413,8 +417,8 @@ def upgrade_candidate(phone_number, candidate_data):
 
             # Compose the message
             message = (
-                "The candidate has just finished the first part of the interview. "
-                "Please seamlessly continue into the document check without saying hello. "
+                "The candidate has just finished a part of the interview. "
+                "Please seamlessly continue into your instructions without saying hello. "
                 "Here is the candidate's info for your reference:\n\n"
                 f"{candidate_data_str}"
             )

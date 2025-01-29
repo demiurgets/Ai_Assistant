@@ -392,7 +392,117 @@ def get_locations_by_position(position_id):
         return []
     finally:
         db_session.remove()
+     
+     
+def get_locations_by_city_state(city, state):
+    """
+    Retrieves active locations matching the specified city and state.
+    Similar in structure to get_locations_by_position, returns a list of location dictionaries.
+    
+    Args:
+        city (str): The city name to filter by.
+        state (str): The state name to filter by.
 
+    Returns:
+        list: A list of dictionaries representing matching locations.
+    """
+    print("Matching by city state")
+    print(city)
+    print(state)
+    try:
+        # Query locations that match the provided city and state
+        # and filter only active ones.
+        matching_locations = (
+            db_session.query(Locations)
+            .filter(Locations.city == city)
+            .filter(Locations.state == state)
+            .filter(Locations.is_active == True)
+            .all()
+        )
+
+        # Convert each location to a dictionary
+        return [location_to_dict(location) for location in matching_locations]
+
+    except SQLAlchemyError as e:
+        print(f"Error fetching locations by city/state ({city}, {state}): {e}")
+        db_session.rollback()
+        return []
+    finally:
+        db_session.remove()   
+        
+        
+def update_location_context_cities():
+    """
+    Updates the assistant instructions with a JSON array of unique city/state pairs
+    that have open positions (is_active == True, max_openings > 0, filled_openings < max_openings).
+
+    This function mimics the logic of the existing update_location_context function
+    but focuses on gathering cities and states instead of a full list of active locations.
+    """
+
+    # Make sure you've already got a db_session, engine, and API key loaded elsewhere
+    # (as shown in the existing code this function replaces).
+    # Replace variables api_key and assistant_id with your real values or rely on environment configs.
+    try:
+        client = OpenAI(api_key=api_key)
+        my_assistant = client.beta.assistants.retrieve(assistant_id)
+        current_instructions = getattr(my_assistant, "instructions", None)
+
+        # Optionally check if the instructions text contains the expected marker
+        if "Here are the different locations:" not in current_instructions:
+            print("Expected marker not found in instructions. Not updating instructions.")
+            return None
+
+        # Query distinct city/state pairs for active locations with open positions
+        cities_with_open_positions = (
+            db_session.query(Locations.city, Locations.state)
+            .distinct()
+            .join(LocationsPositions, Locations.id == LocationsPositions.location_id)
+            .join(Positions, Positions.id == LocationsPositions.position_id)
+            .filter(Locations.is_active == True)
+            .filter(Positions.is_active == True)
+            .filter(LocationsPositions.max_openings > 0)
+            .filter(LocationsPositions.filled_openings < LocationsPositions.max_openings)
+            .all()
+        )
+
+        # Convert the data to a list of dicts
+        cities_data = [
+            {"city": city, "state": state}
+            for city, state in cities_with_open_positions
+        ]
+
+        # Convert to JSON and escape backslashes
+        cities_json = json.dumps(cities_data, indent=4).replace("\\", "\\\\")
+
+        # Use a regex to replace the content after "Here are the different locations:" 
+        # with the new JSON. Adjust the marker text as needed.
+        print("Updating instructions with city-state data:")
+        print(cities_json)
+        locations_pattern = r"(Here are the different locations:\s*).*"
+        # updated_instructions = re.sub(
+        #     locations_pattern,
+        #     "Here are the different locations: " + cities_json,
+        #     current_instructions,
+        #     flags=re.DOTALL
+        # )
+
+        # # Send updated instructions to the assistant
+        # my_updated_assistant = client.beta.assistants.update(
+        #     assistant_id,
+        #     instructions=updated_instructions,
+        # )
+
+        return cities_json
+
+    except SQLAlchemyError as e:
+        print(f"Error updating location context for city/state pairs: {e}")
+        db_session.rollback()
+        return None
+    finally:
+        db_session.remove()
+        
+        
 def update_location_context():
     try:
         # Interact with the OpenAI API to update the assistant context
@@ -471,3 +581,4 @@ def update_location_context():
 
 # Generate the dynamic JSON for locations
 #locations_json = update_location_context()
+cities = update_location_context_cities()

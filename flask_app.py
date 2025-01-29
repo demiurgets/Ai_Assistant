@@ -52,7 +52,8 @@ from DataAccessLayer.services.positionServices import (
     delete_position
 )
 from DataAccessLayer.services.assistantServices import (
-    toggle_greeter_direction
+    toggle_greeter_direction,
+    updateAssistantContext
 )
 from DataAccessLayer.services.customerServices import ( 
     get_customer_settings, 
@@ -539,15 +540,18 @@ def toggleDirection():
         return jsonify({"Updated Successfully": updated_instructions}), 200
     except SQLAlchemyError as e:
         return jsonify({"error": f"Error fetching users: {e}"}), 500
+    
+@app.route('/contextualize_greeter_instructions')
 # 1. Get all users
 @app.route('/users', methods=['GET'])
-def users():
+def addContext():
     auth_error = validate_token()
     if auth_error:
         return auth_error
     try:
-        users = get_all_users()
-        return jsonify({"data": users}), 200
+        updated_instructions = updateAssistantContext()
+        return jsonify({"Updated Successfully": updated_instructions}), 200
+
     except SQLAlchemyError as e:
         return jsonify({"error": f"Error fetching users: {e}"}), 500
 

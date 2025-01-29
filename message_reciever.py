@@ -19,7 +19,7 @@ from DataAccessLayer.models.candidates import Candidates
 from DataAccessLayer.models.assistants import Assistants
 
 from DataAccessLayer.services.candidateServices import (find_or_create_candidate_json, update_conversation, save_to_database, get_corresponding_assistant, upgrade_candidate)
-from DataAccessLayer.services.assistantServices import (assistant_get_positions, assistant_get_locations)
+from DataAccessLayer.services.assistantServices import (assistant_get_positions, assistant_get_locations_by_pos, assistant_get_locations_by_city)
 
 from AI.openai_utils import OpenAIUtility
 
@@ -151,18 +151,29 @@ def detect_trigger_string(text, thread_id, phoneNumber, asstId):
     ending_trigger = "ending_phrase_trigger"
     location_trigger = "location_phrase_trigger"
     position_trigger = "position_phrase_trigger"
+    document_end_trigger = "document_ending_trigger"
+    city_trigger = "city_phrase_trigger"
 
     if location_trigger in text.lower():
         print("Location string triggered")
         positions = assistant_get_positions(thread_id, text, asstId)
-        
         return positions
 
     if position_trigger in text.lower():
         print("Position string triggered")
-        locations = assistant_get_locations(thread_id, text, asstId)
+        locations = assistant_get_locations_by_pos(thread_id, text, asstId)
         return locations
-
+    if city_trigger in text.lower():
+        print("city string triggered")
+        locations = assistant_get_locations_by_city(thread_id, text, asstId)
+        return locations
+ 
+    if document_end_trigger in text.lower():
+        print("Doc end string triggered")
+        upgrade_candidate(phoneNumber, {})
+        text_without_trigger = text.lower().replace(document_end_trigger, "").strip()
+        return text_without_trigger
+    
     if ending_trigger in text.lower():
         print("ending string TRIGGERED")
         print(text)
@@ -184,6 +195,8 @@ def detect_trigger_string(text, thread_id, phoneNumber, asstId):
 def recieve_message(query, phoneNumber):
     candidate_json = find_or_create_candidate_json(phoneNumber)
     assistant_id = get_corresponding_assistant(phoneNumber)
+    if (assistant_id) is None:
+        return "Please restart conversation, the assistant has left"
 
     print(assistant_id)
     response = ""
