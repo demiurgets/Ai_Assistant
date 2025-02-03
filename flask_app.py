@@ -144,16 +144,13 @@ def hilos_webhook_endpoint():
         # Extract sender info
         sender_number = data['event_data']['from_number']
         message = data['event_data']['body']
-        
+        sender_number = "".join(filter(str.isdigit, sender_number))
         # Extract the InboxContact ID
         inbox_contact_id = data['event_data']['inbox_contact']  # Update this to match the actual key for inbox_contact_id
         print(f"Message from {sender_number}: {message}")
         print(f"Received message: {message} from number: {sender_number}")
 
-        if sender_number.startswith("52"):
-            print("Received from Mexico. Ignoring message.")
-            return "", 200  # Ignore messages from Mexico
-
+        
         # Process the message and generate a response
         response_message = recieve_message(message, sender_number)
         #response_message = f"Recieved message: {message}"
