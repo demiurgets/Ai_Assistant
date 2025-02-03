@@ -129,21 +129,22 @@ def assistant_get_locations_by_city(thread_id, text, asstId):
     return response
 
 def assistant_get_locations_by_pos(thread_id, text, asstId):
-    numbers = re.findall(r'\d+', text)
-    position_id = int(numbers[0]) if numbers else None
-      # If a valid location_id is found, retrieve positions for that location
-    response = ""
-    if position_id is not None:
-        locations = get_locations_by_position(position_id)
-        locations_json = json.dumps(
-            locations,
-            default=lambda obj: obj.isoformat() if isinstance(obj, datetime) else str(obj)  # Handle datetime serialization
-        )
-        print("Queried locations!")
-        query = (
-            "Here are all the locations for the position, please ask the user where they live and send a short summary of near by locations and remember the location ID of their choice. if they are too far from any locations, or want to browse different positions just resend the trigger: " + locations_json
-        )
-        openAiUtils = OpenAIUtility()
+    try: 
+        numbers = re.findall(r'\d+', text)
+        position_id = int(numbers[0]) if numbers else None
+        # If a valid location_id is found, retrieve positions for that location
+        response = ""
+        if position_id is not None:
+            locations = get_locations_by_position(position_id)
+            locations_json = json.dumps(
+                locations,
+                default=lambda obj: obj.isoformat() if isinstance(obj, datetime) else str(obj)  # Handle datetime serialization
+            )
+            print("Queried locations!")
+            query = (
+                "Here are all the locations for the position, please ask the user where they live and send a short summary of near by locations and remember the location ID of their choice. if they are too far from any locations, or want to browse different positions just resend the trigger: " + locations_json
+            )
+            openAiUtils = OpenAIUtility()
 
             response = openAiUtils.send_to_ai(query, thread_id, asstId)
             return response
