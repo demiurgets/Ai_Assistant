@@ -5,8 +5,8 @@ from DataAccessLayer.models.candidates import Candidates
 from DataAccessLayer.models.positions import Positions
 from DataAccessLayer.models.locations import Locations
 from DataAccessLayer.models.locations_positions import LocationsPositions
-from DataAccessLayer.services.positionServices import (update_position_context, get_positions_by_location)
-from DataAccessLayer.services.locationsServices import (update_location_context, get_locations_by_position, get_locations_by_city_state)
+from DataAccessLayer.services.positionServices import (get_positions_by_location)
+from DataAccessLayer.services.locationsServices import (get_locations_by_position, get_locations_by_city_state)
 
 
 
@@ -170,50 +170,50 @@ def getCvAnalyzer():
         db_session.remove()
 
 #will change whether the greeter convo starts with locations and queries position, or vice versa
-def toggle_instructions(text: str) -> str:
-    replacements = {
-        "location": "position",
-        "locations": "positions",
-        "position": "location",
-        "positions": "locations",
-        "city and state": "professional interests",
-        "professional interests": "city and state"
-    }
-    pattern = re.compile("|".join(re.escape(k) for k in replacements))
-    return pattern.sub(lambda m: replacements[m.group(0)], text)
+# def toggle_instructions(text: str) -> str:
+#     replacements = {
+#         "location": "position",
+#         "locations": "positions",
+#         "position": "location",
+#         "positions": "locations",
+#         "city and state": "professional interests",
+#         "professional interests": "city and state"
+#     }
+#     pattern = re.compile("|".join(re.escape(k) for k in replacements))
+#     return pattern.sub(lambda m: replacements[m.group(0)], text)
 
-def updateAssistantContext():
-    try:
-        update_position_context()
-        update_location_context()
-    except Exception as e:
-        print(f"Error toggling greeter direction: {e}")
-        return None
-def toggle_greeter_direction():
-    try:
-        client = OpenAI(api_key=api_key)
+# def updateAssistantContext():
+#     try:
+#         update_position_context()
+#         update_location_context()
+#     except Exception as e:
+#         print(f"Error toggling greeter direction: {e}")
+#         return None
+# def toggle_greeter_direction():
+#     try:
+#         client = OpenAI(api_key=api_key)
         
-        assistant = db_session.query(Assistants).filter(
-            Assistants.name.like('%greeter%')
-        ).first()
-        assistant_id = assistant.assistant_id
-        my_assistant = client.beta.assistants.retrieve(assistant_id)
-        current_instructions = getattr(my_assistant, "instructions", None)
+#         assistant = db_session.query(Assistants).filter(
+#             Assistants.name.like('%greeter%')
+#         ).first()
+#         assistant_id = assistant.assistant_id
+#         my_assistant = client.beta.assistants.retrieve(assistant_id)
+#         current_instructions = getattr(my_assistant, "instructions", None)
 
-        updated_instructions = toggle_instructions(current_instructions)
+#         updated_instructions = toggle_instructions(current_instructions)
 
-        print("Updated instructions:")
+#         print("Updated instructions:")
 
-        my_updated_assistant = client.beta.assistants.update(
-            assistant_id, instructions=updated_instructions
-        )
-        update_position_context()
-        update_location_context()
+#         my_updated_assistant = client.beta.assistants.update(
+#             assistant_id, instructions=updated_instructions
+#         )
+#         update_position_context()
+#         update_location_context()
 
-        return updated_instructions
+#         return updated_instructions
 
-    except Exception as e:
-        print(f"Error toggling greeter direction: {e}")
-        return None
-    finally:
-        db_session.remove()
+#     except Exception as e:
+#         print(f"Error toggling greeter direction: {e}")
+#         return None
+#     finally:
+#         db_session.remove()

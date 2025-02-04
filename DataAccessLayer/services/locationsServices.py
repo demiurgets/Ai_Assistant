@@ -7,7 +7,8 @@ from DataAccessLayer.models.locations import Locations  # Importing the Location
 from DataAccessLayer.models.positions import Positions  # Importing the Positions model
 from DataAccessLayer.models.locations_positions import LocationsPositions
 from DataAccessLayer.models.assistants import Assistants
-
+from AI.update_vector_store import generate_all_txt_files, load_to_vector_store
+import threading
 
 
 import os
@@ -168,7 +169,16 @@ def create_location(location_data):
                 db_session.add(location_position)
         
             db_session.commit()
+            
+        # Run the time-consuming tasks in a separate thread
+        def background_task():
+            generate_all_txt_files()
+            load_to_vector_store()
         
+        # Start the background task
+        thread = threading.Thread(target=background_task)
+        thread.start()  # This runs the task asynchronously
+                 
         location_positions = db_session.query(
             LocationsPositions.position_id,
             Positions.name,
@@ -185,7 +195,6 @@ def create_location(location_data):
             } 
             for lp in location_positions
         ]
-        update_location_context()
         return location_with_positions_to_dict(new_location, position_data)
     
     except SQLAlchemyError as e:
@@ -251,7 +260,16 @@ def update_location(location_id, update_data):
                     db_session.add(new_location_position)
 
         db_session.commit()  
-
+        
+        # Run the time-consuming tasks in a separate thread
+        def background_task():
+            generate_all_txt_files()
+            load_to_vector_store()
+        
+        # Start the background task
+        thread = threading.Thread(target=background_task)
+        thread.start()  # This runs the task asynchronously
+                
         updated_locations_positions = db_session.query(
             LocationsPositions.position_id,
             Positions.name,
@@ -260,7 +278,6 @@ def update_location(location_id, update_data):
         ).join(Positions, LocationsPositions.position_id == Positions.id).filter(LocationsPositions.location_id == location_id).all()
 
         position_data = [{"id": lp.position_id, "name": lp.name, "max_openings": lp.max_openings, "filled_openings": lp.filled_openings} for lp in updated_locations_positions]
-        update_location_context()
         return location_with_positions_to_dict(location, position_data)  # Return updated location with positions
 
     except SQLAlchemyError as e:
@@ -297,7 +314,15 @@ def delete_location(location_id):
         location.is_active = False
         db_session.commit()
         
-        update_location_context()
+        # Run the time-consuming tasks in a separate thread
+        def background_task():
+            generate_all_txt_files()
+            load_to_vector_store()
+        
+        # Start the background task
+        thread = threading.Thread(target=background_task)
+        thread.start()  # This runs the task asynchronously
+         
         return True
     except SQLAlchemyError as e:
         print(f"Error updating is_active for location: {e}")
@@ -431,154 +456,154 @@ def get_locations_by_city_state(city, state):
         db_session.remove()   
         
         
-def update_location_context_cities():
-    """
-    Updates the assistant instructions with a JSON array of unique city/state pairs
-    that have open positions (is_active == True, max_openings > 0, filled_openings < max_openings).
+# def update_location_context_cities():
+#     """
+#     Updates the assistant instructions with a JSON array of unique city/state pairs
+#     that have open positions (is_active == True, max_openings > 0, filled_openings < max_openings).
 
-    This function mimics the logic of the existing update_location_context function
-    but focuses on gathering cities and states instead of a full list of active locations.
-    """
+#     This function mimics the logic of the existing update_location_context function
+#     but focuses on gathering cities and states instead of a full list of active locations.
+#     """
 
-    # Make sure you've already got a db_session, engine, and API key loaded elsewhere
-    # (as shown in the existing code this function replaces).
-    # Replace variables api_key and assistant_id with your real values or rely on environment configs.
-    try:
-        client = OpenAI(api_key=api_key)
-        my_assistant = client.beta.assistants.retrieve(assistant_id)
-        current_instructions = getattr(my_assistant, "instructions", None)
+#     # Make sure you've already got a db_session, engine, and API key loaded elsewhere
+#     # (as shown in the existing code this function replaces).
+#     # Replace variables api_key and assistant_id with your real values or rely on environment configs.
+#     try:
+#         client = OpenAI(api_key=api_key)
+#         my_assistant = client.beta.assistants.retrieve(assistant_id)
+#         current_instructions = getattr(my_assistant, "instructions", None)
 
-        # Optionally check if the instructions text contains the expected marker
-        if "Here are the different locations:" not in current_instructions:
-            print("Expected marker not found in instructions. Not updating instructions.")
-            return None
+#         # Optionally check if the instructions text contains the expected marker
+#         if "Here are the different locations:" not in current_instructions:
+#             print("Expected marker not found in instructions. Not updating instructions.")
+#             return None
 
-        # Query distinct city/state pairs for active locations with open positions
-        cities_with_open_positions = (
-            db_session.query(Locations.city, Locations.state)
-            .distinct()
-            .join(LocationsPositions, Locations.id == LocationsPositions.location_id)
-            .join(Positions, Positions.id == LocationsPositions.position_id)
-            .filter(Locations.is_active == True)
-            .filter(Positions.is_active == True)
-            .filter(LocationsPositions.max_openings > 0)
-            .filter(LocationsPositions.filled_openings < LocationsPositions.max_openings)
-            .all()
-        )
+#         # Query distinct city/state pairs for active locations with open positions
+#         cities_with_open_positions = (
+#             db_session.query(Locations.city, Locations.state)
+#             .distinct()
+#             .join(LocationsPositions, Locations.id == LocationsPositions.location_id)
+#             .join(Positions, Positions.id == LocationsPositions.position_id)
+#             .filter(Locations.is_active == True)
+#             .filter(Positions.is_active == True)
+#             .filter(LocationsPositions.max_openings > 0)
+#             .filter(LocationsPositions.filled_openings < LocationsPositions.max_openings)
+#             .all()
+#         )
 
-        # Convert the data to a list of dicts
-        cities_data = [
-            {"city": city, "state": state}
-            for city, state in cities_with_open_positions
-        ]
+#         # Convert the data to a list of dicts
+#         cities_data = [
+#             {"city": city, "state": state}
+#             for city, state in cities_with_open_positions
+#         ]
 
-        # Convert to JSON and escape backslashes
-        cities_json = json.dumps(cities_data, indent=4).replace("\\", "\\\\")
+#         # Convert to JSON and escape backslashes
+#         cities_json = json.dumps(cities_data, indent=4).replace("\\", "\\\\")
 
-        # Use a regex to replace the content after "Here are the different locations:" 
-        # with the new JSON. Adjust the marker text as needed.
-        print("Updating instructions with city-state data:")
-        print(cities_json)
-        locations_pattern = r"(Here are the different locations:\s*).*"
-        # updated_instructions = re.sub(
-        #     locations_pattern,
-        #     "Here are the different locations: " + cities_json,
-        #     current_instructions,
-        #     flags=re.DOTALL
-        # )
+#         # Use a regex to replace the content after "Here are the different locations:" 
+#         # with the new JSON. Adjust the marker text as needed.
+#         print("Updating instructions with city-state data:")
+#         print(cities_json)
+#         locations_pattern = r"(Here are the different locations:\s*).*"
+#         # updated_instructions = re.sub(
+#         #     locations_pattern,
+#         #     "Here are the different locations: " + cities_json,
+#         #     current_instructions,
+#         #     flags=re.DOTALL
+#         # )
 
-        # # Send updated instructions to the assistant
-        # my_updated_assistant = client.beta.assistants.update(
-        #     assistant_id,
-        #     instructions=updated_instructions,
-        # )
+#         # # Send updated instructions to the assistant
+#         # my_updated_assistant = client.beta.assistants.update(
+#         #     assistant_id,
+#         #     instructions=updated_instructions,
+#         # )
 
-        return cities_json
+#         return cities_json
 
-    except SQLAlchemyError as e:
-        print(f"Error updating location context for city/state pairs: {e}")
-        db_session.rollback()
-        return None
-    finally:
-        db_session.remove()
+#     except SQLAlchemyError as e:
+#         print(f"Error updating location context for city/state pairs: {e}")
+#         db_session.rollback()
+#         return None
+#     finally:
+#         db_session.remove()
         
         
-def update_location_context():
-    try:
-        # Interact with the OpenAI API to update the assistant context
-        client = OpenAI(api_key=api_key)
-        my_assistant = client.beta.assistants.retrieve(assistant_id)
-        current_instructions = getattr(my_assistant, "instructions", None)
-        if "Here are the different locations:" not in current_instructions:
-            print("locations not in context, not updating...")
-            return None
+# def update_location_context():
+#     try:
+#         # Interact with the OpenAI API to update the assistant context
+#         client = OpenAI(api_key=api_key)
+#         my_assistant = client.beta.assistants.retrieve(assistant_id)
+#         current_instructions = getattr(my_assistant, "instructions", None)
+#         if "Here are the different locations:" not in current_instructions:
+#             print("locations not in context, not updating...")
+#             return None
 
-        # Query locations with their position counts using the LocationsPositions table, filtering by is_active
-        locations_with_positions = (
-            db_session.query(
-                Locations,
-                func.count(LocationsPositions.position_id).label("position_count")
-            )
-            .join(LocationsPositions, Locations.id == LocationsPositions.location_id)  
-            .join(Positions, Positions.id == LocationsPositions.position_id)  
-            .filter(Locations.is_active == True)  # just include active locations
-            .group_by(Locations.id)
-            .having(func.count(LocationsPositions.position_id) > 0)  # Only include locations with associated positions
-            .all()
-        )
+#         # Query locations with their position counts using the LocationsPositions table, filtering by is_active
+#         locations_with_positions = (
+#             db_session.query(
+#                 Locations,
+#                 func.count(LocationsPositions.position_id).label("position_count")
+#             )
+#             .join(LocationsPositions, Locations.id == LocationsPositions.location_id)  
+#             .join(Positions, Positions.id == LocationsPositions.position_id)  
+#             .filter(Locations.is_active == True)  # just include active locations
+#             .group_by(Locations.id)
+#             .having(func.count(LocationsPositions.position_id) > 0)  # Only include locations with associated positions
+#             .all()
+#         )
 
-        # create the JSON structure
-        locations_data = [
-            {
-                "id": location.id,
-                "name": location.name,
-                "address": location.address,
-                "city": location.city,
-                "state": location.state,
-                "zip": location.zip,
-                "phone": location.phone,
-                "position_count": position_count,  # count of positions
-            }
-            for location, position_count in locations_with_positions
-        ]
+#         # create the JSON structure
+#         locations_data = [
+#             {
+#                 "id": location.id,
+#                 "name": location.name,
+#                 "address": location.address,
+#                 "city": location.city,
+#                 "state": location.state,
+#                 "zip": location.zip,
+#                 "phone": location.phone,
+#                 "position_count": position_count,  # count of positions
+#             }
+#             for location, position_count in locations_with_positions
+#         ]
 
-        # Convert the JSON to a string and escape backslashes
-        locations_json = json.dumps(locations_data, indent=4).replace("\\", "\\\\")
+#         # Convert the JSON to a string and escape backslashes
+#         locations_json = json.dumps(locations_data, indent=4).replace("\\", "\\\\")
 
-        print("current above, updated instructions below: ")
-        locations_pattern = r"(Here are the different locations:\s*).*"
-        updated_instructions = re.sub(
-            locations_pattern,
-            f"Here are the different locations: {locations_json}",
-            current_instructions,
-            flags=re.DOTALL
-        )
-        # locations_pattern = r"(Here are the different locations:\s*\[.*?\])"
-        # updated_instructions = re.sub(
-        #     locations_pattern, 
-        #     f"Here are the different locations: {locations_json}", 
-        #     current_instructions, 
-        #     flags=re.DOTALL
-        # )
+#         print("current above, updated instructions below: ")
+#         locations_pattern = r"(Here are the different locations:\s*).*"
+#         updated_instructions = re.sub(
+#             locations_pattern,
+#             f"Here are the different locations: {locations_json}",
+#             current_instructions,
+#             flags=re.DOTALL
+#         )
+#         # locations_pattern = r"(Here are the different locations:\s*\[.*?\])"
+#         # updated_instructions = re.sub(
+#         #     locations_pattern, 
+#         #     f"Here are the different locations: {locations_json}", 
+#         #     current_instructions, 
+#         #     flags=re.DOTALL
+#         # )
 
         
-        # Update the assistant (commented out for now)
-        my_updated_assistant = client.beta.assistants.update(
-            assistant_id,
-            instructions=updated_instructions,
-        )
+#         # Update the assistant (commented out for now)
+#         my_updated_assistant = client.beta.assistants.update(
+#             assistant_id,
+#             instructions=updated_instructions,
+#         )
 
-        return locations_json  # Return the updated JSON for debugging/logging
+#         return locations_json  # Return the updated JSON for debugging/logging
 
-    except SQLAlchemyError as e:
-        print(f"Error updating location context: {e}")
-        db_session.rollback()
-        return None
-    finally:
-        db_session.remove()
+#     except SQLAlchemyError as e:
+#         print(f"Error updating location context: {e}")
+#         db_session.rollback()
+#         return None
+#     finally:
+#         db_session.remove()
 
 
 
 # Generate the dynamic JSON for locations
 #locations_json = update_location_context()
-cities = update_location_context_cities()
+# cities = update_location_context_cities()

@@ -8,13 +8,14 @@ from DataAccessLayer.models.positions import Positions
 from DataAccessLayer.models.locations_positions import LocationsPositions
 from DataAccessLayer.models.locations import Locations
 from DataAccessLayer.models.assistants import Assistants
-
 import os
 from dotenv import load_dotenv
 from sqlalchemy.orm import sessionmaker, scoped_session
 from sqlalchemy import create_engine
 from openai import OpenAI
 from sqlalchemy import desc, update
+from AI.update_vector_store import generate_all_txt_files, load_to_vector_store
+import threading
 
 import openai
 import tiktoken
@@ -221,7 +222,16 @@ def create_position(position_data):
                 db_session.add(location_position)
 
             db_session.commit()
-
+        
+        # Run the time-consuming tasks in a separate thread
+        def background_task():
+            generate_all_txt_files()
+            load_to_vector_store()
+        
+        # Start the background task
+        thread = threading.Thread(target=background_task)
+        thread.start()  # This runs the task asynchronously
+        
         locations_positions = (
             db_session.query(
                 LocationsPositions.location_id,
@@ -244,7 +254,6 @@ def create_position(position_data):
             for lp in locations_positions
         ]
 
-        positions_json = update_position_context()
         return position_with_locations_to_dict(new_position, location_data)
 
     except SQLAlchemyError as e:
@@ -346,6 +355,15 @@ def update_position(position_id, update_data):
         position.position_embedding = get_embedding(updated_text)
 
         db_session.commit()
+        
+        # Run the time-consuming tasks in a separate thread
+        def background_task():
+            generate_all_txt_files()
+            load_to_vector_store()
+        
+        # Start the background task
+        thread = threading.Thread(target=background_task)
+        thread.start()  # This runs the task asynchronously
 
         updated_locations_positions = (
             db_session.query(
@@ -368,7 +386,6 @@ def update_position(position_id, update_data):
             }
             for lp in updated_locations_positions
         ]
-        positions_json = update_position_context()
 
         return position_with_locations_to_dict(
             position, location_data
@@ -410,7 +427,17 @@ def delete_position(position_id):
 
         position.is_active = False
         db_session.commit()
-        positions_json = update_position_context()
+        
+        # Run the time-consuming tasks in a separate thread
+        def background_task():
+            generate_all_txt_files()
+            load_to_vector_store()
+        
+        # Start the background task
+        thread = threading.Thread(target=background_task)
+        thread.start()  # This runs the task asynchronously  
+        
+        
         return True
     except SQLAlchemyError as e:
         print(f"Error updating is_active for position: {e}")
@@ -489,78 +516,78 @@ def get_positions_by_location(location_id):
 
 
 
-def update_position_context():
-    try:
-        # Retrieve current assistant instructions
-        client = OpenAI(api_key=api_key)
-        my_assistant = client.beta.assistants.retrieve(assistant_id)
-        current_instructions = getattr(my_assistant, "instructions", None)
+# def update_position_context():
+#     try:
+#         # Retrieve current assistant instructions
+#         client = OpenAI(api_key=api_key)
+#         my_assistant = client.beta.assistants.retrieve(assistant_id)
+#         current_instructions = getattr(my_assistant, "instructions", None)
         
-        # Check if the phrase exists
-        if "Here are the different positions:" not in current_instructions:
-            print("Positions not in context, not updating...")
-            return None
+#         # Check if the phrase exists
+#         if "Here are the different positions:" not in current_instructions:
+#             print("Positions not in context, not updating...")
+#             return None
 
-        # Query positions with their associated location counts
-        positions_with_locations = (
-            db_session.query(
-                Positions,
-                func.count(LocationsPositions.location_id).label("location_count")
-            )
-            .join(LocationsPositions, Positions.id == LocationsPositions.position_id)
-            .join(Locations, Locations.id == LocationsPositions.location_id)
-            .filter(Positions.is_active == True)  # Include only active positions
-            .group_by(Positions.id)
-            .having(func.count(LocationsPositions.location_id) > 0)  # Only include positions with associated locations
-            .all()
-        )
+#         # Query positions with their associated location counts
+#         positions_with_locations = (
+#             db_session.query(
+#                 Positions,
+#                 func.count(LocationsPositions.location_id).label("location_count")
+#             )
+#             .join(LocationsPositions, Positions.id == LocationsPositions.position_id)
+#             .join(Locations, Locations.id == LocationsPositions.location_id)
+#             .filter(Positions.is_active == True)  # Include only active positions
+#             .group_by(Positions.id)
+#             .having(func.count(LocationsPositions.location_id) > 0)  # Only include positions with associated locations
+#             .all()
+#         )
 
-        # Create the JSON structure
-        positions_data = [
-            {
-                "id": position.id,
-                "title": position.name,
-                "department": position.description,
-                "qualifications": position.qualifications,
-                "job_type": position.job_type,
-                "location_count": location_count,  # Count of locations
-            }
-            for position, location_count in positions_with_locations
-        ]
+#         # Create the JSON structure
+#         positions_data = [
+#             {
+#                 "id": position.id,
+#                 "title": position.name,
+#                 "department": position.description,
+#                 "qualifications": position.qualifications,
+#                 "job_type": position.job_type,
+#                 "location_count": location_count,  # Count of locations
+#             }
+#             for position, location_count in positions_with_locations
+#         ]
 
-        # Convert the JSON to a string and escape backslashes
-        positions_json = json.dumps(positions_data, indent=4).replace("\\", "\\\\")
-        print("Generated positions JSON:", positions_json)
+#         # Convert the JSON to a string and escape backslashes
+#         positions_json = json.dumps(positions_data, indent=4).replace("\\", "\\\\")
+#         print("Generated positions JSON:", positions_json)
 
-        # Update only the relevant part of the instructions
-        positions_pattern = r"(Here are the different positions:\s*).*"
-        updated_instructions = re.sub(
-            positions_pattern,
-            f"Here are the different positions: {positions_json}",
-            current_instructions,
-            flags=re.DOTALL
-        )
+#         # Update only the relevant part of the instructions
+#         positions_pattern = r"(Here are the different positions:\s*).*"
+#         updated_instructions = re.sub(
+#             positions_pattern,
+#             f"Here are the different positions: {positions_json}",
+#             current_instructions,
+#             flags=re.DOTALL
+#         )
 
-        # Log updated instructions for debugging
-        print("Updated instructions:", updated_instructions)
+#         # Log updated instructions for debugging
+#         print("Updated instructions:", updated_instructions)
 
-        # Update the assistant with the new instructions
-        my_updated_assistant = client.beta.assistants.update(
-            assistant_id,
-            instructions=updated_instructions,
-        )
+#         # Update the assistant with the new instructions
+#         my_updated_assistant = client.beta.assistants.update(
+#             assistant_id,
+#             instructions=updated_instructions,
+#         )
 
-        return positions_json  # Return the updated JSON for debugging/logging
+#         return positions_json  # Return the updated JSON for debugging/logging
 
-    except SQLAlchemyError as e:
-        print(f"Database error: {e}")
-        db_session.rollback()
-        return None
-    except Exception as e:
-        print(f"Error updating position context: {e}")
-        return None
-    finally:
-        db_session.remove()
+#     except SQLAlchemyError as e:
+#         print(f"Database error: {e}")
+#         db_session.rollback()
+#         return None
+#     except Exception as e:
+#         print(f"Error updating position context: {e}")
+#         return None
+#     finally:
+#         db_session.remove()
 
 ##### Logic for position embeddings #####
 

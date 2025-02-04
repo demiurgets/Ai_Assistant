@@ -51,10 +51,7 @@ from DataAccessLayer.services.positionServices import (
     update_position,
     delete_position
 )
-from DataAccessLayer.services.assistantServices import (
-    toggle_greeter_direction,
-    updateAssistantContext
-)
+
 from DataAccessLayer.services.customerServices import ( 
     get_customer_settings, 
     get_all_customers, 
@@ -527,18 +524,6 @@ def validate_password_endpoint():
     else:
         return jsonify({"success": False, "message": "Invalid credentials"}), 401
 
-@app.route('/toggle_greeter_direction', methods=['POST'])
-def toggleDirection():
-    auth_error = validate_token()
-    if auth_error:
-        return auth_error
-    try:
-        updated_instructions = toggle_greeter_direction()
-        return jsonify({"Updated Successfully": updated_instructions}), 200
-    except SQLAlchemyError as e:
-        return jsonify({"error": f"Error fetching users: {e}"}), 500
-    
-@app.route('/contextualize_greeter_instructions')
 # 1. Get all users
 @app.route('/users', methods=['GET'])
 def addContext():
