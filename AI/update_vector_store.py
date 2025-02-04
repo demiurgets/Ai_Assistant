@@ -72,7 +72,7 @@ def generate_all_txt_files():
                     location_position_groups[location.id]["positions"].append({"id": position.id, "name": position.name})
 
         # Write locations grouped by city
-        with open(os.path.join(context_dir,"all_available_locations_by_city.txt"), "w") as file:
+        with open(os.path.join(context_dir,dbname+"_all_available_locations_by_city.txt"), "w") as file:
             for city, locs in city_groups.items():
                 file.write(f"Available locations in {city} city:\n\n")
                 for loc in locs:
@@ -87,7 +87,7 @@ def generate_all_txt_files():
         print("File 'all_available_locations_by_city.txt' generated successfully.")
 
         # Write positions available for each location
-        with open(os.path.join(context_dir, "positions_available_for_locations.txt"), "w") as file:
+        with open(os.path.join(context_dir, dbname+"_positions_available_for_locations.txt"), "w") as file:
             for loc_id, data in location_position_groups.items():
                 file.write(f"Positions available for {data['location_name']} (Location id: {loc_id}):\n\n")
                 for position in data["positions"]:
@@ -98,7 +98,7 @@ def generate_all_txt_files():
         print("File 'positions_available_for_locations.txt' generated successfully.")
 
         # Write detailed position information
-        with open(os.path.join(context_dir, "all_available_positions_details.txt"), "w", encoding="utf-8") as file:
+        with open(os.path.join(context_dir, dbname+"_all_available_positions_details.txt"), "w", encoding="utf-8") as file:
             positions = db_session.query(Positions).join(LocationsPositions).filter(
                 Positions.is_active == True,
                 LocationsPositions.filled_openings < LocationsPositions.max_openings
@@ -172,10 +172,6 @@ def load_to_vector_store():
         client.beta.vector_stores.files.delete(
             vector_store_id=vector_store.id, file_id=file.id
         )
-
-    # Delete all existing assistant files (optional, if needed)
-    files = client.files.list(purpose="assistants")
-    for file in files.data:
         client.files.delete(file.id)
 
     # Get all .txt files in the current directory
