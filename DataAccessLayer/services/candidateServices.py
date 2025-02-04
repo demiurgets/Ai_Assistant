@@ -686,6 +686,8 @@ def find_or_create_candidate_json(candidate_identifier):
     openAiUtils = OpenAIUtility()
 
     thread_id = openAiUtils.create_thread()
+    
+    
     new_entry = {
         "candidate_identifier": candidate_identifier,
         "thread_id": thread_id,
