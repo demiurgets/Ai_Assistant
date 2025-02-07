@@ -526,14 +526,13 @@ def validate_password_endpoint():
 
 # 1. Get all users
 @app.route('/users', methods=['GET'])
-def addContext():
+def users():
     auth_error = validate_token()
     if auth_error:
         return auth_error
     try:
-        updated_instructions = updateAssistantContext()
-        return jsonify({"Updated Successfully": updated_instructions}), 200
-
+        users = get_all_users()
+        return jsonify({"data": users}), 200
     except SQLAlchemyError as e:
         return jsonify({"error": f"Error fetching users: {e}"}), 500
 

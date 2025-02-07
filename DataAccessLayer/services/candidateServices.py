@@ -41,6 +41,7 @@ logging.basicConfig(level=logging.INFO)
 def candidate_to_dict(candidate):
     return {
         "id": candidate.id,
+        "candidate_identifier": candidate.candidate_identifier,
         "first_name": candidate.first_name,
         "last_name": candidate.last_name,
         "thread_id": candidate.thread_id,
@@ -72,6 +73,7 @@ def candidate_to_dict(candidate):
 def candidate_position_location_to_dict(candidate, position_data, location,position):
     return {
         "id": candidate.id,
+        "candidate_identifier": candidate.candidate_identifier,
         "first_name": candidate.first_name,
         "last_name": candidate.last_name,
         "thread_id": candidate.thread_id,
