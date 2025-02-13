@@ -68,7 +68,7 @@ def generate_all_txt_files():
                     city_groups.setdefault(location.city, []).append(location)
 
                     # Group positions by location
-                    location_position_groups.setdefault(location.id, {"location_name": location.name, "positions": []})
+                    location_position_groups.setdefault(location.id, {"location_name": location.name, "city": location.city, "state": location.state, "address": location.address, "positions": []})
                     location_position_groups[location.id]["positions"].append({"id": position.id, "name": position.name})
 
         # Write locations grouped by city
@@ -89,7 +89,7 @@ def generate_all_txt_files():
         # Write positions available for each location
         with open(os.path.join(context_dir, dbname+"_positions_available_for_locations.txt"), "w") as file:
             for loc_id, data in location_position_groups.items():
-                file.write(f"Positions available for {data['location_name']} (Location id: {loc_id}):\n\n")
+                file.write(f"Positions available for:\nLocation name: {data['location_name']}, Location ID: {loc_id}\n(City: {data['city']}, State: {data['state']}, Address: {data['address']}):\n\n")
                 for position in data["positions"]:
                     file.write(f"Position id: {position['id']},\n")
                     file.write(f"name: {position['name']}.\n")
@@ -187,7 +187,8 @@ def load_to_vector_store():
     # Use the upload and poll SDK helper to upload the files, add them to the vector store,
     # and poll the status of the file batch for completion.
     file_batch = client.beta.vector_stores.file_batches.upload_and_poll(
-        vector_store_id=vector_store.id, files=file_streams
+        vector_store_id=vector_store.id, files=file_streams,
+        chunking_strategy={"type": "static", "static": {"max_chunk_size_tokens": 1200, "chunk_overlap_tokens": 600}}
     )
 
     # Print the status and the file counts of the batch
