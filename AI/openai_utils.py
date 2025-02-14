@@ -69,4 +69,4 @@ class OpenAIUtility:
                 return "Error with AI API"
         except Exception as e:
             print(f"Error sending message to AI: {e}")
-            return "Error with AI API"
+            return self.send_to_ai(query, thread_id, asst_id)

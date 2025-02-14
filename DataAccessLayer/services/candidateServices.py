@@ -255,6 +255,7 @@ def create_candidate(candidate_data):
     finally:
         db_session.remove()
 
+
 def save_to_database(json_data):
     logging.info("Saving candidate to the database...")
     
@@ -543,7 +544,7 @@ def save_candidates_json(data, candidate_identifier):
     with open(json_file_path, 'w') as f:
         json.dump(data, f, indent=4)
 
-def update_conversation(candidate_identifier, user_message, assistant_response):
+def update_conversation(candidate_identifier, user_message=None, assistant_response=None):
     data = load_candidates_json(candidate_identifier)
     print("adding new info for cv")
     for candidate in data:
@@ -551,18 +552,20 @@ def update_conversation(candidate_identifier, user_message, assistant_response):
             # Get the current message count and increment for each new message
             message_id = len(candidate["conversation"]) + 1
             
-            candidate["conversation"].append({
-                "message_id": message_id,  # Add the new message ID
-                "timestamp": datetime.now().isoformat(),
-                "message": user_message,
-                "role": "external_user"
-            })
-            candidate["conversation"].append({
-                "message_id": message_id + 1,  # Add the new message ID
-                "timestamp": datetime.now().isoformat(),
-                "message": assistant_response,
-                "role": "assistant"
-            })
+            if user_message is not None:
+                candidate["conversation"].append({
+                    "message_id": message_id,  # Add the new message ID
+                    "timestamp": datetime.now().isoformat(),
+                    "message": user_message,
+                    "role": "external_user"
+                })
+            if assistant_response is not None:
+                candidate["conversation"].append({
+                    "message_id": message_id,  # Add the new message ID
+                    "timestamp": datetime.now().isoformat(),
+                    "message": assistant_response,
+                    "role": "assistant"
+                })
             break
     save_candidates_json(data, candidate_identifier)
 
@@ -590,7 +593,7 @@ def add_cv_analysis(candidate_identifier, cv_analysis_data):
     else:
         print("Candidate not found. Cannot add CV analysis.")
         return
-    update_conversation(candidate_identifier, "CV Upload", assistant_response)
+    update_conversation(candidate_identifier, user_message="CV Upload", assistant_response=assistant_response)
 
 
 def extract_text_from_json(data):
