@@ -11,6 +11,7 @@ import uuid
 from DataAccessLayer.createModels import createModelsMain
 from DataAccessLayer.createDatabaseORM import createDbMain
 from Injestor.pdf_reader import analyze_CV
+import threading
 
 from DataAccessLayer.services.candidateServices import (
     get_all_candidates,
@@ -793,59 +794,73 @@ def createDbfromModels():
         return jsonify({"error": f"Error deleting location: {e}"}), 500
 
 
+page_tokens = json.loads(os.getenv('MESSENGER_PAGE_TOKENS', '{}'))
+
+def process_event(event_data, page_access_token):
+    """Process message event in a separate thread"""
+    try:
+        webhookEvent = event_data['messaging'][0]
+        senderPsid = webhookEvent['sender']['id']
+        print(f'Processing message from {senderPsid}')
+
+        if 'message' in webhookEvent:
+            receivedMessage = webhookEvent['message']
+            
+            # Generate response
+            if 'text' in receivedMessage:
+                response_text = recieve_message(receivedMessage['text'], senderPsid)
+            else:
+                response_text = 'This chatbot only accepts text messages'
+
+            # Send response to Facebook API
+            payload = {
+                'recipient': {'id': senderPsid},
+                'message': {'text': response_text},
+                'messaging_type': 'RESPONSE'
+            }
+            headers = {'content-type': 'application/json'}
+            url = f'https://graph.facebook.com/v10.0/me/messages?access_token={page_access_token}'
+            requests.post(url, json=payload, headers=headers)
+
+    except Exception as e:
+        print(f"Error processing event: {str(e)}")
+
 @app.route('/messenger_webhook', methods=["GET", "POST"])
 def messenger_hook():
-    
     if request.method == 'GET':
-        if 'hub.mode' in request.args and 'hub.verify_token' in request.args:
-            mode = request.args.get('hub.mode')
-            token = request.args.get('hub.verify_token')
-            if mode == 'subscribe' and token == MESSENGER_WEBHOOK_VERIFY_TOKEN:
+        if all(key in request.args for key in ['hub.mode', 'hub.verify_token']):
+            if (request.args['hub.mode'] == 'subscribe' and 
+                request.args['hub.verify_token'] == MESSENGER_WEBHOOK_VERIFY_TOKEN):
                 print('WEBHOOK VERIFIED')
-                challenge = request.args.get('hub.challenge')
-                return challenge, 200
-            else:
-                return 'ERROR', 403
-        return 'SOMETHING', 200
+                return request.args.get('hub.challenge', ''), 200
+            return 'Verification token mismatch', 403
+        return 'Missing parameters', 400
 
     if request.method == 'POST':
-        data = request.data
-        body = json.loads(data.decode('utf-8'))
+        try:
+            data = json.loads(request.data)
+            
+            if data.get('object') == 'page':
+                for entry in data.get('entry', []):
+                    page_id = entry.get('id')
+                    page_access_token = page_tokens.get(page_id)
 
-        if 'object' in body and body['object'] == 'page':
-            entries = body['entry']
-            for entry in entries:
-                webhookEvent = entry['messaging'][0]
-                print(webhookEvent)
+                    if not page_access_token:
+                        print(f"Missing token for page {page_id}")
+                        continue
 
-                senderPsid = webhookEvent['sender']['id']
-                print('Sender PSID: {}'.format(senderPsid))
-
-                if 'message' in webhookEvent:
-                    receivedMessage = webhookEvent['message']
-
-                    # Check if the received message contains text
-                    if 'text' in receivedMessage:
-                        response = {"text": '{}'.format(recieve_message(receivedMessage['text'], senderPsid))}
-                    else:
-                        response = {"text": 'This chatbot only accepts text messages'}
-
-                    # Call the Sender API
-                    payload = {
-                        'recipient': {'id': senderPsid},
-                        'message': response,
-                        'messaging_type': 'RESPONSE'
-                    }
-                    headers = {'content-type': 'application/json'}
-
-                    url = 'https://graph.facebook.com/v10.0/me/messages?access_token={}'.format(MESSENGER_PAGE_ACCESS_TOKEN)
-                    r = requests.post(url, json=payload, headers=headers)
-                    print(r.text)
+                    # Start background thread for processing
+                    threading.Thread(
+                        target=process_event,
+                        args=(entry, page_access_token)
+                    ).start()
 
                 return 'EVENT_RECEIVED', 200
-        else:
-            return 'ERROR', 404
 
+        except Exception as e:
+            print(f"Webhook processing failed: {str(e)}")
+        
+        return 'ERROR', 404
 
 if __name__ == "__main__":
     app.run(host="0.0.0.0", port=80) ## dejar puerto 80 para que funcione en azure

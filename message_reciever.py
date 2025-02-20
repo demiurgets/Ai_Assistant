@@ -101,7 +101,7 @@ def extract_conversation_info(latest_interaction: str, existing_info: dict) -> d
         ResponseSchema(name="experience", description="The work experience of the candidate."),
         ResponseSchema(name="lead_source", description="How the candidate found about the job posting or hiring opportunity. Only stick to the following categories: 1.- Linkedin 2.- Facebook 3.- Instagram, 4.- Indeed, 5.- Google, 6- Referral, 7.- Website, 8.- Other"),
         ResponseSchema(name="lead_source_id", description="The id of the lead_source. Only stick to the following categories: 1.- Linkedin 2.- Facebook 3.- Instagram, 4.- Indeed, 5.- Google, 6- Referral, 7.- Website, 8.- Other"),
-        ResponseSchema(name="availability", description="The availability of the candidate, day of the week and what time"),
+        ResponseSchema(name="availability", description="The availability of the candidate, day of the week and what time. Time should be in a valid time format if provided"),
         ResponseSchema(name="city", description="The city of the agreed location between the candidate and the assistant, where the candidate is applying.",),
         ResponseSchema(name="state", description="The state of the agreed location between the candidate and the assistant, where the candidate is applying.",),
         ResponseSchema(name="phone", description="The phone number provided by the candidate."),
@@ -228,7 +228,6 @@ def recieve_message(query, candidate_identifier):
         update_conversation(candidate_identifier, assistant_response=response)
 
         latest_interaction =  format_latest_interaction(candidate_identifier)
-        #print("LATEST INTERACTION\n\n", latest_interaction)
 
         # Load existing extracted info
         existing_info = load_extracted_info(candidate_identifier)  # Should return empty dict if none exists
@@ -240,15 +239,12 @@ def recieve_message(query, candidate_identifier):
         save_extracted_data(candidate_identifier, updated_info)
 
         # Check if all fields are fulfilled
-        saved = check_and_process_candidate(candidate_identifier) # Save & upgrade candidate
-        if saved:
-            print("----CANDIDATE SAVED, RETURNING RESPONSE----\n\n\n")
-        
+        check_and_process_candidate(candidate_identifier) # Save & upgrade candidate
+
         return response
     
     else:
         # Get AI response
-        #print("----SECOND CODE BLOCK EXCECUTED----\n\n\n")
         response = openAiUtils.send_to_ai(query, candidate_json["thread_id"], assistant_id)
 
         update_conversation(candidate_identifier, assistant_response=response)
@@ -337,9 +333,7 @@ def check_and_process_candidate(candidate_identifier):
         extracted_info = candidate_data.get('extracted_info', {})
         thread_id = candidate_data.get('thread_id')
         
-        print("ASSISTANT'S CONFIRMATION VALUE:\n", extracted_info['assistant_confirmation'])
-        
-        
+                
         # Define required fields
         required_fields = {
             "first_name", "experience",
