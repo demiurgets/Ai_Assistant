@@ -228,7 +228,7 @@ def recieve_message(query, candidate_identifier):
         update_conversation(candidate_identifier, assistant_response=response)
 
         latest_interaction =  format_latest_interaction(candidate_identifier)
-        print("LATEST INTERACTION\n\n", latest_interaction)
+        #print("LATEST INTERACTION\n\n", latest_interaction)
 
         # Load existing extracted info
         existing_info = load_extracted_info(candidate_identifier)  # Should return empty dict if none exists
@@ -240,16 +240,20 @@ def recieve_message(query, candidate_identifier):
         save_extracted_data(candidate_identifier, updated_info)
 
         # Check if all fields are fulfilled
-        check_and_process_candidate(candidate_identifier) # Save & upgrade candidate
+        saved = check_and_process_candidate(candidate_identifier) # Save & upgrade candidate
+        if saved:
+            print("----CANDIDATE SAVED, RETURNING RESPONSE----\n\n\n")
         
         return response
     
-    # Get AI response
-    response = openAiUtils.send_to_ai(query, candidate_json["thread_id"], assistant_id)
+    else:
+        # Get AI response
+        #print("----SECOND CODE BLOCK EXCECUTED----\n\n\n")
+        response = openAiUtils.send_to_ai(query, candidate_json["thread_id"], assistant_id)
 
-    update_conversation(candidate_identifier, assistant_response=response)
+        update_conversation(candidate_identifier, assistant_response=response)
 
-    return response
+        return response
 
 
 # Helper functions
@@ -381,7 +385,6 @@ def check_and_process_candidate(candidate_identifier):
         save_to_database(candidate_json_data)
         upgrade_candidate(candidate_identifier, candidate_json_data)
         
-        print("Candidate saved successfully")
         return True
         
     except Exception as e:
