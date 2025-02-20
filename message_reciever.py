@@ -3,6 +3,7 @@ import re
 import numpy as np
 import json
 import faiss
+import requests
 from transformers import AutoTokenizer, AutoModel
 from openai import OpenAI
 import os
@@ -51,6 +52,11 @@ api_key = os.getenv("OPENAI_KEY")
 reader_id = os.getenv("ASST_ID_READER")
 interviewer_id = os.getenv("ASST_INTERVIEWER")
 admin_assistant_id = os.getenv("ASST_ADMIN")
+
+save_data_url = os.getenv('save_data_url')
+get_data_url = os.getenv('get_data_url')
+delete_data_url = os.getenv('delete_data_url')
+customer_id = os.getenv('customer_id')
 
 database_url = f"postgresql+psycopg2://{user}:{password}@{host}:{port}/{dbname}"
 engine = create_engine(database_url)
@@ -152,6 +158,54 @@ def extract_conversation_info(latest_interaction: str, existing_info: dict) -> d
         return existing_info
 
 
+## Candidate JSON Files
+def get_candidate_data(candidate_identifier):
+    
+    url = get_data_url
+    payload = {
+        "candidate_id": candidate_identifier
+    }
+    headers = {"Content-Type": "application/json"}
+
+    try:
+        response = requests.post(url, json=payload, headers=headers)
+        response.raise_for_status()  # Raise error for HTTP error codes
+
+        data = response.json()
+        if data.get("success") and "data" in data:
+            extracted_info = json.loads(data["data"])
+            return extracted_info if isinstance(extracted_info, list) else []
+        
+        return []
+    except requests.exceptions.RequestException as e:
+        print(f"Error fetching candidate data: {e}")
+        return []
+
+## Save JSONN Files
+def save_candidate_data(candidate_identifier, data):
+    
+    url = save_data_url
+    
+    # Convert list/dict to a properly escaped JSON string
+    json_string = json.dumps(data, ensure_ascii=False)
+
+    payload = {
+        "customer_id": customer_id,
+        "candidate_id": candidate_identifier,
+        "data": json_string  # JSON properly formatted as a string
+    }
+    headers = {"Content-Type": "application/json"}
+
+    try:
+        response = requests.post(url, json=payload, headers=headers)
+        response.raise_for_status()  # Raise error for HTTP error codes
+
+        result = response.json()
+        return result.get("success", False)  # Return True if the request was successful
+    except requests.exceptions.RequestException as e:
+        print(f"Error saving candidate data: {e}")
+        return False
+
 def format_latest_interaction(candidate_identifier):
     """
     Formats the latest interaction showing:
@@ -159,50 +213,49 @@ def format_latest_interaction(candidate_identifier):
     - Last user response
     in chronological order (older messages first).
     """
-    path = f"Stored_context/applicants_in_progress/{candidate_identifier}.json"
     try:
-        with open(path, "r") as f:
-            data = json.load(f)
-            
-            if isinstance(data, list) and len(data) > 0:
-                conversation = data[0].get("conversation", [])
-                
-                last_user_message = None
-                assistant_messages = []
-                
-                # Collect messages in reverse order
-                for message in reversed(conversation):
-                    # Get the last user message
-                    if message["role"] == "external_user" and last_user_message is None:
-                        last_user_message = f"User: {message['message']}"
-                    
-                    # Get up to 2 assistant messages
-                    if message["role"] == "assistant":
-                        assistant_messages.append(f"Assistant: {message['message']}")
-                    
-                    # Stop when we have all required messages
-                    if last_user_message is not None and len(assistant_messages) >= 2:
-                        break
-                
-                # Combine messages maintaining chronological order
-                interaction_parts = []
-                
-                # Add the first assistant message if it exists
-                if len(assistant_messages) > 1:
-                    interaction_parts.append(assistant_messages[-1])
-                
-                # Add the user message if it exists
-                if last_user_message is not None:
-                    interaction_parts.append(last_user_message)
-                
-                # Add the second assistant message if it exists
-                if len(assistant_messages) > 0:
-                    interaction_parts.append(assistant_messages[0])
-                
-                return "\n".join(interaction_parts)
-                
-        return "No conversation found"
+        # Fetch candidate data from API
+        candidate_data_list = get_candidate_data(candidate_identifier)
+
+        if not isinstance(candidate_data_list, list) or len(candidate_data_list) == 0:
+            return "No conversation found"
+
+        conversation = candidate_data_list[0].get("conversation", [])
         
+        last_user_message = None
+        assistant_messages = []
+        
+        # Collect messages in reverse order
+        for message in reversed(conversation):
+            # Get the last user message
+            if message["role"] == "external_user" and last_user_message is None:
+                last_user_message = f"User: {message['message']}"
+            
+            # Get up to 2 assistant messages
+            if message["role"] == "assistant":
+                assistant_messages.append(f"Assistant: {message['message']}")
+            
+            # Stop when we have all required messages
+            if last_user_message is not None and len(assistant_messages) >= 2:
+                break
+        
+        # Combine messages maintaining chronological order
+        interaction_parts = []
+        
+        # Add the first assistant message if it exists
+        if len(assistant_messages) > 1:
+            interaction_parts.append(assistant_messages[-1])
+        
+        # Add the user message if it exists
+        if last_user_message is not None:
+            interaction_parts.append(last_user_message)
+        
+        # Add the second assistant message if it exists
+        if len(assistant_messages) > 0:
+            interaction_parts.append(assistant_messages[0])
+        
+        return "\n".join(interaction_parts)
+    
     except Exception as e:
         print(f"Error formatting interaction: {e}")
         return "Error loading conversation"
@@ -254,133 +307,115 @@ def recieve_message(query, candidate_identifier):
 
 # Helper functions
 def load_extracted_info(candidate_identifier):
-    path = f"Stored_context/applicants_in_progress/{candidate_identifier}.json"
-    try:
-        with open(path, "r") as f:
-            data = json.load(f)
-            if isinstance(data, list) and len(data) > 0:
-                return data[0].get("extracted_info", {})
-        return {}
-    except Exception as e:
-        print(f"Error loading extracted info: {e}")
-        return {}
+    extracted_info = get_candidate_data(candidate_identifier)
+    
+    if extracted_info and len(extracted_info) > 0:
+        return extracted_info[0].get("extracted_info", {})
+    
+    return {}
 
 
 def save_extracted_data(candidate_identifier, data):
-    path = f"Stored_context/applicants_in_progress/{candidate_identifier}.json"
-    try:
-        # Load existing data
-        with open(path, "r") as f:
-            file_data = json.load(f)
+    
+    existing_data = get_candidate_data(candidate_identifier)
 
-        # Update extracted info
-        if isinstance(file_data, list) and len(file_data) > 0:
-            file_data[0]["extracted_info"] = data
+    if isinstance(existing_data, list) and len(existing_data) > 0:
+        existing_data[0]["extracted_info"] = data  # Update extracted_info
 
-            # Write back to file
-            with open(path, "w") as f:
-                json.dump(file_data, f, indent=2)
-    except Exception as e:
-        print(f"Error saving extracted data: {e}")
+        # Save updated data to API
+        return save_candidate_data(candidate_identifier, existing_data)
+    
+    return False  # Return False if no existing data found
 
 
 def retrieve_last_responses(candidate_identifier):
-    path = f"Stored_context/applicants_in_progress/{candidate_identifier}.json"
-    try:
-        with open(path, "r") as f:
-            data = json.load(f)
-            if isinstance(data, list) and len(data) > 0:
-                conversation = data[0].get("conversation", [])
-                
-                last_assistant = None
-                last_user = None
-                
-                # Search in reverse order
-                for message in reversed(conversation):
-                    if message["role"] == "assistant" and last_assistant is None:
-                        last_assistant = message["message"]
-                    elif message["role"] == "external_user" and last_user is None:
-                        last_user = message["message"]
-                    
-                    if last_assistant is not None and last_user is not None:
-                        break
-                
-                return last_assistant, last_user
-                
-        return None, None
+    
+    extracted_info = get_candidate_data(candidate_identifier)
+
+    if extracted_info and len(extracted_info) > 0:
+        conversation = extracted_info[0].get("conversation", [])
         
-    except Exception as e:
-        print(f"Error retrieving last responses: {e}")
-        return None, None
+        last_assistant = None
+        last_user = None
+
+        # Search in reverse order
+        for message in reversed(conversation):
+            if message["role"] == "assistant" and last_assistant is None:
+                last_assistant = message["message"]
+            elif message["role"] == "external_user" and last_user is None:
+                last_user = message["message"]
+            
+            if last_assistant is not None and last_user is not None:
+                break
+
+        return last_assistant, last_user
+
+    return None, None
 
 
 def check_and_process_candidate(candidate_identifier):
     """
     Checks if all fields in extracted_info are fulfilled and processes the candidate if they are.
     """
-    # Load the candidate data
-    path = f"Stored_context/applicants_in_progress/{candidate_identifier}.json"
     try:
-        with open(path, 'r') as f:
-            data = json.load(f)
-            
-        if not isinstance(data, list) or len(data) == 0:
+        # Load the candidate data from the API
+        candidate_data_list = get_candidate_data(candidate_identifier)
+
+        if not isinstance(candidate_data_list, list) or len(candidate_data_list) == 0:
             print("Invalid data format")
             return False
-            
-        
-        candidate_data = data[0]
+
+        candidate_data = candidate_data_list[0]
         extracted_info = candidate_data.get('extracted_info', {})
         thread_id = candidate_data.get('thread_id')
-        
-                
+
+        print("ASSISTANT'S CONFIRMATION VALUE:\n", extracted_info.get('assistant_confirmation', 'N/A'))
+
         # Define required fields
         required_fields = {
             "first_name", "experience",
             "lead_source", "lead_source_id", "availability", "city", "phone",
             "location_id", "position_id"
         }
-        
 
         # Check if all required fields are present and non-empty
-        if not all(extracted_info.get(field) not in [None, ""] for field in required_fields):
-            missing_or_empty_fields = [
-                field for field in required_fields 
-                if extracted_info.get(field) in [None, ""]
-            ]
+        missing_or_empty_fields = [
+            field for field in required_fields 
+            if extracted_info.get(field) in [None, ""]
+        ]
+
+        if missing_or_empty_fields:
             print("The following required fields are missing or empty:", missing_or_empty_fields)
             return False
         else:
             print("All required fields are fulfilled.")
-        
-        if extracted_info['assistant_confirmation'] == "false":
-            print("All required fields fulfilled. Waiting for candidates's final confirmation")
+
+        if extracted_info.get('assistant_confirmation') == "false":
+            print("All required fields fulfilled. Waiting for candidate's final confirmation")
             return False
-            
-            
-            
+
         # Ensure 'age' field is numeric
         if 'age' in extracted_info:
             try:
-                # Try to convert 'age' to an integer
                 extracted_info['age'] = int(extracted_info['age'])
             except (ValueError, TypeError):
                 print("Invalid 'age' value. 'age' must be a numeric value.")
                 return False
-               
+
         # Prepare the final JSON data
         candidate_json_data = {
             **extracted_info,
             "candidate_identifier": candidate_identifier,
             "thread_id": thread_id
         }
-        
-        # Call the processing functions
+
+        # Call the processing functions (assuming these work with JSON data)
         save_to_database(candidate_json_data)
         upgrade_candidate(candidate_identifier, candidate_json_data)
-        
+
+        print("Candidate saved successfully")
         return True
-        
+
     except Exception as e:
         print(f"Error processing candidate: {e}")
         return False

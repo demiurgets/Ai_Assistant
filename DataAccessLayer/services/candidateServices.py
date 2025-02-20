@@ -1,3 +1,4 @@
+import requests
 from sqlalchemy.orm import Session
 from sqlalchemy.exc import SQLAlchemyError
 from DataAccessLayer.models.assistants import Assistants
@@ -27,6 +28,10 @@ user = os.getenv('user', 'postgres')
 password = os.getenv('password', 'Not24get!')
 host = os.getenv('host', 'localhost')
 port = os.getenv('pg_port', '5432')
+save_data_url = os.getenv('save_data_url')
+get_data_url = os.getenv('get_data_url')
+delete_data_url = os.getenv('delete_data_url')
+customer_id = os.getenv('customer_id')
 
 # Database URL
 database_url = f"postgresql+psycopg2://{user}:{password}@{host}:{port}/{dbname}"
@@ -451,25 +456,95 @@ def upgrade_candidate(candidate_identifier, candidate_data):
 
 #Searches db for candidate identifier and deletes, then deletes jsons
 
+## Candidate JSON Files
+def get_candidate_data(candidate_identifier):
+    
+    url = get_data_url
+    payload = {
+        "candidate_id": candidate_identifier
+    }
+    headers = {"Content-Type": "application/json"}
+
+    try:
+        response = requests.post(url, json=payload, headers=headers)
+        response.raise_for_status()  # Raise error for HTTP error codes
+
+        data = response.json()
+        if data.get("success") and "data" in data:
+            extracted_info = json.loads(data["data"])
+            return extracted_info if isinstance(extracted_info, list) else []
+        
+        return []
+    except requests.exceptions.RequestException as e:
+        print(f"Error fetching candidate data: {e}")
+        return []
+    
+## Save JSONN Files
+def save_candidate_data(candidate_identifier, data):
+    
+    url = save_data_url
+    
+    # Convert list/dict to a properly escaped JSON string
+    json_string = json.dumps(data, ensure_ascii=False)
+
+    payload = {
+        "customer_id": customer_id,
+        "candidate_id": candidate_identifier,
+        "data": json_string  # JSON properly formatted as a string
+    }
+    headers = {"Content-Type": "application/json"}
+
+    try:
+        response = requests.post(url, json=payload, headers=headers)
+        response.raise_for_status()  # Raise error for HTTP error codes
+
+        result = response.json()
+        return result.get("success", False)  # Return True if the request was successful
+    except requests.exceptions.RequestException as e:
+        print(f"Error saving candidate data: {e}")
+        return False
+    
+## Delete JSON Files
+def delete_candidate_data(candidate_identifier):
+   
+    url = delete_data_url
+    
+    payload = {
+        "customer_id": customer_id,
+        "candidate_id": candidate_identifier
+    }
+    headers = {"Content-Type": "application/json"}
+
+    try:
+        response = requests.post(url, json=payload, headers=headers)
+        response.raise_for_status()  # Raise error for HTTP error codes
+
+        result = response.json()
+        return result.get("success", False)  # Return True if deletion was successful
+    except requests.exceptions.RequestException as e:
+        print(f"Error deleting candidate data: {e}")
+        return False
 
 def delete_by_candidate_identifier(candidate_identifier):
+   
     try:
+        # Delete candidate data from the database
         candidates_to_delete = db_session.query(Candidates).filter(Candidates.candidate_identifier == candidate_identifier).all()
         
-        # Check if there are any candidates to delete
         if candidates_to_delete:
             for candidate in candidates_to_delete:
                 db_session.delete(candidate)
             db_session.commit()
 
-        # Now delete the corresponding JSON file(s) in the applicants_in_progress folder
-        json_file_path = os.path.join("Stored_context/applicants_in_progress", f"{candidate_identifier}.json")
-        if os.path.exists(json_file_path):
-            os.remove(json_file_path)
-            return jsonify({"message": f"All candidate data for candidate identifier {candidate_identifier} successfully deleted."}), 200
+        # Delete the JSON file using the API
+        json_deleted = delete_candidate_data(candidate_identifier)
+
+        # Check if the JSON deletion was successful
+        if json_deleted:
+            return jsonify({"message": f"All candidate data for candidate identifier {candidate_identifier} successfully deleted from the database and API."}), 200
         else:
-            return jsonify({"error": f"No screening data found for candidate identifier {candidate_identifier}."}), 404
-            
+            return jsonify({"error": f"Candidate data deleted from the database, but failed to delete JSON from the API."}), 500
+
     except SQLAlchemyError as e:
         db_session.rollback()
         return jsonify({"error": f"Failed to delete candidate screening data from the database: {str(e)}"}), 500
@@ -524,25 +599,15 @@ def save_new_issue(data):
 
 
 def load_candidates_json(candidate_identifier):
-    # Load JSON data from file or create an empty list if the file doesn't exist
-    json_file_path = "Stored_context/applicants_in_progress/" + candidate_identifier + ".json"
+    
+    extracted_info = get_candidate_data(candidate_identifier)
 
-    if os.path.exists(json_file_path):
-        with open(json_file_path, 'r') as f:
-            data = json.load(f)
-            # Ensure that the data is a list
-            if isinstance(data, list):
-                return data
-            else:
-                return []  # If the JSON is not a list, return an empty list
-    return []
+    # Ensure that the data is a list
+    return extracted_info if isinstance(extracted_info, list) else []
 
 def save_candidates_json(data, candidate_identifier):
-    json_file_path = "Stored_context/applicants_in_progress/" + candidate_identifier + ".json"
-
-    # Save JSON data to file
-    with open(json_file_path, 'w') as f:
-        json.dump(data, f, indent=4)
+   
+    return save_candidate_data(candidate_identifier, data)
 
 def update_conversation(candidate_identifier, user_message=None, assistant_response=None):
     data = load_candidates_json(candidate_identifier)
