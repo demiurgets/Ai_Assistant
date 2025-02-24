@@ -199,7 +199,15 @@ def detect_trigger_string(text, thread_id, candidate_identifier, asstId):
         return text_without_trigger
     return text
 
-
+def remove_source_annotations(text: str) -> str:
+    """
+    Removes any '【12:0†source】'-style placeholders from the given text.
+    Match pattern: 【<digits>:<digits>†source】
+    Example: "Hello 【12:0†source】world" -> "Hello world"
+    """
+    import re
+    pattern = r'【\d+:\d+†source】'
+    return re.sub(pattern, '', text)
 
 #I should probably update this so it only queries for the candidate/phone number once instead of multiple times per message
 
@@ -210,8 +218,9 @@ def recieve_message(query, candidate_identifier):
         return "Please restart conversation, the assistant has left"
 
     print(assistant_id)
-    response = ""
-    response = openAiUtils.send_to_ai(query, candidate_json["thread_id"], assistant_id)
+    responseRaw = ""
+    responseRaw = openAiUtils.send_to_ai(query, candidate_json["thread_id"], assistant_id)
+    response = remove_source_annotations(responseRaw)
 
     #if positions are queried they will be returned here for the user to see
     triggerResponse = detect_trigger_string(response, candidate_json["thread_id"], candidate_identifier, assistant_id)

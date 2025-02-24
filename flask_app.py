@@ -1,5 +1,6 @@
 from flask import Flask, render_template, request, jsonify
-
+import time
+import threading
 from message_reciever import recieve_message, find_or_create_candidate_json
 import os
 from dotenv import load_dotenv
@@ -74,6 +75,15 @@ WEBHOOK_VERIFY_TOKEN = os.getenv("WHATSAPP_WEBHOOK_VERIFY")
 MESSENGER_WEBHOOK_VERIFY_TOKEN = os.getenv('MESSENGER_WEBHOOK_VERIFY_TOKEN')
 MESSENGER_PAGE_ACCESS_TOKEN = os.getenv('MESSENGER_PAGE_ACCESS_TOKEN')
 
+# Message buffer to store incoming messages temporarily
+message_buffer = {}
+inbox_contact_mapping = {}  # Maps sender_number → inbox_contact_id
+timers = {}
+ui_message_store = {}
+
+
+MESSAGE_DELAY = 10  # ⏳ Increased delay to 10 seconds
+
 def validate_token():
     token = request.headers.get('Authorization')
     if token != f"Bearer {SECURITY_TOKEN}":
@@ -101,16 +111,38 @@ def get_issues():
 
 
 @app.route('/ui_send_message', methods=['POST'])
-def send_message():
+def ui_send_message():
+    """
+    Handles UI-based message requests and applies delay before responding.
+    Queues the message, then waits briefly for the Timer to finalize the response
+    if no additional messages arrive.
+    """
     data = request.json
     message = data.get('message')
     candidate_identifier = data.get('candidate_identifier')
 
-    if message and candidate_identifier:
-        response = recieve_message(message, candidate_identifier)
-        return jsonify({'response': response})
-    else:
+    if not message or not candidate_identifier:
         return jsonify({'error': 'Invalid message or candidate_identifier'}), 400
+
+    # Put the message in the queue
+    enqueue_message(candidate_identifier, message)
+
+    # Wait until the response is available or time runs out
+    max_wait_time = MESSAGE_DELAY + 2
+    elapsed_time = 0
+    poll_interval = 0.5  # Check every 500ms
+
+    while candidate_identifier not in ui_message_store and elapsed_time < max_wait_time:
+        time.sleep(poll_interval)
+        elapsed_time += poll_interval
+
+    # Once we either have a response or ran out of time
+    if candidate_identifier in ui_message_store:
+        final_response = ui_message_store.pop(candidate_identifier)
+        return jsonify({'response': final_response})
+    else:
+        # Return a placeholder if we still don't have a final response
+        return jsonify({'response': 'Still working...'}), 200
 
 
 # Endpoint for webhook verification
@@ -126,72 +158,107 @@ def webhook_verification():
     else:
         return "Forbidden", 403
 
+def enqueue_message(sender_number, message, inbox_contact_id=None):
+    """
+    Adds a message to the buffer for sender_number, resets the timer,
+    and stores the inbox_contact_id if it's from Hilos.
+    """
+    if sender_number not in message_buffer:
+        message_buffer[sender_number] = []
+    message_buffer[sender_number].append(message)
 
-@app.route('/hilos_webhook', methods=['POST', 'GET'])
+    if inbox_contact_id:
+        inbox_contact_mapping[sender_number] = inbox_contact_id
+
+    # Cancel previous Timer if it exists
+    if sender_number in timers:
+        timers[sender_number].cancel()
+
+    # Start a new Timer
+    timers[sender_number] = threading.Timer(MESSAGE_DELAY, process_messages, args=(sender_number,))
+    timers[sender_number].start()
+
+
+# ========================
+# Part 3: process_messages
+# ========================
+def process_messages(sender_number):
+    """
+    After the MESSAGE_DELAY, merge all queued messages and generate a single response.
+    If sender_number is from Hilos, send via the Hilos API;
+    Otherwise, store it in ui_message_store for UI retrieval.
+    """
+    time.sleep(MESSAGE_DELAY)
+
+    if sender_number in message_buffer:
+        combined_message = " ".join(message_buffer.pop(sender_number))
+        print(f"[INFO] Processing batched messages for {sender_number}: {combined_message}")
+
+        # Generate AI response once
+        response_message = recieve_message(combined_message, sender_number)
+        print(f"[INFO] AI Response for {sender_number}: {response_message}")
+
+        # Distinguish between UI calls and Hilos calls
+        if sender_number in inbox_contact_mapping:
+            # Hilos side → send to Hilos
+            inbox_contact_id = inbox_contact_mapping.pop(sender_number, None)
+            if inbox_contact_id:
+                send_hilos_message(inbox_contact_id, response_message)
+        else:
+            # UI side → store for the /ui_send_message route to pick up
+            ui_message_store[sender_number] = response_message
+
+
+@app.route('/hilos_webhook', methods=['POST'])
 def hilos_webhook_endpoint():
-    if request.method == 'GET':
-        return jsonify({"message": "GET request received, but only POST requests are processed"}), 200
-
-    # Extract the incoming data
+    """Handles incoming messages from Hilos (WhatsApp)."""
     data = request.json
+
     if data['event_data']['direction'] != "INBOUND":
-        print("not inbound. skipping...")
-        
+        print("[INFO] Not an inbound message. Skipping...")
         return jsonify({"processed_message": "message not inbound"}), 200
+
     try:
-        print(f"Received data: {data}")
-
-        # Extract sender info
-        sender_number = data['event_data']['from_number']
+        sender_number = "".join(filter(str.isdigit, data['event_data']['from_number']))
         message = data['event_data']['body']
-        sender_number = "".join(filter(str.isdigit, sender_number))
-        # Extract the InboxContact ID
-        inbox_contact_id = data['event_data']['inbox_contact']  # Update this to match the actual key for inbox_contact_id
-        print(f"Message from {sender_number}: {message}")
-        print(f"Received message: {message} from number: {sender_number}")
+        inbox_contact_id = data['event_data']['inbox_contact']  # Extract Hilos Contact ID
+        print(data)
+        print(f"[INFO] Received message from {sender_number} (Inbox ID: {inbox_contact_id}): {message}")
 
-        
-        # Process the message and generate a response
-        response_message = recieve_message(message, sender_number)
-        #response_message = f"Recieved message: {message}"
+        enqueue_message(sender_number, message, inbox_contact_id)  # Store and delay processing
 
-        
-        # Send the response message to the candidate
-        send_hilos_message(inbox_contact_id, response_message)
-        
-        return jsonify({"processed_message": response_message}), 200
+        return jsonify({"message": "Message received and queued"}), 200
     except KeyError as e:
-        print(f"Error extracting data: {e}")
-        return jsonify({"error": "Error processing incoming message"}), 500
+        print(f"[ERROR] Error processing incoming message: {e}")
+        return jsonify({"error": "Invalid message format"}), 500
+
 
 def send_hilos_message(inbox_contact_id, message):
-    """Send a message to Hilos using the contact's InboxContact ID."""
+    """Send a message back to the sender via Hilos API."""
     HILOS_API_URL = "https://api.hilos.io/api/inbox/contact"
     url = f"{HILOS_API_URL}/{inbox_contact_id}/message"
+
     headers = {
         "Content-Type": "application/json",
-        "Authorization": f"Token {HILOS_API_KEY}"  # Bearer token for Hilos API
+        "Authorization": f"Token {HILOS_API_KEY}"
     }
+
     payload = {
-        'body': message, 
-        'msg_type': 'text', 
+        'body': message,
+        'msg_type': 'text',
         'is_deleted': False
     }
 
-    print("\n--- REQUEST DATA ---")
-    print(f"URL: {url}")
-    print(f"Headers: {json.dumps(headers, indent=2)}")
-    print(f"Payload: {json.dumps(payload, indent=2)}")
-    print("--------------------\n")
-        
+    print(f"[INFO] Sending message to {inbox_contact_id}: {message}")
+
     try:
         response = requests.post(url, json=payload, headers=headers)
         if response.status_code == 201:
-            print(f"Message successfully sent to inbox_contact_id {inbox_contact_id}")
+            print(f"[SUCCESS] Message successfully sent to {inbox_contact_id}")
         else:
-            print(f"Failed to send message. Status code: {response.status_code}, Response: {response.text}")
+            print(f"[ERROR] Failed to send message. Status: {response.status_code}, Response: {response.text}")
     except Exception as e:
-        print(f"Error sending message to Hilos: {e}")
+        print(f"[ERROR] Error sending message: {e}")
 
 
 # handles incoming messages from WhatsApp

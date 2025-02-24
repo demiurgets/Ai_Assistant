@@ -382,6 +382,8 @@ def get_corresponding_assistant(candidate_identifier):
             assistant = db_session.query(Assistants).filter(Assistants.name.like('%documents%')).first()
         elif assistant_stage == 2:
             assistant = db_session.query(Assistants).filter(Assistants.name.like('%review%')).first()
+        elif assistant_stage == 10:
+            assistant = db_session.query(Assistants).filter(Assistants.name.like('%training%')).first()
         else:
             print(f"Unhandled assistant_stage: {assistant_stage} for candidate identifier {candidate_identifier}.")
             return None
