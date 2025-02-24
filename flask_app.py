@@ -75,14 +75,13 @@ WEBHOOK_VERIFY_TOKEN = os.getenv("WHATSAPP_WEBHOOK_VERIFY")
 MESSENGER_WEBHOOK_VERIFY_TOKEN = os.getenv('MESSENGER_WEBHOOK_VERIFY_TOKEN')
 MESSENGER_PAGE_ACCESS_TOKEN = os.getenv('MESSENGER_PAGE_ACCESS_TOKEN')
 
-# Message buffer to store incoming messages temporarily
 message_buffer = {}
-inbox_contact_mapping = {}  # Maps sender_number → inbox_contact_id
+inbox_contact_mapping = {}  # Maps sender_number → inbox_contact_id for hilos replies
 timers = {}
 ui_message_store = {}
 
 
-MESSAGE_DELAY = 10  # ⏳ Increased delay to 10 seconds
+MESSAGE_DELAY = 10 
 
 def validate_token():
     token = request.headers.get('Authorization')
@@ -179,9 +178,7 @@ def enqueue_message(sender_number, message, inbox_contact_id=None):
     timers[sender_number].start()
 
 
-# ========================
-# Part 3: process_messages
-# ========================
+
 def process_messages(sender_number):
     """
     After the MESSAGE_DELAY, merge all queued messages and generate a single response.
