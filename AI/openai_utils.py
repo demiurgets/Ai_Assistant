@@ -58,4 +58,4 @@ class OpenAIUtility:
 
         except Exception as e:
             print(f"Error in send_to_ai: {str(e)}")
-            return "Our systems are busy. Please try your message again in a moment."
+            return ""

@@ -369,12 +369,11 @@ def check_and_process_candidate(candidate_identifier):
         extracted_info = candidate_data.get('extracted_info', {})
         thread_id = candidate_data.get('thread_id')
 
-        print("ASSISTANT'S CONFIRMATION VALUE:\n", extracted_info.get('assistant_confirmation', 'N/A'))
 
         # Define required fields
         required_fields = {
-            "first_name", "experience",
-            "lead_source", "lead_source_id", "availability", "city", "phone",
+            "first_name",
+            "phone",
             "location_id", "position_id"
         }
 
