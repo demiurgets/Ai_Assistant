@@ -349,19 +349,26 @@ def update_user_status(user_id, new_status):
         db_session.remove()
 
 
-# 8. Get user by email
+# 8. Get user by email       
 def get_user_by_email(email):
-    
     try:
         user = db_session.query(Users).filter(Users.email == email).first()
-        return user_to_dict(user) if user else None
+        if not user:
+            return None
+        user_locations = db_session.query(
+            UserLocation.location_id
+        ).filter(UserLocation.user_id == user.id).all()
+        
+        location_ids = [ul.location_id for ul in user_locations]
+        
+        return user_with_location_to_dict(user, location_ids)
     except SQLAlchemyError as e:
         print(f"Error fetching user by email: {e}")
         db_session.rollback()
-        
         return None
     finally:
         db_session.remove()
+
         
 # Define 6 dummy users in JSON format
 dummy_users = [

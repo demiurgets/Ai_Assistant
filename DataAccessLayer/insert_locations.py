@@ -38,7 +38,7 @@ if excel_files:
     df = pd.read_excel(os.path.join('excel_file_context', excel_files[0]), sheet_name="Locations", dtype=dtype_dict)
     print(df.head(10))
     
-    new_column_names = ['name', 'address', 'city', 'state', 'zip', 'phone']
+    new_column_names = ['id', 'name', 'address', 'city', 'state', 'zip', 'phone']
     df.columns = new_column_names
     print(df.head(10))
     
