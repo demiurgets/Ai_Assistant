@@ -27,7 +27,7 @@ class Positions(Base):
     date_updated = Column(DateTime, nullable=True, default=func.current_timestamp())
     is_active = Column(Boolean, nullable=True)
     position_embedding = Column(Vector(1536))
-    working_hours = Column(String(225), nullable=True)
+    working_hours = Column(String(1000), nullable=True)
 
     locations = relationship("Locations", secondary='locations_positions', back_populates="positions")
 
