@@ -3,6 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta name="flask-api-token" content="FLASK_API_TOKEN_PLACEHOLDER">
     <title>Chat Application</title>
     <style>
         /* Base Light Mode Styles */
@@ -41,7 +42,7 @@
         
         #reset_button {
             position: fixed;
-            top: 20px; /* Adjust this value to place it correctly */
+            bottom: 20px; /* Adjust this value to place it correctly */
             left: 20px; /* Adjust this value to place it correctly */
             padding: 10px;
             background-color: #dc3545; /* Red background for reset */
@@ -436,22 +437,31 @@
             }
         }
 
+
         function fetchConversation(candidate_identifier) {
-            fetch(`/conversation_by_candidate_identifier/${candidate_identifier}`)
-                .then(response => response.json())
-                .then(data => {
-                    let conversation = data.conversation;
-                    let chatBox = document.getElementById('conversation');
-                    chatBox.innerHTML = '';
-                    if (data.cv_analysis) {
-                        console.log("analysis found")
-                        displayCvAnalysis(data);
-                    }
-                    conversation.forEach(msg => appendMessage(msg.role, msg.message));
-                    document.getElementById('chat_box').style.display = 'block';
-                })
-                .catch(error => console.error('Error fetching conversation:', error));
+            const token = document.querySelector('meta[name="flask-api-token"]').getAttribute('content');
+
+            fetch(`/conversation_by_candidate_identifier/${candidate_identifier}`, {
+                headers: {
+                    'Authorization': `Bearer ${token}`
+                }
+            })
+            .then(response => response.json())
+            .then(data => {
+                let conversation = data.conversation;
+                let chatBox = document.getElementById('conversation');
+                chatBox.innerHTML = '';
+                if (data.cv_analysis) {
+                    console.log("analysis found")
+                    displayCvAnalysis(data);
+                }
+                conversation.forEach(msg => appendMessage(msg.role, msg.message));
+                document.getElementById('chat_box').style.display = 'block';
+            })
+            .catch(error => console.error('Error fetching conversation:', error));
         }
+
+
 
         function displayCvAnalysis(data) {
             let cvAnalysis = data.cv_analysis;

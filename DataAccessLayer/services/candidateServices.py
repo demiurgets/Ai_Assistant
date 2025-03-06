@@ -1,6 +1,7 @@
 import requests
 from sqlalchemy.orm import Session
-from sqlalchemy.exc import SQLAlchemyError
+from sqlalchemy.exc import IntegrityError, SQLAlchemyError
+from psycopg2.errors import UniqueViolation  
 from DataAccessLayer.models.assistants import Assistants
 from DataAccessLayer.models.candidates import Candidates
 from DataAccessLayer.models.positions import Positions
@@ -279,12 +280,28 @@ def save_to_database(json_data):
         db_session.commit()
         logging.info("Candidate saved successfully.")
         return True  
+    except IntegrityError as e:
+        db_session.rollback()
+        # Check if the error is a UniqueViolation from PostgreSQL
+        if isinstance(e.orig, UniqueViolation):
+            constraint_name = e.orig.diag.constraint_name
+            detail_message = e.orig.diag.message_detail 
+            
+            # Extract the constraint name and details
+            error_message = (
+                f"Duplicate candidate (constraint '{constraint_name}'): "
+                f"{e.orig.diag.message_primary}\nDETAIL: {detail_message}"
+            )
+            logging.error(error_message)
+        else:
+            logging.error(f"Database integrity error: {str(e.orig)}")
+        return False
     except SQLAlchemyError as e:
         db_session.rollback()
-        logging.error(f"Error saving candidate: {e}, data: {json_data}")
+        logging.error(f"Database error: {str(e)}")
         return False  
     finally:
-        db_session.remove()  
+        db_session.remove()
 
 
 # 5. Update candidate by ID
