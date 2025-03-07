@@ -1,6 +1,5 @@
 trigger:
   - main  
-  - develop  
 
 pool:
   vmImage: 'ubuntu-latest'
@@ -8,7 +7,6 @@ pool:
 steps:
   # Checkout the repository
   - checkout: self
-
   - task: UsePythonVersion@0
     inputs:
       versionSpec: '3.x'
@@ -20,11 +18,9 @@ steps:
       scannerMode: 'cli'
       configMode: 'manual'
       cliProjectKey: 'AIContextAssistant_AIContextAssistant_7bc24c9e-8e27-40ec-805c-58ada283a314'
-      cliSources: '.'
-      extraProperties: |
-        sonar.projectVersion=1.0  
-
+    
   - task: SonarQubeAnalyze@7
+   
 
   - task: SonarQubePublish@7
     inputs:
