@@ -1,0 +1,33 @@
+trigger:
+  - main  
+  - develop
+
+pool:
+  vmImage: 'ubuntu-latest'
+
+steps:
+  # Checkout the repository
+  - checkout: self
+  - task: UsePythonVersion@0
+    inputs:
+      versionSpec: '3.x'
+      addToPath: true
+
+  - task: SonarQubePrepare@7
+    inputs:
+      SonarQube: 'qonda-service-connection'
+      scannerMode: 'cli'
+      configMode: 'manual'
+      cliProjectKey: 'AIContextAssistant_AIContextAssistant_7bc24c9e-8e27-40ec-805c-58ada283a314'
+      
+      
+
+  
+
+  - task: SonarQubeAnalyze@7
+   
+
+  - task: SonarQubePublish@7
+    inputs:
+      pollingTimeoutSec: '300'
+      
