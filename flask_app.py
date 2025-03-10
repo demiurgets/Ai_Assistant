@@ -12,6 +12,7 @@ from DataAccessLayer.createModels import createModelsMain
 from DataAccessLayer.createDatabaseORM import createDbMain
 from Injestor.pdf_reader import analyze_CV
 import threading
+from flask import render_template_string
 
 from DataAccessLayer.services.candidateServices import (
     get_all_candidates,
@@ -78,9 +79,15 @@ def validate_token():
         return jsonify({'error': 'Unauthorized access'}), 403
     return None
 
+
 @app.route('/')
 def index():
-    return render_template('index.html')
+    with open('templates/index.html', 'r', encoding='utf-8') as file:
+        content = file.read()
+    token = os.getenv('FLASK_API_TOKEN')
+    content = content.replace('FLASK_API_TOKEN_PLACEHOLDER', token)
+    return render_template_string(content)
+
 
 @app.route('/report_issue', methods=['POST'])
 def report_issue():
@@ -374,6 +381,9 @@ def update_existing_candidate_status(candidate_id, new_status):
 
 @app.route('/conversation_by_candidate_identifier/<candidate_identifier>', methods=['GET'])
 def find_conversation_by_candidate_identifier(candidate_identifier):
+    auth_error = validate_token()
+    if auth_error:
+        return auth_error
     # Call the function to find the candidate by candidate identifier
     candidate_data = find_or_create_candidate_json(candidate_identifier)
     #print(candidate_data)
