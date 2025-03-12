@@ -163,7 +163,9 @@ def get_candidate_data(candidate_identifier):
     
     url = get_data_url
     payload = {
+        "customer_id": customer_id,
         "candidate_id": candidate_identifier
+        
     }
     headers = {"Content-Type": "application/json"}
 
@@ -295,7 +297,10 @@ def recieve_message(query, candidate_identifier):
         # Check if all fields are fulfilled
         check_and_process_candidate(candidate_identifier) # Save & upgrade candidate
 
-        return response
+        # Remove citation patterns for o3-mini
+        clean_response = re.sub(r'cite.*?', '', response)
+        
+        return clean_response
     
     else:
         # Get AI response
