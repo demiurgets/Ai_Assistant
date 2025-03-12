@@ -17,7 +17,7 @@ steps:
       SonarQube: 'qonda-service-connection'
       scannerMode: 'cli'
       configMode: 'manual'
-      cliProjectKey: 'AIContextAssistant_AIContextAssistant_7bc24c9e-8e27-40ec-805c-58ada283a314'
+      cliProjectKey: 'AIContextAssistant_AIContextAssistant_b855511c-2fdb-4fbd-8ce4-615deecb6b83'
     
   - task: SonarQubeAnalyze@7
    
