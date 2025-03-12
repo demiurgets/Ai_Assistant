@@ -94,7 +94,8 @@ def generate_all_txt_files():
                     file.write(f"Address: {loc.address}\n")
                     file.write(f"city: {loc.city},\n")
                     file.write(f"state: {loc.state},\n")
-                    file.write(f"zip: {loc.zip}\n")
+                    file.write(f"zip: {loc.zip}\n"),
+                    file.write(f"phone: {loc.phone}\n"),
                     file.write("\n")
                 file.write("\n")
         print("File 'all_available_locations_by_city.txt' generated successfully.")
