@@ -478,6 +478,7 @@ def get_candidate_data(candidate_identifier):
     
     url = get_data_url
     payload = {
+        "customer_id": customer_id,
         "candidate_id": candidate_identifier
     }
     headers = {"Content-Type": "application/json"}
