@@ -66,7 +66,7 @@ if excel_files:
     df['benefits'] = df[benefit_columns].apply(lambda row: to_pg_array(row), axis=1)
     df.drop(columns=benefit_columns, inplace=True)
     
-    new_column_names = ['name', 'job_type', 'location_type', 'description', 'working_hours', 'salary_range', 'salary_currency', 'salary_period', 'key_responsibilities', 'qualifications', 'benefits']
+    new_column_names = ['id','name', 'job_type', 'location_type', 'description', 'working_hours', 'salary_range', 'salary_currency', 'salary_period', 'key_responsibilities', 'qualifications', 'benefits']
     df.columns = new_column_names
     
     # Add the 'is_active' column with a default value of True

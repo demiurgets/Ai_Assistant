@@ -9,13 +9,14 @@ from sqlalchemy.orm import sessionmaker, scoped_session
 from sqlalchemy.exc import SQLAlchemyError
 from openai import OpenAI
 
+load_dotenv(override=True)
+
 client = OpenAI()
 
 # Define the directory for storing context files
 context_dir = "context_files"
 os.makedirs(context_dir, exist_ok=True)
 
-load_dotenv(override=True)
 
 # Database configuration
 dbname = os.getenv('dbname')
@@ -55,21 +56,33 @@ def generate_all_txt_files():
             print("No active locations with available positions found.")
             return "No active locations with available positions found."
 
-        # Group locations by state and city
+        # Initialize grouping dictionaries
         state_groups = {}
         city_groups = {}
         location_position_groups = {}
 
         for location in locations:
-            for position in location.positions:
-                if location.is_active and position.is_active:
-                    # Group by state and city
-                    state_groups.setdefault(location.state, []).append(location)
-                    city_groups.setdefault(location.city, []).append(location)
+            # Add location to state and city groups once
+            state_groups.setdefault(location.state, []).append(location)
+            city_groups.setdefault(location.city, []).append(location)
 
-                    # Group positions by location
-                    location_position_groups.setdefault(location.id, {"location_name": location.name, "city": location.city, "state": location.state, "address": location.address, "positions": []})
-                    location_position_groups[location.id]["positions"].append({"id": position.id, "name": position.name})
+            # Prepare entry for location_position_groups
+            if location.id not in location_position_groups:
+                location_position_groups[location.id] = {
+                    "location_name": location.name,
+                    "city": location.city,
+                    "state": location.state,
+                    "address": location.address,
+                    "positions": []
+                }
+
+            # Add active positions for the location
+            for position in location.positions:
+                if position.is_active:
+                    location_position_groups[location.id]["positions"].append({
+                        "id": position.id,
+                        "name": position.name
+                    })
 
         # Write locations grouped by city
         with open(os.path.join(context_dir,dbname+"_all_available_locations_by_city.txt"), "w") as file:
@@ -81,7 +94,8 @@ def generate_all_txt_files():
                     file.write(f"Address: {loc.address}\n")
                     file.write(f"city: {loc.city},\n")
                     file.write(f"state: {loc.state},\n")
-                    file.write(f"zip: {loc.zip}\n")
+                    file.write(f"zip: {loc.zip}\n"),
+                    file.write(f"phone: {loc.phone}\n"),
                     file.write("\n")
                 file.write("\n")
         print("File 'all_available_locations_by_city.txt' generated successfully.")
@@ -105,7 +119,7 @@ def generate_all_txt_files():
             ).all()
             
             for position in positions:
-                file.write(f"Position ID: {position.id}\n")
+                file.write(f"\nPosition ID: {position.id}\n")
                 file.write(f"Name: {position.name}\n")
                 
                 if position.description:  # Check if description is not None or empty

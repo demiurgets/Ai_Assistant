@@ -105,8 +105,8 @@ def extract_conversation_info(latest_interaction: str, existing_info: dict) -> d
         ResponseSchema(name="age", description="The age of the candidate. It has to be a number ONLY"),
         ResponseSchema(name="email", description="The email address provided by the candidate."),
         ResponseSchema(name="experience", description="The work experience of the candidate."),
-        ResponseSchema(name="lead_source", description="How the candidate found about the job posting or hiring opportunity. Only stick to the following categories: 1.- Linkedin 2.- Facebook 3.- Instagram, 4.- Indeed, 5.- Google, 6- Referral, 7.- Website, 8.- Other"),
-        ResponseSchema(name="lead_source_id", description="The id of the lead_source. Only stick to the following categories: 1.- Linkedin 2.- Facebook 3.- Instagram, 4.- Indeed, 5.- Google, 6- Referral, 7.- Website, 8.- Other"),
+        ResponseSchema(name="lead_source", description="How the candidate found about the job posting or hiring opportunity. Only stick to the following categories: 1.- Linkedin 2.- Facebook 3.- Instagram, 4.- Indeed, 5.- Google, 6- Referral, 7.- Website, 8.- Other, 9.- In store ad"),
+        ResponseSchema(name="lead_source_id", description="The id of the lead_source. Only stick to the following categories: 1.- Linkedin 2.- Facebook 3.- Instagram, 4.- Indeed, 5.- Google, 6- Referral, 7.- Website, 8.- Other, 9.- In store ad"),
         ResponseSchema(name="availability", description="The availability of the candidate, day of the week and what time. Time should be in a valid time format if provided"),
         ResponseSchema(name="city", description="The city of the agreed location between the candidate and the assistant, where the candidate is applying.",),
         ResponseSchema(name="state", description="The state of the agreed location between the candidate and the assistant, where the candidate is applying.",),
@@ -163,7 +163,9 @@ def get_candidate_data(candidate_identifier):
     
     url = get_data_url
     payload = {
+        "customer_id": customer_id,
         "candidate_id": candidate_identifier
+        
     }
     headers = {"Content-Type": "application/json"}
 
@@ -275,8 +277,9 @@ def remove_source_annotations(text: str) -> str:
 def recieve_message(query, candidate_identifier):
     candidate_json = find_or_create_candidate_json(candidate_identifier)
     assistant_id = get_corresponding_assistant(candidate_identifier)
+    
     if assistant_id is None:
-        return "Please restart conversation, the assistant has left"
+        return ""
     
     update_conversation(candidate_identifier, user_message=query)
     
@@ -303,7 +306,10 @@ def recieve_message(query, candidate_identifier):
         # Check if all fields are fulfilled
         check_and_process_candidate(candidate_identifier) # Save & upgrade candidate
 
-        return response
+        # Remove citation patterns for o3-mini
+        clean_response = re.sub(r'cite.*?', '', response)
+        
+        return clean_response
     
     else:
         # Get AI response
@@ -378,12 +384,11 @@ def check_and_process_candidate(candidate_identifier):
         extracted_info = candidate_data.get('extracted_info', {})
         thread_id = candidate_data.get('thread_id')
 
-        print("ASSISTANT'S CONFIRMATION VALUE:\n", extracted_info.get('assistant_confirmation', 'N/A'))
 
         # Define required fields
         required_fields = {
-            "first_name", "experience",
-            "lead_source", "lead_source_id", "availability", "city", "phone",
+            "first_name",
+            "phone",
             "location_id", "position_id"
         }
 
@@ -410,6 +415,10 @@ def check_and_process_candidate(candidate_identifier):
             except (ValueError, TypeError):
                 print("Invalid 'age' value. 'age' must be a numeric value.")
                 return False
+            
+        # Format phone number - remove all non-digit characters
+        if 'phone' in extracted_info and extracted_info['phone']:
+            extracted_info['phone'] = re.sub(r'\D', '', extracted_info['phone'])
 
         # Prepare the final JSON data
         candidate_json_data = {
@@ -418,13 +427,20 @@ def check_and_process_candidate(candidate_identifier):
             "thread_id": thread_id
         }
 
-        # Call the processing functions (assuming these work with JSON data)
-        save_to_database(candidate_json_data)
-        upgrade_candidate(candidate_identifier, candidate_json_data)
-
-        print("Candidate saved successfully")
-        return True
+        success = save_to_database(candidate_json_data)
+        
+        if success:
+            upgrade_candidate(candidate_identifier, candidate_json_data)
+            print("Candidate saved successfully")
+            
+            return True
+        else:
+            return False
 
     except Exception as e:
         print(f"Error processing candidate: {e}")
         return False
+
+
+
+
