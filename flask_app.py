@@ -12,6 +12,8 @@ import uuid
 from DataAccessLayer.createModels import createModelsMain
 from DataAccessLayer.createDatabaseORM import createDbMain
 from Injestor.pdf_reader import analyze_CV
+import threading
+from debounce_manager import DebounceManager, ui_message_store 
 
 from DataAccessLayer.services.candidateServices import (
     get_all_candidates,
@@ -52,10 +54,7 @@ from DataAccessLayer.services.positionServices import (
     update_position,
     delete_position
 )
-from DataAccessLayer.services.assistantServices import (
-    toggle_greeter_direction,
-    updateAssistantContext
-)
+
 from DataAccessLayer.services.customerServices import ( 
     get_customer_settings, 
     get_all_customers, 
@@ -74,14 +73,7 @@ WEBHOOK_VERIFY_TOKEN = os.getenv("WHATSAPP_WEBHOOK_VERIFY")
 
 MESSENGER_WEBHOOK_VERIFY_TOKEN = os.getenv('MESSENGER_WEBHOOK_VERIFY_TOKEN')
 MESSENGER_PAGE_ACCESS_TOKEN = os.getenv('MESSENGER_PAGE_ACCESS_TOKEN')
-
-message_buffer = {}
-inbox_contact_mapping = {}  # Maps sender_number → inbox_contact_id for hilos replies
-timers = {}
-ui_message_store = {}
-
-
-MESSAGE_DELAY = 10 
+debounce_manager = DebounceManager()
 
 def validate_token():
     token = request.headers.get('Authorization')
@@ -109,40 +101,31 @@ def get_issues():
     return jsonify({'issues': issues}), 200
 
 
-@app.route('/ui_send_message', methods=['POST'])
-def ui_send_message():
-    """
-    Handles UI-based message requests and applies delay before responding.
-    Queues the message, then waits briefly for the Timer to finalize the response
-    if no additional messages arrive.
-    """
-    data = request.json
-    message = data.get('message')
+@app.route('/ui_send_message', methods=['POST']) 
+def ui_send_message(): 
+    data = request.json 
+    message = data.get('message') 
     candidate_identifier = data.get('candidate_identifier')
-
     if not message or not candidate_identifier:
         return jsonify({'error': 'Invalid message or candidate_identifier'}), 400
 
-    # Put the message in the queue
-    enqueue_message(candidate_identifier, message)
+    # NEW: Instead of enqueue_message(...), call the manager
+    debounce_manager.enqueue_message(candidate_identifier, message)
 
-    # Wait until the response is available or time runs out
-    max_wait_time = MESSAGE_DELAY + 2
+    # Keep the same poll loop, but reference the manager’s delay
+    max_wait_time = debounce_manager.delay + 2
     elapsed_time = 0
-    poll_interval = 0.5  # Check every 500ms
+    poll_interval = 0.5
 
     while candidate_identifier not in ui_message_store and elapsed_time < max_wait_time:
         time.sleep(poll_interval)
         elapsed_time += poll_interval
 
-    # Once we either have a response or ran out of time
     if candidate_identifier in ui_message_store:
         final_response = ui_message_store.pop(candidate_identifier)
         return jsonify({'response': final_response})
     else:
-        # Return a placeholder if we still don't have a final response
         return jsonify({'response': 'Still working...'}), 200
-
 
 # Endpoint for webhook verification
 @app.route('/whatsapp_webhook', methods=['GET'])
@@ -157,72 +140,22 @@ def webhook_verification():
     else:
         return "Forbidden", 403
 
-def enqueue_message(sender_number, message, inbox_contact_id=None):
-    """
-    Adds a message to the buffer for sender_number, resets the timer,
-    and stores the inbox_contact_id if it's from Hilos.
-    """
-    if sender_number not in message_buffer:
-        message_buffer[sender_number] = []
-    message_buffer[sender_number].append(message)
-
-    if inbox_contact_id:
-        inbox_contact_mapping[sender_number] = inbox_contact_id
-
-    # Cancel previous Timer if it exists
-    if sender_number in timers:
-        timers[sender_number].cancel()
-
-    # Start a new Timer
-    timers[sender_number] = threading.Timer(MESSAGE_DELAY, process_messages, args=(sender_number,))
-    timers[sender_number].start()
-
-
-
-def process_messages(sender_number):
-    """
-    After the MESSAGE_DELAY, merge all queued messages and generate a single response.
-    If sender_number is from Hilos, send via the Hilos API;
-    Otherwise, store it in ui_message_store for UI retrieval.
-    """
-    time.sleep(MESSAGE_DELAY)
-
-    if sender_number in message_buffer:
-        combined_message = " ".join(message_buffer.pop(sender_number))
-        print(f"[INFO] Processing batched messages for {sender_number}: {combined_message}")
-
-        # Generate AI response once
-        response_message = recieve_message(combined_message, sender_number)
-        print(f"[INFO] AI Response for {sender_number}: {response_message}")
-
-        # Distinguish between UI calls and Hilos calls
-        if sender_number in inbox_contact_mapping:
-            # Hilos side → send to Hilos
-            inbox_contact_id = inbox_contact_mapping.pop(sender_number, None)
-            if inbox_contact_id:
-                send_hilos_message(inbox_contact_id, response_message)
-        else:
-            # UI side → store for the /ui_send_message route to pick up
-            ui_message_store[sender_number] = response_message
-
-
-@app.route('/hilos_webhook', methods=['POST'])
-def hilos_webhook_endpoint():
-    """Handles incoming messages from Hilos (WhatsApp)."""
+@app.route('/hilos_webhook', methods=['POST']) 
+def hilos_webhook_endpoint(): 
     data = request.json
 
     if data['event_data']['direction'] != "INBOUND":
-        print("[INFO] Not an inbound message. Skipping...")
         return jsonify({"processed_message": "message not inbound"}), 200
 
     try:
         sender_number = "".join(filter(str.isdigit, data['event_data']['from_number']))
         message = data['event_data']['body']
-        inbox_contact_id = data['event_data']['inbox_contact']  # Extract Hilos Contact ID
-        print(data)
+        inbox_contact_id = data['event_data']['inbox_contact']  # Hilos Contact ID
+
         print(f"[INFO] Received message from {sender_number} (Inbox ID: {inbox_contact_id}): {message}")
 
-        enqueue_message(sender_number, message, inbox_contact_id)  # Store and delay processing
+        # NEW: call the debounce manager
+        debounce_manager.enqueue_message(sender_number, message, inbox_contact_id)
 
         return jsonify({"message": "Message received and queued"}), 200
     except KeyError as e:
@@ -230,32 +163,6 @@ def hilos_webhook_endpoint():
         return jsonify({"error": "Invalid message format"}), 500
 
 
-def send_hilos_message(inbox_contact_id, message):
-    """Send a message back to the sender via Hilos API."""
-    HILOS_API_URL = "https://api.hilos.io/api/inbox/contact"
-    url = f"{HILOS_API_URL}/{inbox_contact_id}/message"
-
-    headers = {
-        "Content-Type": "application/json",
-        "Authorization": f"Token {HILOS_API_KEY}"
-    }
-
-    payload = {
-        'body': message,
-        'msg_type': 'text',
-        'is_deleted': False
-    }
-
-    print(f"[INFO] Sending message to {inbox_contact_id}: {message}")
-
-    try:
-        response = requests.post(url, json=payload, headers=headers)
-        if response.status_code == 201:
-            print(f"[SUCCESS] Message successfully sent to {inbox_contact_id}")
-        else:
-            print(f"[ERROR] Failed to send message. Status: {response.status_code}, Response: {response.text}")
-    except Exception as e:
-        print(f"[ERROR] Error sending message: {e}")
 
 
 # handles incoming messages from WhatsApp
@@ -591,28 +498,15 @@ def validate_password_endpoint():
     else:
         return jsonify({"success": False, "message": "Invalid credentials"}), 401
 
-@app.route('/toggle_greeter_direction', methods=['POST'])
-def toggleDirection():
-    auth_error = validate_token()
-    if auth_error:
-        return auth_error
-    try:
-        updated_instructions = toggle_greeter_direction()
-        return jsonify({"Updated Successfully": updated_instructions}), 200
-    except SQLAlchemyError as e:
-        return jsonify({"error": f"Error fetching users: {e}"}), 500
-    
-@app.route('/contextualize_greeter_instructions')
 # 1. Get all users
 @app.route('/users', methods=['GET'])
-def addContext():
+def users():
     auth_error = validate_token()
     if auth_error:
         return auth_error
     try:
-        updated_instructions = updateAssistantContext()
-        return jsonify({"Updated Successfully": updated_instructions}), 200
-
+        users = get_all_users()
+        return jsonify({"data": users}), 200
     except SQLAlchemyError as e:
         return jsonify({"error": f"Error fetching users: {e}"}), 500
 
@@ -873,59 +767,73 @@ def createDbfromModels():
         return jsonify({"error": f"Error deleting location: {e}"}), 500
 
 
+page_tokens = json.loads(os.getenv('MESSENGER_PAGE_TOKENS', '{}'))
+
+def process_event(event_data, page_access_token):
+    """Process message event in a separate thread"""
+    try:
+        webhookEvent = event_data['messaging'][0]
+        senderPsid = webhookEvent['sender']['id']
+        print(f'Processing message from {senderPsid}')
+
+        if 'message' in webhookEvent:
+            receivedMessage = webhookEvent['message']
+            
+            # Generate response
+            if 'text' in receivedMessage:
+                response_text = recieve_message(receivedMessage['text'], senderPsid)
+            else:
+                response_text = 'This chatbot only accepts text messages'
+
+            # Send response to Facebook API
+            payload = {
+                'recipient': {'id': senderPsid},
+                'message': {'text': response_text},
+                'messaging_type': 'RESPONSE'
+            }
+            headers = {'content-type': 'application/json'}
+            url = f'https://graph.facebook.com/v10.0/me/messages?access_token={page_access_token}'
+            requests.post(url, json=payload, headers=headers)
+
+    except Exception as e:
+        print(f"Error processing event: {str(e)}")
+
 @app.route('/messenger_webhook', methods=["GET", "POST"])
 def messenger_hook():
-    
     if request.method == 'GET':
-        if 'hub.mode' in request.args and 'hub.verify_token' in request.args:
-            mode = request.args.get('hub.mode')
-            token = request.args.get('hub.verify_token')
-            if mode == 'subscribe' and token == MESSENGER_WEBHOOK_VERIFY_TOKEN:
+        if all(key in request.args for key in ['hub.mode', 'hub.verify_token']):
+            if (request.args['hub.mode'] == 'subscribe' and 
+                request.args['hub.verify_token'] == MESSENGER_WEBHOOK_VERIFY_TOKEN):
                 print('WEBHOOK VERIFIED')
-                challenge = request.args.get('hub.challenge')
-                return challenge, 200
-            else:
-                return 'ERROR', 403
-        return 'SOMETHING', 200
+                return request.args.get('hub.challenge', ''), 200
+            return 'Verification token mismatch', 403
+        return 'Missing parameters', 400
 
     if request.method == 'POST':
-        data = request.data
-        body = json.loads(data.decode('utf-8'))
+        try:
+            data = json.loads(request.data)
+            
+            if data.get('object') == 'page':
+                for entry in data.get('entry', []):
+                    page_id = entry.get('id')
+                    page_access_token = page_tokens.get(page_id)
 
-        if 'object' in body and body['object'] == 'page':
-            entries = body['entry']
-            for entry in entries:
-                webhookEvent = entry['messaging'][0]
-                print(webhookEvent)
+                    if not page_access_token:
+                        print(f"Missing token for page {page_id}")
+                        continue
 
-                senderPsid = webhookEvent['sender']['id']
-                print('Sender PSID: {}'.format(senderPsid))
-
-                if 'message' in webhookEvent:
-                    receivedMessage = webhookEvent['message']
-
-                    # Check if the received message contains text
-                    if 'text' in receivedMessage:
-                        response = {"text": '{}'.format(recieve_message(receivedMessage['text'], senderPsid))}
-                    else:
-                        response = {"text": 'This chatbot only accepts text messages'}
-
-                    # Call the Sender API
-                    payload = {
-                        'recipient': {'id': senderPsid},
-                        'message': response,
-                        'messaging_type': 'RESPONSE'
-                    }
-                    headers = {'content-type': 'application/json'}
-
-                    url = 'https://graph.facebook.com/v10.0/me/messages?access_token={}'.format(MESSENGER_PAGE_ACCESS_TOKEN)
-                    r = requests.post(url, json=payload, headers=headers)
-                    print(r.text)
+                    # Start background thread for processing
+                    threading.Thread(
+                        target=process_event,
+                        args=(entry, page_access_token)
+                    ).start()
 
                 return 'EVENT_RECEIVED', 200
-        else:
-            return 'ERROR', 404
 
+        except Exception as e:
+            print(f"Webhook processing failed: {str(e)}")
+        
+        return 'ERROR', 404
 
 if __name__ == "__main__":
     app.run(host="0.0.0.0", port=80) ## dejar puerto 80 para que funcione en azure
